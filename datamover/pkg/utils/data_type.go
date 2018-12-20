@@ -11,8 +11,13 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
 package utils
+
+import (
+	"context"
+	pb "github.com/opensds/multi-cloud/datamover/proto"
+	flowtype "github.com/opensds/multi-cloud/dataflow/pkg/model"
+)
 
 type LocationInfo struct {
 	StorType   string //aws-s3,azure-blob,hw-obs,ceph-s3 etc.
@@ -35,4 +40,15 @@ type MoveWorker interface {
 	UploadPart(objKey string, destLoca *LocationInfo, upBytes int64, buf []byte, partNumber int64, offset int64) error
 	AbortMultipartUpload(objKey string, destLoca *LocationInfo) error
 	CompleteMultipartUpload(objKey string, destLoca *LocationInfo) error
+}
+
+type Migration interface {
+	Init()
+	HandleMsg(msg string)
+}
+
+type AssistHandler interface {
+	Init(in *string) error //in is json format
+	Handle(ctx context.Context, in *pb.RunJobRequest, j *flowtype.Job, remoteBucket string) error //info include authentification and other handler need information
+	//PostHandle(srcLoca *LocationInfo, destLoca *LocationInfo, j *flowtype.Job) error
 }

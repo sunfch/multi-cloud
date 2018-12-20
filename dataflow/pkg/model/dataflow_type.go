@@ -33,6 +33,10 @@ var (
 )
 
 var (
+	ASIST_TYPE_DATA_ANALYSIS		= "data_analysis"
+)
+
+var (
 	JOB_STATUS_PENDING = "pending"
 	JOB_STATUS_RUNNING = "running"
 	JOB_STATUS_SUCCEED = "succeed"
@@ -103,6 +107,21 @@ type Filter struct {
 	Tag    []KeyValue `json:"tag" bson:"tag"`
 }
 
+type AnalysisInfo struct {
+	Endpoint  	string		`json:"endpoint" bson:"endpoint"`
+	ClusterId   string    	`json:"clusterId" bson:"clusterId"`
+	Uname 		string 		`json:"dname" bson:"uname"`
+	Passwd 		string		`json:"passwd" bson:"passwd"`
+	Dname  		string 		`json:"dname" bson:"dname"`
+	ProgName 	string 		`json:"progName" bson:"progName"`
+	Arguments   string  	`json:"arguments" bson:"arguments"`
+}
+
+type AsistInfo struct {
+	Type      string        `json:"type" bson:"type"`
+	Details   []KeyValue	`json:"details,omitempty" bson:"details,omitempty"`
+}
+
 type Plan struct {
 	Id          bson.ObjectId `json:"-" bson:"_id,omitempty"`
 	Name        string        `json:"name" bson:"name"`
@@ -121,6 +140,7 @@ type Plan struct {
 	PolicyEnabled bool      `json:"policyEnabled" bson:"policyEnabled"`
 	TenantId      string    `json:"tenantId" bson:"tenantId"`
 	UserId        string    `json:"userId" bson:"userId"`
+	Asist         AsistInfo `json:"asist" bson:"asist,omitempty"`
 }
 
 const (
@@ -148,6 +168,8 @@ type Job struct {
 	Status         string    `json:"status" bson:"status"` //queueing,
 	Tenant         string    `json:"tenant" bson:"tenant"`
 	Progress       int64     `json:"progress" bson:"progress"`
+	StepDesc       string    `json:"stepDesc" bson:"stepDesc"`
+	//Asist 		   AsistInfo `json:"asist,omitempty" bson:"asist,omitempty"`
 }
 
 type Backend struct {

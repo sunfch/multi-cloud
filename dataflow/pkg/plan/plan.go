@@ -220,6 +220,12 @@ func Update(ctx *c.Context, planId string, updateMap map[string]interface{}) (*P
 		curPlan.RemainSource = v.(bool)
 	}
 
+	if v, ok := updateMap["Asist"]; ok {
+		b, _ := json.Marshal(v)
+		curPlan.Asist = AsistInfo{}
+		json.Unmarshal(b, curPlan.Asist)
+	}
+
 	if needUpdateTrigger {
 		trigger.GetTriggerMgr().Remove(ctx, curPlan)
 		if curPlan.PolicyId != "" && curPlan.PolicyEnabled {
@@ -331,6 +337,7 @@ func Run(ctx *c.Context, id string) (bson.ObjectId, error) {
 	job.Status = JOB_STATUS_PENDING
 	job.RemainSource = plan.RemainSource
 	job.StartTime = time.Time{}
+	//job.Asist = plan.Asist
 	//add job to database
 	_, err = db.DbAdapter.CreateJob(ctx, &job)
 	if err == nil {
@@ -345,6 +352,13 @@ func Run(ctx *c.Context, id string) (bson.ObjectId, error) {
 		buildConn(&destConn, &plan.DestConn)
 		req.DestConn = &destConn
 		req.RemainSource = job.RemainSource
+		asist := datamover.AsistInfo{Type:plan.Asist.Type}
+		for j := 0; j < len(plan.Asist.Details); j++ {
+			asist.Details = append(asist.Details, &datamover.KV{Key:plan.Asist.Details[j].Key,
+			Value:plan.Asist.Details[j].Value})
+		}
+		req.Asist = &asist
+
 		go sendJob(&req)
 	} else {
 		log.Logf("Add job[id=%s,plan=%s,source_location=%s,dest_location=%s] to database failed.\n", string(job.Id.Hex()),

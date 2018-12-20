@@ -11,6 +11,7 @@ It has these top-level messages:
 	KV
 	Filter
 	Connector
+	AsistInfo
 	RunJobRequest
 	RunJobResponse
 */

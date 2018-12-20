@@ -103,6 +103,9 @@ func (ad *adapter) UpdateJob(job *Job) error {
 	if job.Progress != 0 {
 		j.Progress = job.Progress
 	}
+	if job.StepDesc != "" {
+		j.StepDesc = job.StepDesc
+	}
 
 	err = c.Update(bson.M{"_id": j.Id}, &j)
 	if err != nil {

@@ -233,9 +233,17 @@ func planModel2Resp(plan *model.Plan) *pb.Plan {
 		tag := &pb.KV{Key: t.Key, Value: t.Value}
 		filter.Tag = append(filter.Tag, tag)
 	}
+
+	asist := pb.AsistInfo{Type:plan.Asist.Type}
+	for _, t := range plan.Asist.Details {
+		tag := &pb.KV{Key: t.Key, Value: t.Value}
+		asist.Details = append(asist.Details, tag)
+	}
+
 	resp.SourceConn = &srcConn
 	resp.DestConn = &destConn
 	resp.Filter = &filter
+	resp.Asist = &asist
 	return resp
 }
 
@@ -266,6 +274,7 @@ func (b *dataflowService) GetPlan(ctx context.Context, in *pb.GetPlanRequest, ou
 		log.Logf("jsons1: %s.\n", jsons)
 	}
 	//For debug -- end
+
 	return err
 }
 
@@ -318,6 +327,29 @@ func fillReqConnector(out *model.Connector, in *pb.Connector) error {
 	}
 }
 
+func checkAnalysisAsit(asist *pb.AsistInfo) error {
+	//TODO: check the validation of analysis asist
+	return nil
+}
+
+func checkAsistVlidation(asist *pb.AsistInfo) error {
+	if asist.Type == "" {
+		log.Log("No asist.")
+		return nil
+	}
+	switch asist.Type {
+	case model.ASIST_TYPE_DATA_ANALYSIS:
+		return checkAnalysisAsit(asist)
+	default:
+		msg := fmt.Sprintf("Unsupport asist type:%s.", asist.Type)
+		log.Logf("%s", msg)
+	    return errors.New(msg)
+	}
+	
+	log.Log("[checkAsistVlidation]:should not be here.")
+	return errors.New("Internal error.")
+}
+
 func (b *dataflowService) CreatePlan(ctx context.Context, in *pb.CreatePlanRequest, out *pb.CreatePlanResponse) error {
 	log.Log("Create plan is called in dataflow service.")
 	actx := c.NewContextFromJson(in.GetContext())
@@ -368,6 +400,20 @@ func (b *dataflowService) CreatePlan(ctx context.Context, in *pb.CreatePlanReque
 		}
 	}
 
+	pl.Asist = model.AsistInfo{}
+	if in.Plan.GetAsist() != nil {
+		if in.Plan.Asist.Type != "" {
+			pl.Asist = model.AsistInfo{Type:in.Plan.Asist.Type}
+		}
+		if len(in.Plan.Asist.Details) > 0 {
+			for j := 0; j < len(in.Plan.Asist.Details); j++ {
+				pl.Asist.Details = append(pl.Asist.Details, model.KeyValue{Key:in.Plan.Asist.Details[j].Key,
+				    Value:in.Plan.Asist.Details[j].Value})
+			}
+		}
+	}
+	err := checkAsistVlidation(in.Plan.Asist)
+
 	if pl.Name == "" || pl.Type == "" {
 		out.Err = "Name or type is null."
 		return errors.New("Name or type is null.")
@@ -382,6 +428,25 @@ func (b *dataflowService) CreatePlan(ctx context.Context, in *pb.CreatePlanReque
 	out.Plan = planModel2Resp(p)
 	return nil
 }
+
+/*func (b *dataflowService) CreatePlan(ctx context.Context, in *pb.CreatePlanRequest, out *pb.CreatePlanResponse) error {
+	log.Log("Create plan is called in dataflow service.")
+	actx := c.NewContextFromJson(in.GetContext())
+
+	createMap := map[string]interface{}{}
+	if err := json.Unmarshal([]byte(in.GetBody()), &createMap); err != nil {
+		return err
+	}
+
+	p, err := plan.Create(actx, createMap)
+	if err != nil {
+		log.Logf("Update plan finished, err:%s.", err)
+		return err
+	}
+
+	out.Plan = planModel2Resp(p)
+	return nil
+}*/
 
 func (b *dataflowService) DeletePlan(ctx context.Context, in *pb.DeletePlanRequest, out *pb.DeletePlanResponse) error {
 	log.Log("Delete plan is called in dataflow service.")
@@ -463,8 +528,9 @@ func (b *dataflowService) GetJob(ctx context.Context, in *pb.GetJobRequest, out 
 	} else {
 		out.Job = &pb.Job{Id: string(jb.Id.Hex()), Type: jb.Type, PlanName: jb.PlanName, PlanId: jb.PlanId,
 			Description: "for test", SourceLocation: jb.SourceLocation, DestLocation: jb.DestLocation,
-			CreateTime: jb.CreateTime.Unix(), EndTime: jb.EndTime.Unix(), Status: jb.Status, TotalCapacity: jb.TotalCapacity,
-			PassedCapacity: jb.PassedCapacity, TotalCount: jb.TotalCount, PassedCount: jb.PassedCount, Progress: jb.Progress}
+			CreateTime: jb.CreateTime.Unix(), EndTime: jb.EndTime.Unix(), Status: jb.Status,
+			TotalCapacity: jb.TotalCapacity, PassedCapacity: jb.PassedCapacity, TotalCount: jb.TotalCount,
+			PassedCount: jb.PassedCount, Progress: jb.Progress, StepDesc:jb.StepDesc}
 	}
 
 	//For debug -- begin

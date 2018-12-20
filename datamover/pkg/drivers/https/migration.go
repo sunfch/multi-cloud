@@ -23,6 +23,7 @@ import (
 	. "github.com/opensds/multi-cloud/datamover/pkg/utils"
 	pb "github.com/opensds/multi-cloud/datamover/proto"
 	osdss3 "github.com/opensds/multi-cloud/s3/proto"
+	mrs "github.com/opensds/multi-cloud/datamover/pkg/hw/mrs"
 )
 
 var simuRoutines = 10
@@ -33,9 +34,11 @@ var bkendclient backend.BackendService
 
 var logger = log.New(os.Stdout, "", log.LstdFlags)
 
-type Migration interface {
-	Init()
-	HandleMsg(msg string)
+type moveRequest struct {
+	src *LocationInfo
+	dest *LocationInfo
+	objs []*osdss3.Object
+	remainSrc bool
 }
 
 func Init() {
@@ -672,6 +675,241 @@ func prepare4Run(ctx context.Context, j *flowtype.Job, in *pb.RunJobRequest) (sr
 	return srcLoca, destLoca, objs, nil
 }
 
+func doMigration(ctx context.Context, mvReq moveRequest, j *flowtype.Job) error {
+	//TODO:Check if source and destination connectors can access.
+	srcLoca := mvReq.src
+	destLoca := mvReq.dest
+	objs := mvReq.objs
+
+	//Make channel
+	capa := make(chan int64)           //used to transfer capacity of objects
+	th := make(chan int, simuRoutines) //concurrent go routines is limited to be  simuRoutines
+
+	//Do migration for each object.
+	go doMove(ctx, objs, capa, th, srcLoca, destLoca, mvReq.remainSrc)
+
+	var capacity, count, passedCount, totalObjs int64
+	//TODO: What if a part of objects succeed, but the others failed.
+	count = 0
+	capacity = 0
+	passedCount = 0
+	totalObjs = j.TotalCount
+	tmout := false
+	for {
+		select {
+		case c := <-capa:
+			{ //if c equals 0, that means the object is migrated failed.
+				count++
+				if c >= 0 {
+					passedCount++
+					capacity += c
+				}
+				//TODO:update job in database, need to consider the update frequency
+				var deci int64 = totalObjs / 10
+				if totalObjs < 100 || count == totalObjs || count%deci == 0 {
+					//update database
+					j.PassedCount = (int64(passedCount))
+					j.PassedCapacity = capacity
+					j.Progress = int64(capacity * 100 / j.TotalCapacity)
+					logger.Printf("capacity:%d,TotalCapacity:%d Progress:%d\n", capacity, j.TotalCapacity, j.Progress)
+					db.DbAdapter.UpdateJob(j)
+				}
+			}
+		case <-time.After(time.Duration(JOB_RUN_TIME_MAX) * time.Second):
+			{
+				tmout = true
+				logger.Println("Timout.")
+			}
+		}
+		if count >= totalObjs || tmout {
+			logger.Printf("break, capacity=%d, timout=%v, count=%d, passed count=%d\n", capacity, tmout, count, passedCount)
+			close(capa)
+			close(th)
+			break
+		}
+	}
+
+	var ret error = nil
+	j.PassedCount = int64(passedCount)
+	if passedCount < totalObjs {
+		errmsg := "migrate failed:" + strconv.FormatInt(totalObjs, 10) + " objects, passed " +
+			strconv.FormatInt(passedCount, 10)
+		logger.Printf("%s\n", errmsg)
+		ret = errors.New(errmsg)
+	}
+
+	return ret
+}
+
+func updateJob(j *flowtype.Job, status string, step string) {
+	j.StepDesc = j.StepDesc + time.Now().UTC().Format("[2006-01-02 03:04:05:06] ") + step + "\n"
+	if status != "" {
+		j.Status = status
+	}
+	if j.Status == flowtype.JOB_STATUS_FAILED || j.Status == flowtype.JOB_STATUS_SUCCEED {
+		j.EndTime = time.Now()
+	}
+
+	for i := 1; i <= 3; i++ {
+		err := db.DbAdapter.UpdateJob(j)
+		if err == nil {
+			break
+		}
+		if i == 3 {
+			logger.Printf("Update the finish status of job in database failed three times, no need to try more.")
+			err = errors.New("Update job in database failed.")
+		}
+	}
+}
+
+func analysisHandle(ctx context.Context, in *pb.RunJobRequest, j *flowtype.Job,
+	destLoca *LocationInfo) error {
+	logger.Printf("[analysisHandle] begin.")
+	updateJob(j, mrs.JOB_STAT_RUNNING, "analysis ...")
+	var handler AssistHandler
+	switch destLoca.StorType {
+	case flowtype.STOR_TYPE_HW_OBS:
+		handler = &mrs.MrsDataAnalst{}
+	default:
+		logger.Printf("Unsupport storage type[%s] for data analysis.", destLoca.StorType)
+		updateJob(j, flowtype.JOB_STATUS_FAILED, "Failed:the analysis of target cloud is not support.")
+		return errors.New("the analysis of target cloud is not support.")
+	}
+
+	b, err := json.Marshal(in.Asist.Details)
+	if err != nil {
+		logger.Printf("Marshal in.Asist.Details failed:%v.", err)
+		updateJob(j, flowtype.JOB_STATUS_FAILED, "Failed:internal error.")
+		return errors.New("internal error.")
+	}
+	req := string(b)
+	err = handler.Init(&req)
+	if err != nil {
+		logger.Printf("Init handler failed:%v.", err)
+		updateJob(j, flowtype.JOB_STATUS_FAILED, "Failed: Init handler failed.")
+		return err
+	}
+	err = handler.Handle(ctx, in, j, destLoca.BucketName)
+	if err != nil {
+		updateJob(j, flowtype.JOB_STATUS_FAILED, err.Error())
+		logger.Printf("handler.Handle failed:%v", err)
+		return err
+	}
+
+	return nil
+}
+
+func asistHandle(ctx context.Context, in *pb.RunJobRequest, j *flowtype.Job,
+	destLoca *LocationInfo) error {
+	var err error
+	switch in.Asist.Type {
+	case flowtype.ASIST_TYPE_DATA_ANALYSIS:
+		analysisHandle(ctx, in, j, destLoca)
+	default:
+		errmsg := fmt.Sprintf("Failed: the analysis type[%s] is not supported.", in.Asist.Type)
+		logger.Println(errmsg)
+		err = errors.New(errmsg)
+	}
+
+	if err != nil {
+		updateJob(j, flowtype.JOB_STATUS_FAILED, err.Error())
+	}
+
+	return err
+}
+
+func migrateResult(ctx context.Context, mvReq moveRequest, j *flowtype.Job) {
+	//TODO:Check if source and destination connectors can access.
+	srcLoca := mvReq.src
+	destLoca := mvReq.dest
+	objs := mvReq.objs
+
+	//Make channel
+	capa := make(chan int64)           //used to transfer capacity of objects
+	th := make(chan int, simuRoutines) //concurrent go routines is limited to be  simuRoutines
+
+	//Do migration for each object.
+	go doMove(ctx, objs, capa, th, srcLoca, destLoca, mvReq.remainSrc)
+
+	var capacity, count, passedCount, totalObjs int64
+	//TODO: What if a part of objects succeed, but the others failed.
+	count = 0
+	capacity = 0
+	passedCount = 0
+	totalObjs = int64(len(objs))
+	tmout := false
+	for {
+		select {
+		case c := <-capa:
+			{ //if c equals 0, that means the object is migrated failed.
+				count++
+				if c >= 0 {
+					passedCount++
+					capacity += c
+				}
+			}
+		case <-time.After(time.Duration(JOB_RUN_TIME_MAX) * time.Second):
+			{
+				tmout = true
+				logger.Println("Timout.")
+			}
+		}
+		if count >= totalObjs || tmout {
+			logger.Printf("Download result break, capacity=%d, timout=%v, count=%d, passed count=%d\n", capacity, tmout, count, passedCount)
+			close(capa)
+			close(th)
+			break
+		}
+	}
+
+	msg := "migrate successfully."
+	j_status := flowtype.JOB_STATUS_SUCCEED
+	if passedCount < totalObjs {
+		msg := " Migrate result failed:" + strconv.FormatInt(totalObjs, 10) + " objects, passed " +
+			strconv.FormatInt(passedCount, 10)
+		logger.Printf("%s\n", msg)
+		j_status = flowtype.JOB_STATUS_FAILED
+	}
+	updateJob(j, j_status, msg)
+}
+
+func dataAnalysisPostHandle(ctx context.Context, j *flowtype.Job, srcLoca *LocationInfo,
+	destLoca *LocationInfo) error {
+	updateJob(j, flowtype.JOB_STATUS_RUNNING, "getting analysis result")
+
+	virtConn := pb.Connector{Type:srcLoca.StorType}
+	filt := pb.Filter{Prefix:srcLoca.VirBucket + "/output/"}
+	//The objects produced by analysis service is not belong to and virtual bucket of opensds right now.
+	srcLoca.VirBucket = ""
+	objs, err := getSourceObjs(ctx, &virtConn, &filt, srcLoca)
+	if err != nil {
+		return  errors.New("Failed: Get result failed.")
+	}
+	if len(objs) == 0 {
+		return errors.New("Failed: No result got.")
+	}
+
+	mvReq := moveRequest{src:srcLoca, dest:destLoca, objs:objs, remainSrc:false}
+    migrateResult(ctx, mvReq, j)
+
+	return nil
+}
+
+func asistPostHandle(ctx context.Context, in *pb.RunJobRequest, j *flowtype.Job,
+	srcLoca *LocationInfo, destLoca *LocationInfo) error {
+	switch in.Asist.Type {
+	case flowtype.ASIST_TYPE_DATA_ANALYSIS:
+		return dataAnalysisPostHandle(ctx, j, srcLoca, destLoca)
+	default:
+		errmsg := fmt.Sprintf("Failed: the analysis type[%s] is not supported.", in.Asist.Type)
+		logger.Println(errmsg)
+		return errors.New(errmsg)
+	}
+
+	logger.Println("[asistHandle] Should not be here.")
+	return errors.New("Failed: Internal error.")
+}
+
 func runjob(in *pb.RunJobRequest) error {
 	logger.Println("Runjob is called in datamover service.")
 	logger.Printf("Request: %+v\n", in)
@@ -679,7 +917,6 @@ func runjob(in *pb.RunJobRequest) error {
 	j := flowtype.Job{Id: bson.ObjectIdHex(in.Id)}
 	j.StartTime = time.Now()
 
-	//TODO:Check if source and destination connectors can access.
 	ctx := context.Background()
 	_, ok := ctx.Deadline()
 	if !ok {
@@ -706,76 +943,33 @@ func runjob(in *pb.RunJobRequest) error {
 	if j.TotalCount == 0 || j.TotalCapacity == 0 {
 		return nil
 	}
+	mvReq := moveRequest{src:srcLoca, dest:destLoca, objs:objs, remainSrc:in.RemainSource}
 
-	//Make channel
-	capa := make(chan int64)           //used to transfer capacity of objects
-	th := make(chan int, simuRoutines) //concurrent go routines is limited to be  simuRoutines
-
-	//Do migration for each object.
-	go doMove(ctx, objs, capa, th, srcLoca, destLoca, in.RemainSource)
-
-	var capacity, count, passedCount, totalObjs int64
-	//TODO: What if a part of objects succeed, but the others failed.
-	count = 0
-	capacity = 0
-	passedCount = 0
-	totalObjs = j.TotalCount
-	tmout := false
-	for {
-		select {
-		case c := <-capa:
-			{ //if c equals 0, that means the object is migrated failed.
-				count++
-				if c >= 0 {
-					passedCount++
-					capacity += c
-				}
-				//TODO:update job in database, need to consider the update frequency
-				var deci int64 = totalObjs / 10
-				if totalObjs < 100 || count == totalObjs || count%deci == 0 {
-					//update database
-					j.PassedCount = (int64(passedCount))
-					j.PassedCapacity = capacity
-					j.Progress = int64(capacity * 100 / j.TotalCapacity)
-					logger.Printf("capacity:%d,TotalCapacity:%d Progress:%d\n", capacity, j.TotalCapacity, j.Progress)
-					db.DbAdapter.UpdateJob(&j)
-				}
-			}
-		case <-time.After(time.Duration(JOB_RUN_TIME_MAX) * time.Second):
-			{
-				tmout = true
-				logger.Println("Timout.")
-			}
-		}
-		if count >= totalObjs || tmout {
-			logger.Printf("break, capacity=%d, timout=%v, count=%d, passed count=%d\n", capacity, tmout, count, passedCount)
-			close(capa)
-			close(th)
-			break
-		}
+	updateJob(&j, flowtype.JOB_STATUS_RUNNING, "migrate ...")
+	err = doMigration(ctx, mvReq, &j)
+	if err != nil {
+		updateJob(&j, flowtype.JOB_STATUS_FAILED, err.Error())
+		return err
+	} else if in.Asist.Type == "" {//No asist
+	    logger.Println("No asist handle needed, job end.")
+		updateJob(&j, flowtype.JOB_STATUS_SUCCEED, "migrate sucecessfully.")
+		return nil
 	}
 
-	var ret error = nil
-	j.PassedCount = int64(passedCount)
-	if passedCount < totalObjs {
-		errmsg := strconv.FormatInt(totalObjs, 10) + " objects, passed " + strconv.FormatInt(passedCount, 10)
-		logger.Printf("Run job failed: %s\n", errmsg)
-		ret = errors.New("failed")
-		j.Status = flowtype.JOB_STATUS_FAILED
-	} else {
-		j.Status = flowtype.JOB_STATUS_SUCCEED
+	logger.Println("Asist handle needed.")
+	switch in.Asist.Type {
+	case flowtype.ASIST_TYPE_DATA_ANALYSIS:
+		err = asistHandle(ctx, in, &j, destLoca)
+	default:
+		logger.Printf("Unsupport asist type:%s.\n", in.Asist.Type)
+		return errors.New("Unsupport asist type.")
 	}
 
-	j.EndTime = time.Now()
-	for i := 1; i <= 3; i++ {
-		err := db.DbAdapter.UpdateJob(&j)
-		if err == nil {
-			break
-		}
-		if i == 3 {
-			logger.Printf("Update the finish status of job in database failed three times, no need to try more.")
-		}
+    //Asist post handle.
+    //For getting analysis result, destination and source should be swapped.
+    if err == nil {
+		err = asistPostHandle(ctx, in, &j, destLoca, srcLoca)
 	}
 
-	return ret
+	return err
 }

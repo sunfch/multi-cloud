@@ -20,12 +20,18 @@ message Connector {
 	repeated KV ConnConfig = 3;
 }
 
+message AsistInfo {
+	string type = 1;
+	repeated KV details = 2;
+}
+
 message RunJobRequest{
 	string id = 1;
 	Connector sourceConn = 2;
 	Connector destConn = 3;
 	Filter filt = 4;
 	bool remainSource = 5;
+	AsistInfo asist = 6;
 }
 
 message RunJobResponse {

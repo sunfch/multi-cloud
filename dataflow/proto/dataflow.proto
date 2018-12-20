@@ -95,6 +95,10 @@ message Connector {
 	repeated KV connConfig = 3;
 }
 
+message AsistInfo {
+	string type = 1;
+	repeated KV details = 2;
+}
 
 message Plan {
 	string id = 1;
@@ -110,6 +114,7 @@ message Plan {
 	string tenantId = 11;
 	string userId = 12;
 	bool policyEnabled = 13;
+    AsistInfo asist = 14;
 }
 
 message CreatePlanRequest {
@@ -194,6 +199,7 @@ message Job {
 	int64 totalCount = 15;
 	int64 passedCount = 16;
 	int64 progress = 17;
+	string stepDesc = 18; //describe running steps, like migration, analysis, getting result, etc.
 }
 
 message GetJobRequest {
