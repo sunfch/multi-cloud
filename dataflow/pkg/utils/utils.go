@@ -14,8 +14,36 @@
 
 package utils
 
+const (
+	ActionExpiration		int = iota
+	ActionIncloudTransition
+	ActionCrosscloudTransition
+)
+
+const (
+	KObjKey = "objkey"
+	KLastModified = "lastmodified"
+	KStorageTier = "tier"
+)
+
 type Database struct {
 	Credential string `conf:"credential,username:password@tcp(ip:port)/dbname"`
 	Driver     string `conf:"driver,mongodb"`
 	Endpoint   string `conf:"endpoint,localhost:27017"`
+}
+
+type InternalLifecycleFilter struct {
+	Prefix 		string
+	Tags		[]string
+}
+
+type InternalLifecycleRule struct {
+	Id		string
+	Bucket  string
+	Filter  InternalLifecycleFilter
+	Days    int32
+	Tier    int32
+	ActionType  int  // 0-Expiration, 1-IncloudTransition, 2-CrossCloudTransition
+	DeleteMarker string
+	Backend string
 }

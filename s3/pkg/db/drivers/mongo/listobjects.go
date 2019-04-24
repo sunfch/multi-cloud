@@ -65,6 +65,14 @@ func (ad *adapter) ListObjects(in *pb.ListObjectsRequest, out *[]pb.Object) S3Er
 				filter = append(filter, bson.M{"lastmodified": bson.M{op: secs}})
 			}
 		}
+		if in.Filter[common.KStorageTier] != "" {
+			tier, err := strconv.Atoi(in.Filter[common.KStorageTier])
+			if err != nil {
+				log.Logf("Invalid storage class:%s\n", in.Filter[common.KStorageTier])
+				return InvalidQueryParameter
+			}
+			filter = append(filter, bson.M{"tier": bson.M{"$lt": tier}})
+		}
 	}
 
 	log.Logf("filter:%+v\n", filter)

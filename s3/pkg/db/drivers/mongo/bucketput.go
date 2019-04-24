@@ -23,6 +23,15 @@ import (
 )
 
 func (ad *adapter) CreateBucket(in *pb.Bucket) S3Error {
+	/*//Check if default storage class is valid
+	sc := in.StorageClass
+	e, v := ad.CheckStorageClassValidation(&sc)
+	if e != nil {
+		return InternalError
+	} else if v == "" {
+		return InvalidStorageClass
+	}*/
+
 	ss := ad.s.Copy()
 	defer ss.Close()
 	out := pb.Bucket{}

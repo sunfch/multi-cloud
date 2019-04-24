@@ -61,8 +61,8 @@ func setIndex(session *mgo.Session, colName string, key string, unique bool, dro
 
 	index := mgo.Index{
 		Key:      []string{key}, //index key
-		Unique:   unique,        //Prevent two documents from having the same index key
-		DropDups: dropDups,      //Drop documents with the same index key as a previously indexed one.
+		Unique:   unique,                //Prevent two documents from having the same index key
+		DropDups: dropDups,               //Drop documents with the same index key as a previously indexed one.
 		// Invalid when Unique equals true.
 		Background: backgroudn, //If Background is true, other connections will be allowed to proceed
 		// using the collection without the index while it's being built.
@@ -201,6 +201,20 @@ func (ad *adapter) UnlockSched(planId string) int {
 	defer ss.Close()
 
 	return unlock(ss, planId)
+}
+
+func (ad *adapter) LockBucketLifecycleSched(bucketName string) int {
+	ss := ad.s.Copy()
+	defer ss.Close()
+
+	return lock(ss, bucketName, 300) //One schedule is supposed to be finished in 300 seconds
+}
+
+func (ad *adapter) UnlockBucketLifecycleSched(bucketName string) int {
+	ss := ad.s.Copy()
+	defer ss.Close()
+
+	return unlock(ss, bucketName)
 }
 
 func (ad *adapter) CreatePolicy(ctx *Context, pol *Policy) (*Policy, error) {
@@ -605,6 +619,7 @@ func (ad *adapter) GetPlanByPolicy(ctx *Context, policyId string, limit int, off
 func (ad *adapter) CreateJob(ctx *Context, job *Job) (*Job, error) {
 	job.Tenant = ctx.TenantId
 	ss := ad.s.Copy()
+
 	defer ss.Close()
 
 	c := ss.DB(DataBaseName).C(CollJob)

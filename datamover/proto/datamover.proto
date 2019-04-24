@@ -2,6 +2,7 @@ syntax = "proto3";
 
 service datamover {
 	rpc Runjob(RunJobRequest) returns (RunJobResponse) {}
+	rpc DoLifecycleAction(LifecycleActionRequest) returns (LifecycleActionResonse) {}
 }
 
 message KV {
@@ -29,5 +30,20 @@ message RunJobRequest{
 }
 
 message RunJobResponse {
+	string err = 1;
+}
+
+message LifecycleActionRequest {
+	string objKey = 1;
+	string bucketName = 2;
+	int32 action = 3;
+	int32 sourceTier = 4;
+	int32 targetTier = 5;
+	string sourceBackend = 6;
+	string targetBackend = 7;
+	int64 objSize = 8;
+}
+
+message LifecycleActionResonse {
 	string err = 1;
 }

@@ -25,6 +25,16 @@ type LocationInfo struct {
 	BakendName string
 }
 
+type BackendInfo struct {
+	StorType   string //aws-s3,azure-blob,hw-obs,ceph-s3 etc.
+	Region     string
+	EndPoint   string
+	BucketName string //remote bucket name
+	Access     string
+	Security   string
+	BakendName string
+}
+
 type MoveWorker interface {
 	DownloadObj(objKey string, srcLoca *LocationInfo, buf []byte) (size int64, err error)
 	UploadObj(objKey string, destLoca *LocationInfo, buf []byte) error
@@ -35,4 +45,27 @@ type MoveWorker interface {
 	UploadPart(objKey string, destLoca *LocationInfo, upBytes int64, buf []byte, partNumber int64, offset int64) error
 	AbortMultipartUpload(objKey string, destLoca *LocationInfo) error
 	CompleteMultipartUpload(objKey string, destLoca *LocationInfo) error
+	ChangeStorageClass(objKey *string, newClass *string, bkend *BackendInfo) error
 }
+
+//Object Storage Type
+const (
+	OSTYPE_AWS = "AWSS3"
+	OSTYPE_Azure = "AzureBlob"
+	OSTYPE_OBS = "HuaweiOBS"
+	OSTYPE_GCS = "GoogleCloudStorage"
+	OSTYPE_CEPTH = "CephS3"
+	OSTYPE_FUSIONSTORAGE = "FusionStorage"
+	OSTYPE_IBM = "IBMCOS"
+)
+
+const (
+	Tier1 = 1
+	Tier9 = 99
+	Tier99 = 999
+)
+
+const (
+	OBJMETA_TIER = "tier"
+	OBJMETA_BACKEND = "backend"
+)

@@ -11,9 +11,9 @@ service S3 {
 	rpc UpdateObject(Object) returns (BaseResponse) {}
 	rpc GetObject(GetObjectInput) returns (Object) {}
 	rpc DeleteObject(DeleteObjectInput) returns (BaseResponse) {}
+	rpc GetTierMap(NullRequest) returns (GetTierMapResponse) {}
+	rpc UpdateObjMeta(UpdateObjMetaRequest) returns (BaseResponse) {}
 }
-
-
 
 message ACL {
 	string canned = 1;
@@ -99,16 +99,18 @@ message Tag {
 
 message LifecycleFilter {
 	string prefix = 1;
-	repeated Tag tags = 2;
+	repeated Tag tags = 2;  //Do not support tags right now --20190321
 }
 
 message Action {
-	string name = 1;
-	string day = 2;
-	string deleteMarker = 4;
+	string name = 1;   //expiration or transition
+	int32 days = 2;
+	string deleteMarker = 4;  //for versioning
+	int32 tier = 5;  //only for transition
+	string backend = 6;		  //for cross-cloud transition, if it is not set, that means in-cloud transition
 }
 
-message LifecycleRole {
+message LifecycleRule {
 	string id = 1;
 	string status = 2;
 	LifecycleFilter filter = 3;
@@ -135,7 +137,8 @@ message Bucket {
 	WebsiteConfiguration websiteConfiguration = 11;
 	CORSConfiguration cors = 12;
 	ReplicationConfiguration replicationConfiguration = 13;
-	repeated LifecycleRole lifecycleConfiguration = 14;
+	//string storageClass = 14;
+	repeated LifecycleRule lifecycleConfiguration = 14;
 }
 
 message Partion {
@@ -176,11 +179,12 @@ message Object {
 	string isDeleteMarker = 19;
 	repeated ReplicationInfo replicationInfo = 20;
 	int64 size = 21;
-	repeated Partion partions =22;
+	repeated Partion partions = 22;
 	repeated Tag tags = 23;
-	int64 lastModified =24;
-	string initFlag=25;
-	string ETag=26;
+	int64 lastModified = 24;
+	string initFlag = 25;
+	string ETag = 26;
+	int32 tier = 27;
 }
 
 
@@ -234,4 +238,27 @@ message ListParts {
     string uploadId = 3;
     int64	MaxParts = 4;
     int64	PartNumberMarker = 5;
+}
+
+message NullRequest {
+
+}
+
+message TList {
+	repeated int32 Tier = 1;
+}
+
+message Tier2ClassName {
+	map<int32, string> lst = 1;
+}
+
+message GetTierMapResponse {
+	map<int32, TList> TransitionMap = 1;
+	map<string, Tier2ClassName> Tier2Name = 2;
+}
+
+message UpdateObjMetaRequest {
+	string ObjKey = 1;
+	string BucketName = 2;
+	map<string, string> Setting = 3;
 }

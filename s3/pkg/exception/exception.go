@@ -43,3 +43,5 @@ var BucketDeleteError = S3Error{Code: 500, Description: "The bucket can not be d
 var BackendDeleteError = S3Error{Code: 500, Description: "The backend can not be deleted. please delete bucket first"}
 
 var InvalidQueryParameter = S3Error{Code:400, Description:"Invalid query parameter"}
+var InvalidStorageClass = S3Error{Code: 400, Description: "InvalidStorageClass: The storage class you specified is not valid"}
+var BadRequest = S3Error{Code:400, Description:"Request is invalid"}

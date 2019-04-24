@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"time"
+	"github.com/opensds/multi-cloud/datamover/pkg/drivers/lifecycle"
 )
 
 var consumer *cluster.Consumer
@@ -80,6 +81,10 @@ func LoopConsume() {
 					//TODO: think about how many jobs can run concurrently
 					logger.Printf("Got an migration job:%s\n", msg.Value)
 					err = migration.HandleMsg(msg.Value)
+				case "lifecycle":
+					//Do lifecycle actions.
+					logger.Printf("Got an lifecycle action request:%s\n", msg.Value)
+					err = lifecycle.HandleMsg(msg.Value)
 				default:
 					logger.Printf("Not support topic:%s\n", msg.Topic)
 				}
@@ -87,7 +92,7 @@ func LoopConsume() {
 					consumer.MarkOffset(msg, "")
 				}
 			}
-		case <-signals:
+		case <- signals:
 			logger.Println("trap system SIGINT signal")
 			return
 		}

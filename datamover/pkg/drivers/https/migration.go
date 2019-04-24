@@ -58,7 +58,8 @@ func HandleMsg(msgData []byte) error {
 	status := db.DbAdapter.GetJobStatus(job.Id)
 	if status != flowtype.JOB_STATUS_PENDING {
 		logger.Printf("Job[ID#%s] is not in %s status.\n", job.Id, flowtype.JOB_STATUS_PENDING)
-		return errors.New("Job already running.")
+		//return errors.New("Job already running.")
+		return nil //No need to consume this message again
 	}
 
 	logger.Printf("HandleMsg:job=%+v\n", job)
@@ -142,7 +143,7 @@ func getConnLocation(ctx context.Context, conn *pb.Connector) (*LocationInfo, er
 	}
 }
 
-func moveObj(obj *osdss3.Object, srcLoca *LocationInfo, destLoca *LocationInfo) error {
+func MoveObj(obj *osdss3.Object, srcLoca *LocationInfo, destLoca *LocationInfo) error {
 	logger.Printf("*****Move object[%s] from #%s# to #%s#, size is %d.\n", obj.ObjectKey, srcLoca.BakendName,
 		destLoca.BakendName, obj.Size)
 	if obj.Size <= 0 {
@@ -318,7 +319,7 @@ func completeMultipartUpload(objKey string, destLoca *LocationInfo, mover MoveWo
 	return errors.New("Unsupport storage type.")
 }
 
-func multipartMoveObj(obj *osdss3.Object, srcLoca *LocationInfo, destLoca *LocationInfo) error {
+func MultipartMoveObj(obj *osdss3.Object, srcLoca *LocationInfo, destLoca *LocationInfo) error {
 	partCount := int64(obj.Size / PART_SIZE)
 	if obj.Size%PART_SIZE != 0 {
 		partCount++
@@ -496,9 +497,9 @@ func move(ctx context.Context, obj *osdss3.Object, capa chan int64, th chan int,
 			}
 		}
 		if obj.Size <= PART_SIZE {
-			err = moveObj(obj, newSrcLoca, destLoca)
+			err = MoveObj(obj, newSrcLoca, destLoca)
 		} else {
-			err = multipartMoveObj(obj, newSrcLoca, destLoca)
+			err = MultipartMoveObj(obj, newSrcLoca, destLoca)
 		}
 
 		if err != nil {

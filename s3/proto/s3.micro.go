@@ -23,7 +23,7 @@ It has these top-level messages:
 	Tag
 	LifecycleFilter
 	Action
-	LifecycleRole
+	LifecycleRule
 	ReplicationInfo
 	Bucket
 	Partion
@@ -38,6 +38,12 @@ It has these top-level messages:
 	GetObjectInput
 	MultipartUpload
 	ListParts
+	StorageClassDef
+	NullRequest
+	TList
+	Tier2ClassName
+	GetTierMapResponse
+	UpdateObjMetaRequest
 */
 package s3
 
@@ -79,6 +85,8 @@ type S3Service interface {
 	UpdateObject(ctx context.Context, in *Object, opts ...client.CallOption) (*BaseResponse, error)
 	GetObject(ctx context.Context, in *GetObjectInput, opts ...client.CallOption) (*Object, error)
 	DeleteObject(ctx context.Context, in *DeleteObjectInput, opts ...client.CallOption) (*BaseResponse, error)
+	GetTierMap(ctx context.Context, in *NullRequest, opts ...client.CallOption) (*GetTierMapResponse, error)
+	UpdateObjMeta(ctx context.Context, in *UpdateObjMetaRequest, opts ...client.CallOption) (*BaseResponse, error)
 }
 
 type s3Service struct {
@@ -189,6 +197,26 @@ func (c *s3Service) DeleteObject(ctx context.Context, in *DeleteObjectInput, opt
 	return out, nil
 }
 
+func (c *s3Service) GetTierMap(ctx context.Context, in *NullRequest, opts ...client.CallOption) (*GetTierMapResponse, error) {
+	req := c.c.NewRequest(c.name, "S3.GetTierMap", in)
+	out := new(GetTierMapResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *s3Service) UpdateObjMeta(ctx context.Context, in *UpdateObjMetaRequest, opts ...client.CallOption) (*BaseResponse, error) {
+	req := c.c.NewRequest(c.name, "S3.UpdateObjMeta", in)
+	out := new(BaseResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for S3 service
 
 type S3Handler interface {
@@ -201,6 +229,8 @@ type S3Handler interface {
 	UpdateObject(context.Context, *Object, *BaseResponse) error
 	GetObject(context.Context, *GetObjectInput, *Object) error
 	DeleteObject(context.Context, *DeleteObjectInput, *BaseResponse) error
+	GetTierMap(context.Context, *NullRequest, *GetTierMapResponse) error
+	UpdateObjMeta(context.Context, *UpdateObjMetaRequest, *BaseResponse) error
 }
 
 func RegisterS3Handler(s server.Server, hdlr S3Handler, opts ...server.HandlerOption) error {
@@ -214,6 +244,8 @@ func RegisterS3Handler(s server.Server, hdlr S3Handler, opts ...server.HandlerOp
 		UpdateObject(ctx context.Context, in *Object, out *BaseResponse) error
 		GetObject(ctx context.Context, in *GetObjectInput, out *Object) error
 		DeleteObject(ctx context.Context, in *DeleteObjectInput, out *BaseResponse) error
+		GetTierMap(ctx context.Context, in *NullRequest, out *GetTierMapResponse) error
+		UpdateObjMeta(ctx context.Context, in *UpdateObjMetaRequest, out *BaseResponse) error
 	}
 	type S3 struct {
 		s3
@@ -260,4 +292,12 @@ func (h *s3Handler) GetObject(ctx context.Context, in *GetObjectInput, out *Obje
 
 func (h *s3Handler) DeleteObject(ctx context.Context, in *DeleteObjectInput, out *BaseResponse) error {
 	return h.S3Handler.DeleteObject(ctx, in, out)
+}
+
+func (h *s3Handler) GetTierMap(ctx context.Context, in *NullRequest, out *GetTierMapResponse) error {
+	return h.S3Handler.GetTierMap(ctx, in, out)
+}
+
+func (h *s3Handler) UpdateObjMeta(ctx context.Context, in *UpdateObjMetaRequest, out *BaseResponse) error {
+	return h.S3Handler.UpdateObjMeta(ctx, in, out)
 }

@@ -49,6 +49,11 @@ func (s *APIService) ObjectPut(request *restful.Request, response *restful.Respo
 	log.Logf("objectKey is %v:\n", objectKey)
 	contentLenght := request.HeaderParameter("content-length")
 	backendName := request.HeaderParameter("x-amz-storage-class")
+	/*sc := request.HeaderParameter("x-amz-storage-class")
+	if sc == "" { // If storage class is not specified, then STANDARD will be used.
+		sc = "STANDARD"
+	}
+	backendName := request.HeaderParameter("x-backend-name")*/
 	log.Logf("backendName is :%v\n", backendName)
 	object := s3.Object{}
 	object.BucketName = bucketName
@@ -58,6 +63,7 @@ func (s *APIService) ObjectPut(request *restful.Request, response *restful.Respo
 	object.IsDeleteMarker = ""
 	object.InitFlag = ""
 	object.LastModified = time.Now().Unix()
+	//object.StorageClass = sc
 	ctx := context.WithValue(request.Request.Context(), "operation", "upload")
 
 	log.Logf("Received request for create bucket: %s", bucketName)
