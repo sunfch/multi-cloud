@@ -150,7 +150,7 @@ func loadFusionStroageDefault(i2e *map[string]*Int2String, e2i *map[string]*Stri
 
 func loadDefaultStorageClass() error {
 	/* Default storage class definition:
-							T1		        T2					T99
+							T1		        T99					T999
 	  AWS S3:				STANDARD		STANDARD_IA			GLACIER
 	  Azure Blob:			HOT				COOL				ARCHIVE
 	  HW OBS:				STANDARD		WARM				COLD
@@ -159,12 +159,12 @@ func loadDefaultStorageClass() error {
 	  FusinoStorage Object: STANDARD		-					-
 	*/
 	/* Lifecycle transition:
-	  T1 -> T2:  allowed
-	  T1 -> T99: allowed
-	  T2 -> T99: allowed
-      T2 -> T1:  not allowed
-	  T99 -> T1: not allowed
-	  T99 -> T2: not allowed
+	  T1 -> T99:  allowed
+	  T1 -> T999: allowed
+	  T99 -> T999: allowed
+      T99 -> T1:  not allowed
+	  T999 -> T1: not allowed
+	  T999 -> T99: not allowed
 	*/
 
 	Int2ExtTierMap = make(map[string]*Int2String)
