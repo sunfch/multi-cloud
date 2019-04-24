@@ -41,6 +41,23 @@ var TransitionMap map[int32][]int32
 
 type s3Service struct{}
 
+func getTierFromName(className string) (int32, S3Error) {
+	v, ok := Ext2IntTierMap[OSTYPE_OPENSDS]
+	if !ok {
+		log.Logf("Get tier of storage class[%s] failed.\n", className)
+		return 0, InternalError
+	}
+
+	v2, ok := (*v)[className]
+	if !ok {
+		log.Logf("Get tier of storage class[%s] failed.\n", className)
+		return 0, InternalError
+	}
+
+	log.Logf("Get tier of storage class[%s] successfully.\n", className)
+	return v2, NoError
+}
+
 func loadAWSDefault(i2e *map[string]*Int2String, e2i *map[string]*String2Int) {
 	t2n := make(Int2String)
 	t2n[Tier1] = AWS_STANDARD
@@ -54,6 +71,21 @@ func loadAWSDefault(i2e *map[string]*Int2String, e2i *map[string]*String2Int) {
 	n2t[AWS_GLACIER] = Tier99
 	(*e2i)[OSTYPE_AWS] = &n2t
 }
+
+func loadOpenSDSDefault(i2e *map[string]*Int2String, e2i *map[string]*String2Int) {
+	t2n := make(Int2String)
+	t2n[Tier1] = AWS_STANDARD
+	t2n[Tier9] = AWS_STANDARD_IA
+	t2n[Tier99] = AWS_GLACIER
+	(*i2e)[OSTYPE_OPENSDS] = &t2n
+
+	n2t := make(String2Int)
+	n2t[AWS_STANDARD] = Tier1
+	n2t[AWS_STANDARD_IA] = Tier9
+	n2t[AWS_GLACIER] = Tier99
+	(*e2i)[OSTYPE_OPENSDS] = &n2t
+}
+
 func loadAzureDefault(i2e *map[string]*Int2String, e2i *map[string]*String2Int) {
 	t2n := make(Int2String)
 	t2n[Tier1] = string(azblob.AccessTierHot)
@@ -67,6 +99,7 @@ func loadAzureDefault(i2e *map[string]*Int2String, e2i *map[string]*String2Int) 
 	n2t[string(string(azblob.AccessTierArchive))] = Tier99
 	(*e2i)[OSTYPE_Azure] = &n2t
 }
+
 func loadHWDefault(i2e *map[string]*Int2String, e2i *map[string]*String2Int) {
 	t2n := make(Int2String)
 	t2n[Tier1] = string(obs.StorageClassStandard)
@@ -80,6 +113,7 @@ func loadHWDefault(i2e *map[string]*Int2String, e2i *map[string]*String2Int) {
 	n2t[string(obs.StorageClassCold)] = Tier99
 	(*e2i)[OSTYPE_OBS] = &n2t
 }
+
 func loadGCPDefault(i2e *map[string]*Int2String, e2i *map[string]*String2Int) {
 	t2n := make(Int2String)
 	t2n[Tier1] = GCS_MULTI_REGIONAL
@@ -93,6 +127,7 @@ func loadGCPDefault(i2e *map[string]*Int2String, e2i *map[string]*String2Int) {
 	n2t[GCS_COLDLINE] = Tier99
 	(*e2i)[OSTYPE_GCS] = &n2t
 }
+
 func loadCephDefault(i2e *map[string]*Int2String, e2i *map[string]*String2Int) {
 	t2n := make(Int2String)
 	t2n[Tier1] = CEPH_STANDARD
@@ -102,6 +137,7 @@ func loadCephDefault(i2e *map[string]*Int2String, e2i *map[string]*String2Int) {
 	n2t[CEPH_STANDARD] = Tier1
 	(*e2i)[OSTYPE_OBS] = &n2t
 }
+
 func loadFusionStroageDefault(i2e *map[string]*Int2String, e2i *map[string]*String2Int) {
 	t2n := make(Int2String)
 	t2n[Tier1] = string(obs.StorageClassStandard)
@@ -134,6 +170,7 @@ func loadDefaultStorageClass() error {
 	Int2ExtTierMap = make(map[string]*Int2String)
 	Ext2IntTierMap = make(map[string]*String2Int)
 	loadAWSDefault(&Int2ExtTierMap, &Ext2IntTierMap)
+	loadOpenSDSDefault(&Int2ExtTierMap, &Ext2IntTierMap)
 	loadAzureDefault(&Int2ExtTierMap, &Ext2IntTierMap)
 	loadHWDefault(&Int2ExtTierMap, &Ext2IntTierMap)
 	loadGCPDefault(&Int2ExtTierMap, &Ext2IntTierMap)
