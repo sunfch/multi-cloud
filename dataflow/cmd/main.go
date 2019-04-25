@@ -32,6 +32,7 @@ func main() {
 	service.Init()
 	pb.RegisterDataFlowHandler(service.Server(), handler.NewDataFlowService())
 	scheduler.LoadAllPlans()
+	scheduler.LoadLifecycleScheduler()
 	if err := service.Run(); err != nil {
 		log.Log(err)
 	}
