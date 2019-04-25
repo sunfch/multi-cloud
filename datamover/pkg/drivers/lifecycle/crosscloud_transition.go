@@ -27,7 +27,7 @@ import (
 )
 var PART_SIZE int64 = 16 * 1024 * 1024 //The max object size that can be moved directly, default is 16M.
 
-func move(ctx context.Context, obj *osdss3.Object, src *BackendInfo, dest *BackendInfo) error {
+func move(ctx context.Context, obj *osdss3.Object, src *BackendInfo, dest *BackendInfo, className *string) error {
 	//move object
 	part_size, err := strconv.ParseInt(os.Getenv("PARTSIZE"), 10, 64)
 	log.Logf("part_size=%d, err=%v.\n", part_size, err)
@@ -41,8 +41,8 @@ func move(ctx context.Context, obj *osdss3.Object, src *BackendInfo, dest *Backe
 
 	srcLoc := &LocationInfo{StorType:src.StorType, Region:src.Region, EndPoint:src.EndPoint, BucketName: obj.BucketName,
 		Access:src.Access, Security:src.Security, BakendName:src.BakendName}
-	targetLoc := &LocationInfo{StorType:dest.StorType, Region:dest.Region, EndPoint:dest.EndPoint, BucketName: obj.BucketName,
-		Access:dest.Access, Security:dest.Security, BakendName:dest.BakendName}
+	targetLoc := &LocationInfo{StorType:dest.StorType, Region:dest.Region, EndPoint:dest.EndPoint, BucketName:obj.BucketName,
+		Access:dest.Access, Security:dest.Security, BakendName:dest.BakendName, ClassName:*className}
 	if obj.Size <= PART_SIZE {
 		err = mover.MoveObj(obj, srcLoc, targetLoc)
 	} else {
@@ -67,8 +67,14 @@ func doCrossCloudTransition(acReq *datamover.LifecycleActionRequest) error {
 		return err
 	}
 
+	className, err := getStorageClassName(acReq.TargetTier, target.StorType)
+	if err != nil {
+		log.Logf("In-cloud transition of %s failed because target tier is not supported.\n", acReq.ObjKey)
+		return err
+	}
+
 	obj := osdss3.Object{ObjectKey:acReq.ObjKey, Size:acReq.ObjSize}
-	err = move(context.Background(), &obj, src, target)
+	err = move(context.Background(), &obj, src, target, &className)
 
 	if err != nil {
 		log.Logf("Cross-cloud transition of %s failed:%v\n", acReq.ObjKey, err)

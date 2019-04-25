@@ -23,6 +23,7 @@ type LocationInfo struct {
 	Access     string
 	Security   string
 	BakendName string
+	ClassName  string
 }
 
 type BackendInfo struct {

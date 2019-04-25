@@ -147,6 +147,10 @@ func (mover *BlobMover) UploadObj(objKey string, destLoca *LocationInfo, buf []b
 			}
 		} else {
 			log.Logf("[blobmover] Upload object[%s] successfully.", objKey)
+			if destLoca.ClassName != "" {
+				//TODO: Need to do some thing if set tier failed.
+				mover.setTier(&objKey, &destLoca.ClassName)
+			}
 			return nil
 		}
 	}
@@ -291,6 +295,10 @@ func (mover *BlobMover) CompleteMultipartUpload(objKey string, destLoca *Locatio
 			}
 		} else {
 			log.Logf("[blobmover] CompleteMultipartUpload of object[%s] successfully.\n", objKey)
+			if destLoca.ClassName != "" {
+				//TODO: Need to do some thing if set tier failed.
+				mover.setTier(&objKey, &destLoca.ClassName)
+			}
 			return nil
 		}
 	}

@@ -147,7 +147,7 @@ func doInCloudTransition(acReq *datamover.LifecycleActionRequest) error {
 
 	className, err := getStorageClassName(acReq.TargetTier, loca.StorType)
 	if err != nil {
-		log.Logf("In-cloud transition of %s failed because targe tier is not supported.\n", acReq.ObjKey)
+		log.Logf("In-cloud transition of %s failed because target tier is not supported.\n", acReq.ObjKey)
 		return err
 	}
 	err = changeStorageClass(&acReq.ObjKey, &className, &acReq.BucketName, loca)

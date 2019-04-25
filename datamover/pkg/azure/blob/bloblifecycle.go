@@ -19,7 +19,33 @@ import (
 	. "github.com/opensds/multi-cloud/datamover/pkg/utils"
 	"context"
 	"github.com/Azure/azure-storage-blob-go/azblob"
+	"errors"
 )
+
+func (mover *BlobMover)setTier(objKey *string, newClass *string) error {
+	ctx := context.Background()
+	blobURL := mover.containerURL.NewBlockBlobURL(*objKey)
+	var res *azblob.BlobSetTierResponse
+	var err error
+	switch *newClass {
+	case string(azblob.AccessTierHot):
+		res, err = blobURL.SetTier(ctx, azblob.AccessTierHot, azblob.LeaseAccessConditions{})
+	case string(azblob.AccessTierCool):
+		res, err = blobURL.SetTier(ctx, azblob.AccessTierCool, azblob.LeaseAccessConditions{})
+	case string(azblob.AccessTierArchive):
+		res, err = blobURL.SetTier(ctx, azblob.AccessTierArchive, azblob.LeaseAccessConditions{})
+	default:
+		log.Logf("[blobmover]set tier of object[%s] to %s failed, err: invalid storage class.\n", objKey, newClass)
+		return errors.New("Invalid storage class")
+	}
+	if err != nil {
+		log.Logf("[blobmover]set tier of object[%s] to %s failed, err:%v\n", objKey, newClass, err)
+	} else {
+		log.Logf("[blobmover]set tier of object[%s] to %s succeed, res:%v\n", objKey, newClass, res.Response())
+	}
+
+	return err
+}
 
 func (mover *BlobMover)ChangeStorageClass(objKey *string, newClass *string, bkend *BackendInfo) error {
 	log.Logf("")
@@ -28,14 +54,5 @@ func (mover *BlobMover)ChangeStorageClass(objKey *string, newClass *string, bken
 		return err
 	}
 
-	ctx := context.Background()
-	blobURL := mover.containerURL.NewBlockBlobURL(*objKey)
-	res, err := blobURL.SetTier(ctx, azblob.AccessTierCool, azblob.LeaseAccessConditions{})
-	if err != nil {
-		log.Logf("set tier failed:%v\n", err)
-	} else {
-		log.Logf("set tier succeed:%v\n", res.Response())
-	}
-
-	return err
+	return mover.setTier(objKey, newClass)
 }

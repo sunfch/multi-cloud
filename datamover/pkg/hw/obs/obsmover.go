@@ -111,6 +111,19 @@ func (mover *ObsMover) UploadObj(objKey string, destLoca *LocationInfo, buf []by
 	input.Bucket = destLoca.BucketName
 	input.Key = objKey
 	input.Body = bytes.NewReader(buf)
+	if destLoca.ClassName != "" {
+		switch destLoca.ClassName {
+		case string(obs.StorageClassStandard):
+			input.StorageClass = obs.StorageClassStandard
+		case string(obs.StorageClassWarm):
+			input.StorageClass = obs.StorageClassWarm
+		case string(obs.StorageClassCold):
+			input.StorageClass = obs.StorageClassCold
+		default:
+			log.Logf("[obsmover] Upload object[%s] failed, err: invalid storage class[%s].\n", objKey, destLoca.ClassName)
+			return errors.New("Invalid storage class")
+		}
+	}
 	for tries := 1; tries <= 3; tries++ {
 		output, err := obsClient.PutObject(input)
 		if err != nil {
@@ -217,6 +230,19 @@ func (mover *ObsMover) MultiPartUploadInit(objKey string, destLoca *LocationInfo
 	input := &obs.InitiateMultipartUploadInput{}
 	input.Bucket = destLoca.BucketName
 	input.Key = objKey
+	if destLoca.ClassName != "" {
+		switch destLoca.ClassName {
+		case string(obs.StorageClassStandard):
+			input.StorageClass = obs.StorageClassStandard
+		case string(obs.StorageClassWarm):
+			input.StorageClass = obs.StorageClassWarm
+		case string(obs.StorageClassCold):
+			input.StorageClass = obs.StorageClassCold
+		default:
+			log.Logf("[obsmover] Upload object[%s] failed, err: invalid storage class[%s].\n", objKey, destLoca.ClassName)
+			return errors.New("Invalid storage class")
+		}
+	}
 	var err error = nil
 	mover.obsClient, err = obs.New(destLoca.Access, destLoca.Security, destLoca.EndPoint)
 	if err != nil {

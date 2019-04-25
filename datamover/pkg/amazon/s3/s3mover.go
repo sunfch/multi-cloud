@@ -86,12 +86,17 @@ func (mover *S3Mover) UploadObj(objKey string, destLoca *LocationInfo, buf []byt
 	reader := bytes.NewReader(buf)
 	uploader := s3manager.NewUploader(sess)
 	log.Logf("[s3mover] Try to upload, bucket:%s,obj:%s\n", destLoca.BucketName, objKey)
+	//var input s3manager.UploadInput
+	input := s3manager.UploadInput{
+		Bucket: aws.String(destLoca.BucketName),
+		Key:    aws.String(objKey),
+		Body:   reader,
+	}
+	if destLoca.ClassName != "" {
+		input.StorageClass = aws.String(destLoca.ClassName)
+	}
 	for tries := 1; tries <= 3; tries++ {
-		_, err = uploader.Upload(&s3manager.UploadInput{
-			Bucket: aws.String(destLoca.BucketName),
-			Key:    aws.String(objKey),
-			Body:   reader,
-		})
+		_, err = uploader.Upload(&input)
 		if err != nil {
 			log.Logf("[s3mover] Upload object[%s] failed %d times, err:%v\n", objKey, tries, err)
 			e := handleAWSS3Errors(err)
@@ -213,6 +218,9 @@ func (mover *S3Mover) MultiPartUploadInit(objKey string, destLoca *LocationInfo)
 	multiUpInput := &s3.CreateMultipartUploadInput{
 		Bucket: aws.String(destLoca.BucketName),
 		Key:    aws.String(objKey),
+	}
+	if destLoca.ClassName != "" {
+		multiUpInput.StorageClass = aws.String(destLoca.ClassName)
 	}
 	log.Logf("[s3mover] Try to init multipart upload[objkey:%s].\n", objKey)
 	for tries := 1; tries <= 3; tries++ {

@@ -92,8 +92,8 @@ func getOsdsLocation(ctx context.Context, virtBkname string, backendName string)
 		logger.Printf("Get backend information failed, err:%v\n", err)
 		return nil, errors.New("failed")
 	} else {
-		loca := &LocationInfo{bk.Type, bk.Region, bk.Endpoint, bk.BucketName,
-			virtBkname, bk.Access, bk.Security, backendName}
+		loca := &LocationInfo{StorType:bk.Type, Region:bk.Region, EndPoint:bk.Endpoint, BucketName:bk.BucketName,
+			VirBucket:virtBkname, Access:bk.Access, Security:bk.Security, BakendName:backendName}
 		logger.Printf("Refresh backend[name:%s,id:%s] successfully.\n", backendName, bk.Id.String())
 		return loca, nil
 	}
