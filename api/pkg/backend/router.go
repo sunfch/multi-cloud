@@ -32,5 +32,5 @@ func RegisterRouter(ws *restful.WebService) {
 	ws.Route(ws.DELETE("/{tenantId}/backends/{id}").To(handler.DeleteBackend)).
 		Doc("Delete backend")
 	ws.Route(ws.GET("/{tenantId}/types").To(handler.ListType)).
-		Doc("Get backend list")
+		Doc("Get backend types")
 }

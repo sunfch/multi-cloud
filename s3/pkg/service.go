@@ -170,6 +170,7 @@ func loadDefaultStorageClass() error {
 	SupportedClasses = append(SupportedClasses, pb.StorageClass{Name:string(AWS_STANDARD), Tier:int32(Tier1)})
 	SupportedClasses = append(SupportedClasses, pb.StorageClass{Name:string(AWS_STANDARD_IA), Tier:int32(Tier99)})
 	SupportedClasses = append(SupportedClasses, pb.StorageClass{Name:string(AWS_GLACIER), Tier:int32(Tier999)})
+	log.Logf("Supported storage classes:%v\n", SupportedClasses)
 
 	Int2ExtTierMap = make(map[string]*Int2String)
 	Ext2IntTierMap = make(map[string]*String2Int)
@@ -180,6 +181,9 @@ func loadDefaultStorageClass() error {
 	loadGCPDefault(&Int2ExtTierMap, &Ext2IntTierMap)
 	loadCephDefault(&Int2ExtTierMap, &Ext2IntTierMap)
 	loadFusionStroageDefault(&Int2ExtTierMap, &Ext2IntTierMap)
+
+	log.Logf("Int2ExtTierMap:%v\n", Int2ExtTierMap)
+	log.Logf("Ext2IntTierMap:%v\n", Ext2IntTierMap)
 
 	return nil
 }
@@ -194,6 +198,7 @@ func loadDefaultTransition() error {
 	TransitionMap[Tier99] = []int32{Tier1}
 	TransitionMap[Tier999] = []int32{Tier1, Tier99}
 
+	log.Logf("loadDefaultTransition:%+v\n", TransitionMap)
 	return nil
 }
 
@@ -403,9 +408,11 @@ func NewS3Service() pb.S3Handler {
 }
 
 func (b *s3Service)GetTierMap(ctx context.Context, in *pb.BaseRequest, out *pb.GetTierMapResponse) error {
-	out = &pb.GetTierMapResponse{}
+	log.Log("GetTierMap ...")
+	//out = &pb.GetTierMapResponse{}
 
 	//Get map from internal tier to external class name.
+	out.Tier2Name = make(map[string]*pb.Tier2ClassName)
 	for k, v := range Int2ExtTierMap {
 		var val pb.Tier2ClassName
 		val.Lst = make(map[int32]string)
@@ -417,14 +424,13 @@ func (b *s3Service)GetTierMap(ctx context.Context, in *pb.BaseRequest, out *pb.G
 
 	//Get transition map.
 	for k, v := range TransitionMap {
-		var val pb.TList
 		for _, t := range v {
-			val.Tier = append(val.Tier, t)
+			trans := fmt.Sprintf("%d:%d", t, k)
+			out.Transition = append(out.Transition, trans)
 		}
-		//ts.Tier = v
-		out.TransitionMap[k] = &val
 	}
 
+	log.Logf("out.Transition:%v\n", out.Transition)
 	return nil
 }
 

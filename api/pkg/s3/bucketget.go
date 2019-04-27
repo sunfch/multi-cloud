@@ -98,7 +98,7 @@ func (s *APIService) BucketGet(request *restful.Request, response *restful.Respo
 		filter[common.KObjKey] = ret
 	}
 
-	// Check validation of query parameter
+	// Check validation of query parameter. Example of lastmodified: {"lt":"100", "gt":"30"}
 	if filter[common.KLastModified] != "" {
 		var tmFilter map[string]string
 		err := json.Unmarshal([]byte(filter[common.KLastModified]), &tmFilter)

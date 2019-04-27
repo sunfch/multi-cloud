@@ -21,9 +21,10 @@ import (
 	"github.com/opensds/multi-cloud/dataflow/pkg/model"
 	"github.com/opensds/multi-cloud/dataflow/pkg/plan"
 	"github.com/opensds/multi-cloud/dataflow/pkg/scheduler/trigger"
-	"github.com/opensds/multi-cloud/dataflow/pkg/scheduler/lifecycle"
 	"fmt"
 	"github.com/robfig/cron"
+	"github.com/opensds/multi-cloud/dataflow/pkg/scheduler/lifecycle"
+	"os"
 )
 
 var DEFAULT_LIFECYLE_SCHED_PERIOD = 1440
@@ -64,22 +65,18 @@ func LoadAllPlans() {
 
 //This scheduler will traversing all buckets periodically to get lifecycle rules, and scheduling according to these rules.
 func LoadLifecycleScheduler() error {
-	/*period, err := strconv.ParseInt(os.Getenv("LIFECYCLE_SCHEDULE_PERIOD"), 10, 64)
-	log.Logf("Value of LIFECYCLE_SCHEDULE_PERIOD is: %d.\n", period)
-	//period should not be less than 60 minutes or more than 1 week.
-	if err != nil || period < 60 || period > 10080 {
-		period = int64(DEFAULT_LIFECYLE_SCHED_PERIOD)
-	}
-	log.Logf("Lifecycle scheduler period is: %d minutes.\n", period)
-	*/
+	spec := os.Getenv("LIFECYCLE_CRON_CONFIG")
+	log.Logf("Value of LIFECYCLE_CRON_CONFIG is: %s\n", spec)
 
+	//TODO: Check the validation of spec
 	cn := cron.New()
-	//Scheduler at 00:00:00 ever day.
-	if err := cn.AddFunc("0 0 0 * * ?", lifecycle.ScheduleLifecycle); err != nil {
+	//0 */2 * * * ?
+	if err := cn.AddFunc(spec, lifecycle.ScheduleLifecycle); err != nil {
 		log.Logf("Add lifecyecle scheduler to cron trigger failed: %v.\n", err)
 		return fmt.Errorf("Add lifecyecle scheduler to cron trigger failed: %v", err)
 	}
+	cn.Start()
 
-	log.Log("Add lifecyecle scheduler to cron trigger successfully.")
+	log.Log("Add lifecycle scheduler to cron trigger successfully.")
 	return nil
 }

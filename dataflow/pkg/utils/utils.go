@@ -21,9 +21,18 @@ const (
 )
 
 const (
+	ActionNameExpiration = "expiration"
+)
+
+const (
 	KObjKey = "objkey"
 	KLastModified = "lastmodified"
 	KStorageTier = "tier"
+)
+
+const (
+	RuleStatusOn = "on"
+	RuleStatusOff = "off"
 )
 
 type Database struct {

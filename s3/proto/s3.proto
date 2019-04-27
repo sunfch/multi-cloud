@@ -250,7 +250,7 @@ message Tier2ClassName {
 }
 
 message GetTierMapResponse {
-	map<int32, TList> TransitionMap = 1;
+	repeated string Transition = 1;  //format:[from:to from:to ....]
 	map<string, Tier2ClassName> Tier2Name = 2;
 }
 

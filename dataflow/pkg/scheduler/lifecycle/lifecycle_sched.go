@@ -30,27 +30,17 @@ var mutext sync.Mutex
 
 func loadStorageClassDefinition() error {
 	res, _ := s3client.GetTierMap(context.Background(), &s3.BaseRequest{})
-	if len(res.TransitionMap) == 0 {
+	if len(res.Transition) == 0 {
 		log.Log("Get transition map failed")
 		return fmt.Errorf("Get tier definition failed")
+	} else {
+		log.Logf("res.Transition:%v", res.Transition)
+		log.Logf("res.Tier2Name:%+v", res.Tier2Name)
 	}
 
-	/*Int2ExtTierMap = make(map[string]*Int2String)
-	for k, v := range res.Tier2Name {
-		val := make(Int2String)
-		for k1, v1 := range v.Lst {
-			val[k1] = v1
-		}
-		Int2ExtTierMap[k] = &val
-	}*/
-
 	TransitionMap = make(map[string]struct{})
-	for k, v := range res.TransitionMap {
-		l := v.Tier
-		for _, t := range l {
-			s := fmt.Sprintf("%s:%s", k, t)
-			TransitionMap[s] = struct{}{}
-		}
+	for _, v := range res.Transition {
+		TransitionMap[v] = struct{}{}
 	}
 
 	return nil
@@ -58,6 +48,7 @@ func loadStorageClassDefinition() error {
 
 //Get liecycle rules for each bucket from db, and schedule according to those rules.
 func ScheduleLifecycle() {
+	log.Log("[ScheduleLifecycle] begin ...")
 	//Load transition map.
 	{
 		mutext.Lock()
@@ -65,36 +56,37 @@ func ScheduleLifecycle() {
 		if len(TransitionMap) == 0 {
 			err := loadStorageClassDefinition()
 			if err != nil {
-				log.Logf("Load transition map faild: %v.\n", err)
+				log.Logf("[ScheduleLifecycle]Load storage classes failed: %v.\n", err)
 				return
 			}
 		}
 	}
 
 	//Get bucket list.
-	//TODO: Need to consider paging query and setting create time as index on collection of object.
-	//s3client := osdss3.NewS3Service("s3", client.DefaultClient)
-	//TODO: when list buckets, id of request shouled not be necessary, need to change the s3 api.
 	listReq := s3.BaseRequest{Id: "test"}
 	listRsp, err := s3client.ListBuckets(context.Background(), &listReq)
 	if err != nil {
-		log.Logf("List buckets faild: %v.\n", err)
+		log.Logf("[ScheduleLifecycle]List buckets failed: %v.\n", err)
 		return
 	}
 
 	for _, v := range listRsp.Buckets {
 		//For each bucket, get the lifecycle rules, and schedule each rule.
 		if v.LifecycleConfiguration == nil {
-			log.Logf("Bucket[%s] has no lifecycle rule.\n", v.Name)
+			log.Logf("[ScheduleLifecycle]Bucket[%s] has no lifecycle rule.\n", v.Name)
 			continue
 		}
 
+		log.Logf("[ScheduleLifecycle]Bucket[%s] has lifecycle rule.\n", v.Name)
+
 		err := handleBucketLifecyle(v.Name, v.LifecycleConfiguration)
 		if err != nil {
-			log.Logf("Handle bucket lifecycle for bucket[%s] failed, err:%v.\n", v.Name, err)
+			log.Logf("[ScheduleLifecycle]Handle bucket lifecycle for bucket[%s] failed, err:%v.\n", v.Name, err)
 			continue
 		}
 	}
+
+	log.Log("[ScheduleLifecycle] end ...")
 }
 
 //Need to lock the bucket, incase the schedule period is too shoort and the bucket is scheduled at the same time.
@@ -106,8 +98,6 @@ func handleBucketLifecyle(bucket string, rules []*osdss3.LifecycleRule) error {
 	ret := db.DbAdapter.LockBucketLifecycleSched(bucket)
 	for i := 0; i < 3; i++ {
 		if ret == LockSuccess {
-			//Make sure unlock before return
-			defer db.DbAdapter.UnlockBucketLifecycleSched(bucket)
 			break
 		} else if ret == LockBusy {
 			return fmt.Errorf("Lifecycle scheduleing of bucket[%s] is in progress.")
@@ -120,16 +110,18 @@ func handleBucketLifecyle(bucket string, rules []*osdss3.LifecycleRule) error {
 		log.Logf("Lock scheduling failed.\n")
 		return fmt.Errorf("Internal error: Lock scheduling failed.")
 	}
+	//Make sure unlock before return
+	defer db.DbAdapter.UnlockBucketLifecycleSched(bucket)
 
 	var inRules InterRules
 	for _, rule := range rules {
-		if rule.Status == "off" {
+		if rule.Status == RuleStatusOff {
 			continue
 		}
 
 		for _, ac := range rule.Actions {
 			var acType int
-			if ac.Name == "Expiration" {//Eexpiration
+			if ac.Name == ActionNameExpiration {//Eexpiration
 				acType = ActionExpiration
 			} else if ac.Backend == "" {//ac.Name == "Transition" and no backend specified.
 				acType = ActionIncloudTransition
@@ -174,8 +166,8 @@ func schedAccordingSortedRules (inRules *InterRules) error {
 		//List object by communicating with s3 service.
 		filt := make(map[string]string)
 		filt[KObjKey] = "^" + r.Filter.Prefix
-		days := fmt.Sprintf("%s", r.Days)
-		filt[KLastModified] = days
+		modifyFilt := fmt.Sprintf("{\"gte\":\"%d\"}", r.Days)
+		filt[KLastModified] = modifyFilt
 		filt[KStorageTier] = strconv.Itoa(int(r.Tier))
 		s3req := osdss3.ListObjectsRequest{
 			Bucket:r.Bucket,
@@ -193,6 +185,7 @@ func schedAccordingSortedRules (inRules *InterRules) error {
 				//If not exist, then send request to datamover through kafka and add object key to dupCheck.
 				if r.ActionType != ActionExpiration && obj.Backend == r.Backend && obj.Tier == r.Tier {
 					// For transition, if target backend and storage class is the same as source backend and storage class, then no transition is need.
+					log.Logf("No need transition for object[%s], backend=%s, tier=%d\n", obj.ObjectKey, r.Backend, r.Tier)
 					continue
 				}
 
@@ -207,9 +200,10 @@ func schedAccordingSortedRules (inRules *InterRules) error {
 				}
 
 				if r.ActionType != ActionExpiration && checkTransitionValidation(obj.Tier, r.Tier) != true {
+					log.Logf("Transition object[%s] from tier[%] to tier[%d] is invalid.\n", obj.ObjectKey, obj.Tier)
 					continue
 				}
-
+				log.Logf("Will transition object[%s] from tier[%] to tier[%d].\n", obj.ObjectKey, obj.Tier, r.Tier)
 				acreq := datamover.LifecycleActionRequest{
 					ObjKey:obj.ObjectKey,
 					BucketName:obj.BucketName,
@@ -233,6 +227,7 @@ func schedAccordingSortedRules (inRules *InterRules) error {
 }
 
 func sendActionRequest(req *datamover.LifecycleActionRequest) error {
+	log.Logf("Send lifecycle request to datamover: %v\n", req)
 	data, err := json.Marshal(*req)
 	if err != nil {
 		log.Logf("Marshal run job request failed, err:%v\n", data)
