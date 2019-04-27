@@ -29,7 +29,7 @@ var TransitionMap map[string]struct{}
 var mutext sync.Mutex
 
 func loadStorageClassDefinition() error {
-	res, _ := s3client.GetTierMap(context.Background(), &s3.NullRequest{})
+	res, _ := s3client.GetTierMap(context.Background(), &s3.BaseRequest{})
 	if len(res.TransitionMap) == 0 {
 		log.Log("Get transition map failed")
 		return fmt.Errorf("Get tier definition failed")

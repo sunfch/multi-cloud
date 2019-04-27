@@ -79,3 +79,13 @@ type ListPartsOutput struct {
 	Owner       Owner  `xml:"Owner"`
 	Parts       []Part `xml:"Part"`
 }
+
+type StorageClass struct {
+	Name               string `xml:"Name"`
+	Tier               int32 `xml:"Tier"`
+}
+
+type ListStorageClasses struct {
+	Xmlns       string `xml:"xmlns,attr"`
+	Classes     []StorageClass `xml:"Class"`
+}

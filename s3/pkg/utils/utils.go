@@ -22,8 +22,8 @@ type Database struct {
 
 const (
 	Tier1 = 1
-	Tier9 = 99
-	Tier99 = 999
+	Tier99 = 99
+	Tier999 = 999
 )
 
 const (
@@ -46,10 +46,10 @@ const (
 //Object Storage Type
 const (
 	OSTYPE_OPENSDS = "OpenSDS"
-	OSTYPE_AWS = "AWSS3"
-	OSTYPE_Azure = "AzureBlob"
-	OSTYPE_OBS = "HuaweiOBS"
-	OSTYPE_GCS = "GoogleCloudStorage"
-	OSTYPE_CEPTH = "CephS3"
-	OSTYPE_FUSIONSTORAGE = "FusionStorage"
+	OSTYPE_AWS = "aws-s3"
+	OSTYPE_Azure = "azure-blob"
+	OSTYPE_OBS = "hw-obs"
+	OSTYPE_GCS = "gcp-s3"
+	OSTYPE_CEPTH = "ceph-s3"
+	OSTYPE_FUSIONSTORAGE = "fusionstorage-object"
 )

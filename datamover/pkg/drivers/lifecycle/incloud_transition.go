@@ -66,7 +66,7 @@ func changeStorageClass(objKey *string, newClass *string, virtBucket *string, bk
 }
 
 func loadStorageClassDefinition() error {
-	res, _ := s3client.GetTierMap(context.Background(), &osdss3.NullRequest{})
+	res, _ := s3client.GetTierMap(context.Background(), &osdss3.BaseRequest{})
 	if len(res.Tier2Name) == 0 {
 		log.Log("Get tier definition failed")
 		return fmt.Errorf("Get tier definition failed")

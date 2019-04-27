@@ -11,8 +11,9 @@ service S3 {
 	rpc UpdateObject(Object) returns (BaseResponse) {}
 	rpc GetObject(GetObjectInput) returns (Object) {}
 	rpc DeleteObject(DeleteObjectInput) returns (BaseResponse) {}
-	rpc GetTierMap(NullRequest) returns (GetTierMapResponse) {}
+	rpc GetTierMap(BaseRequest) returns (GetTierMapResponse) {}
 	rpc UpdateObjMeta(UpdateObjMetaRequest) returns (BaseResponse) {}
+    rpc GetStorageClasses(BaseRequest) returns (GetStorageClassesResponse) {}
 }
 
 message ACL {
@@ -240,10 +241,6 @@ message ListParts {
     int64	PartNumberMarker = 5;
 }
 
-message NullRequest {
-
-}
-
 message TList {
 	repeated int32 Tier = 1;
 }
@@ -260,5 +257,14 @@ message GetTierMapResponse {
 message UpdateObjMetaRequest {
 	string ObjKey = 1;
 	string BucketName = 2;
-	map<string, string> Setting = 3;
+    map<string, string> Setting = 3;
+}
+
+message StorageClass {
+    string Name = 1;
+    int32  Tier = 2;
+}
+
+message GetStorageClassesResponse {
+    repeated StorageClass classes = 1;
 }

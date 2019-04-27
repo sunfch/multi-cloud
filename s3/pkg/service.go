@@ -37,7 +37,7 @@ var Int2ExtTierMap map[string]*Int2String
 var Ext2IntTierMap map[string]*String2Int
 // map from a specific tier to an array of tiers, that means transition can happens from the specific tier to those tiers in the array.
 var TransitionMap map[int32][]int32
-
+var SupportedClasses []pb.StorageClass
 
 type s3Service struct{}
 
@@ -61,70 +61,70 @@ func getTierFromName(className string) (int32, S3Error) {
 func loadAWSDefault(i2e *map[string]*Int2String, e2i *map[string]*String2Int) {
 	t2n := make(Int2String)
 	t2n[Tier1] = AWS_STANDARD
-	t2n[Tier9] = AWS_STANDARD_IA
-	t2n[Tier99] = AWS_GLACIER
+	t2n[Tier99] = AWS_STANDARD_IA
+	t2n[Tier999] = AWS_GLACIER
 	(*i2e)[OSTYPE_AWS] = &t2n
 
 	n2t := make(String2Int)
 	n2t[AWS_STANDARD] = Tier1
-	n2t[AWS_STANDARD_IA] = Tier9
-	n2t[AWS_GLACIER] = Tier99
+	n2t[AWS_STANDARD_IA] = Tier99
+	n2t[AWS_GLACIER] = Tier999
 	(*e2i)[OSTYPE_AWS] = &n2t
 }
 
 func loadOpenSDSDefault(i2e *map[string]*Int2String, e2i *map[string]*String2Int) {
 	t2n := make(Int2String)
 	t2n[Tier1] = AWS_STANDARD
-	t2n[Tier9] = AWS_STANDARD_IA
-	t2n[Tier99] = AWS_GLACIER
+	t2n[Tier99] = AWS_STANDARD_IA
+	t2n[Tier999] = AWS_GLACIER
 	(*i2e)[OSTYPE_OPENSDS] = &t2n
 
 	n2t := make(String2Int)
 	n2t[AWS_STANDARD] = Tier1
-	n2t[AWS_STANDARD_IA] = Tier9
-	n2t[AWS_GLACIER] = Tier99
+	n2t[AWS_STANDARD_IA] = Tier99
+	n2t[AWS_GLACIER] = Tier999
 	(*e2i)[OSTYPE_OPENSDS] = &n2t
 }
 
 func loadAzureDefault(i2e *map[string]*Int2String, e2i *map[string]*String2Int) {
 	t2n := make(Int2String)
 	t2n[Tier1] = string(azblob.AccessTierHot)
-	t2n[Tier9] = string(azblob.AccessTierCool)
-	t2n[Tier99] = string(azblob.AccessTierArchive)
+	t2n[Tier99] = string(azblob.AccessTierCool)
+	t2n[Tier999] = string(azblob.AccessTierArchive)
 	(*i2e)[OSTYPE_Azure] = &t2n
 
 	n2t := make(String2Int)
 	n2t[string(azblob.AccessTierHot)] = Tier1
-	n2t[string(azblob.AccessTierCool)] = Tier9
-	n2t[string(string(azblob.AccessTierArchive))] = Tier99
+	n2t[string(azblob.AccessTierCool)] = Tier99
+	n2t[string(string(azblob.AccessTierArchive))] = Tier999
 	(*e2i)[OSTYPE_Azure] = &n2t
 }
 
 func loadHWDefault(i2e *map[string]*Int2String, e2i *map[string]*String2Int) {
 	t2n := make(Int2String)
 	t2n[Tier1] = string(obs.StorageClassStandard)
-	t2n[Tier9] = string(obs.StorageClassWarm)
-	t2n[Tier99] = string(obs.StorageClassCold)
+	t2n[Tier99] = string(obs.StorageClassWarm)
+	t2n[Tier999] = string(obs.StorageClassCold)
 	(*i2e)[OSTYPE_OBS] = &t2n
 
 	n2t := make(String2Int)
 	n2t[string(obs.StorageClassStandard)] = Tier1
-	n2t[string(obs.StorageClassWarm)] = Tier9
-	n2t[string(obs.StorageClassCold)] = Tier99
+	n2t[string(obs.StorageClassWarm)] = Tier99
+	n2t[string(obs.StorageClassCold)] = Tier999
 	(*e2i)[OSTYPE_OBS] = &n2t
 }
 
 func loadGCPDefault(i2e *map[string]*Int2String, e2i *map[string]*String2Int) {
 	t2n := make(Int2String)
 	t2n[Tier1] = GCS_MULTI_REGIONAL
-	t2n[Tier9] = GCS_NEARLINE
-	t2n[Tier99] = GCS_COLDLINE
+	t2n[Tier99] = GCS_NEARLINE
+	t2n[Tier999] = GCS_COLDLINE
 	(*i2e)[OSTYPE_GCS] = &t2n
 
 	n2t := make(String2Int)
 	n2t[GCS_MULTI_REGIONAL] = Tier1
-	n2t[GCS_NEARLINE] = Tier9
-	n2t[GCS_COLDLINE] = Tier99
+	n2t[GCS_NEARLINE] = Tier99
+	n2t[GCS_COLDLINE] = Tier999
 	(*e2i)[OSTYPE_GCS] = &n2t
 }
 
@@ -150,22 +150,26 @@ func loadFusionStroageDefault(i2e *map[string]*Int2String, e2i *map[string]*Stri
 
 func loadDefaultStorageClass() error {
 	/* Default storage class definition:
-						T1		        T99				T999
+							T1		        T99					T999
 	  AWS S3:				STANDARD		STANDARD_IA			GLACIER
-	  Azure Blob:			        HOT			COOL				ARCHIVE
+	  Azure Blob:			HOT				COOL				ARCHIVE
 	  HW OBS:				STANDARD		WARM				COLD
-	  GCP:					Multi-Regional   	NearLine			ColdLine
-	  Ceph S3:				STANDARD		-				-
-	  FusinoStorage Object: 		STANDARD		-				-
+	  GCP:					Multi-Regional	NearLine			ColdLine
+	  Ceph S3:				STANDARD		-					-
+	  FusinoStorage Object: STANDARD		-					-
 	*/
 	/* Lifecycle transition:
 	  T1 -> T99:  allowed
 	  T1 -> T999: allowed
 	  T99 -> T999: allowed
-          T99 -> T1:  not allowed
+      T99 -> T1:  not allowed
 	  T999 -> T1: not allowed
 	  T999 -> T99: not allowed
 	*/
+
+	SupportedClasses = append(SupportedClasses, pb.StorageClass{Name:string(AWS_STANDARD), Tier:int32(Tier1)})
+	SupportedClasses = append(SupportedClasses, pb.StorageClass{Name:string(AWS_STANDARD_IA), Tier:int32(Tier99)})
+	SupportedClasses = append(SupportedClasses, pb.StorageClass{Name:string(AWS_GLACIER), Tier:int32(Tier999)})
 
 	Int2ExtTierMap = make(map[string]*Int2String)
 	Ext2IntTierMap = make(map[string]*String2Int)
@@ -187,8 +191,8 @@ func loadUserDefinedStorageClass() error {
 
 func loadDefaultTransition() error {
 	TransitionMap = make(map[int32][]int32)
-	TransitionMap[Tier9] = []int32{Tier1}
-	TransitionMap[Tier99] = []int32{Tier1, Tier9}
+	TransitionMap[Tier99] = []int32{Tier1}
+	TransitionMap[Tier999] = []int32{Tier1, Tier99}
 
 	return nil
 }
@@ -221,6 +225,17 @@ func initStorageClass() {
 	if err1 != nil || err2 != nil {
 		panic("Init s3service failed")
 	}
+}
+
+func (b *s3Service) GetStorageClasses(ctx context.Context, in *pb.BaseRequest, out *pb.GetStorageClassesResponse) error {
+	classes := []*pb.StorageClass{}
+	for _, v := range SupportedClasses {
+		classes = append(classes, &pb.StorageClass{Name: v.Name, Tier: v.Tier})
+	}
+
+	out.Classes = classes
+
+	return nil
 }
 
 func (b *s3Service) ListBuckets(ctx context.Context, in *pb.BaseRequest, out *pb.ListBucketsResponse) error {
@@ -387,7 +402,7 @@ func NewS3Service() pb.S3Handler {
 	return &s3Service{}
 }
 
-func (b *s3Service)GetTierMap(ctx context.Context, in *pb.NullRequest, out *pb.GetTierMapResponse) error {
+func (b *s3Service)GetTierMap(ctx context.Context, in *pb.BaseRequest, out *pb.GetTierMapResponse) error {
 	out = &pb.GetTierMapResponse{}
 
 	//Get map from internal tier to external class name.
