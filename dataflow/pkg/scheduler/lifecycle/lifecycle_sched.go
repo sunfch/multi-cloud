@@ -14,8 +14,8 @@ import (
 	"github.com/opensds/multi-cloud/dataflow/pkg/db"
 	"sort"
 	"fmt"
-	"strconv"
 	"sync"
+	"strconv"
 )
 
 var topicLifecycle = "lifecycle"
@@ -141,7 +141,7 @@ func handleBucketLifecyle(bucket string, rules []*osdss3.LifecycleRule) error {
 	sort.Sort(inRules)
 	// Begin: For debug
 	for _, v := range inRules {
-		log.Logf("rule: %v\n", *v)
+		log.Logf("rule: %+v\n", *v)
 	}
 	// End: For debug
 
@@ -152,7 +152,7 @@ func handleBucketLifecyle(bucket string, rules []*osdss3.LifecycleRule) error {
 
 func checkTransitionValidation(source int32, destination int32) bool {
 	valid := true
-	key := fmt.Sprintf("%s:%s", source, destination)
+	key := fmt.Sprintf("%d:%d", source, destination)
 	if _, ok := TransitionMap[key]; !ok {
 		valid = false
 	}
@@ -160,65 +160,96 @@ func checkTransitionValidation(source int32, destination int32) bool {
 	return valid
 }
 
+func getObjects(r *InternalLifecycleRule, offset, limit int32) ([]*osdss3.Object, error) {
+	//Get objects by communicating with s3 service.
+	filt := make(map[string]string)
+	filt[KObjKey] = "^" + r.Filter.Prefix
+	modifyFilt := fmt.Sprintf("{\"gte\":\"%d\"}", r.Days)
+	filt[KLastModified] = modifyFilt
+	if r.ActionType != ActionExpiration {
+		filt[KStorageTier] = strconv.Itoa(int(r.Tier))
+	}
+
+	s3req := osdss3.ListObjectsRequest{
+		Bucket: r.Bucket,
+		Filter: filt,
+		Offset: offset,
+		Limit: limit,
+	}
+	ctx := context.Background()
+	s3rsp, err := s3client.ListObjects(ctx, &s3req)
+	if err != nil {
+		log.Logf("List objects failed, req: %v.\n", s3req)
+		return nil, err
+	}
+
+	return s3rsp.ListObjects, nil
+}
+
 func schedAccordingSortedRules (inRules *InterRules) error {
 	dupCheck := map[string]struct{}{}
 	for _, r := range *inRules {
-		//List object by communicating with s3 service.
-		filt := make(map[string]string)
-		filt[KObjKey] = "^" + r.Filter.Prefix
-		modifyFilt := fmt.Sprintf("{\"gte\":\"%d\"}", r.Days)
-		filt[KLastModified] = modifyFilt
-		filt[KStorageTier] = strconv.Itoa(int(r.Tier))
-		s3req := osdss3.ListObjectsRequest{
-			Bucket:r.Bucket,
-			Filter:filt,
-		}
-		ctx := context.Background()
-		s3rsp, err := s3client.ListObjects(ctx, &s3req)
-		if err != nil {
-			log.Logf("List objects failed, req: %v.\n", s3req)
-			continue
-		}
-		//Check if the object exist in the dupCheck map.
-		for _, obj := range s3rsp.ListObjects {
-			if _, ok := dupCheck[obj.ObjectKey]; !ok {
-				//If not exist, then send request to datamover through kafka and add object key to dupCheck.
-				if r.ActionType != ActionExpiration && obj.Backend == r.Backend && obj.Tier == r.Tier {
-					// For transition, if target backend and storage class is the same as source backend and storage class, then no transition is need.
-					log.Logf("No need transition for object[%s], backend=%s, tier=%d\n", obj.ObjectKey, r.Backend, r.Tier)
+		var offset, limit int32 = 0, 1000
+		for {
+			objs, err := getObjects(r, offset, limit)
+			if err != nil {
+				break
+			}
+			num := int32(len(objs))
+			offset += num
+			//Check if the object exist in the dupCheck map.
+			for _, obj := range objs {
+				log.Logf("***obj:%s\n", obj.ObjectKey)
+				if obj.IsDeleteMarker == "1" {
+					log.Logf("DeleteMarker of object[%s] is set, action is cancelled.\n", obj.ObjectKey)
 					continue
 				}
+				if _, ok := dupCheck[obj.ObjectKey]; !ok {
+					//If not exist, then send request to datamover through kafka and add object key to dupCheck.
+					if r.ActionType != ActionExpiration && obj.Backend == r.Backend && obj.Tier == r.Tier {
+						// For transition, if target backend and storage class is the same as source backend and storage class, then no transition is need.
+						log.Logf("No need transition for object[%s], backend=%s, tier=%d\n", obj.ObjectKey, r.Backend, r.Tier)
+						continue
+					}
 
-				//Send request.
-				var action int32
-				if r.ActionType == ActionExpiration {
-					action = int32(ActionExpiration)
-				} else if obj.Backend == r.Backend {
-					action = int32(ActionIncloudTransition)
+					//Send request.
+					var action int32
+					if r.ActionType == ActionExpiration {
+						action = int32(ActionExpiration)
+					} else if obj.Backend == r.Backend {
+						action = int32(ActionIncloudTransition)
+					} else {
+						action = int32(ActionCrosscloudTransition)
+					}
+
+					if r.ActionType != ActionExpiration && checkTransitionValidation(obj.Tier, r.Tier) != true {
+						log.Logf("Transition object[%s] from tier[%d] to tier[%d] is invalid.\n", obj.ObjectKey, obj.Tier, r.Tier)
+						continue
+					}
+					log.Logf("Lifecycle action: object=[%s] type=%[%s] tier[%d] to tier[%d].\n",
+						obj.ObjectKey, r.ActionType, obj.Tier, r.Tier)
+					acreq := datamover.LifecycleActionRequest{
+						ObjKey:obj.ObjectKey,
+						BucketName:obj.BucketName,
+						Action:action,
+						SourceTier:obj.Tier,
+						TargetTier:r.Tier,
+						SourceBackend:obj.Backend,
+						TargetBackend:r.Backend,
+					}
+
+					//If send failed, then ignore it, because it will be re-sent in the next period.
+					sendActionRequest(&acreq)
+
+					//Add object key to dupCheck.
+					dupCheck[obj.ObjectKey] = struct{}{}
+					log.Logf("dupCheck:%v\n", dupCheck)
 				} else {
-					action = int32(ActionCrosscloudTransition)
+					log.Logf("Object[%s] is already handled in this schedule time.\n", obj.ObjectKey)
 				}
-
-				if r.ActionType != ActionExpiration && checkTransitionValidation(obj.Tier, r.Tier) != true {
-					log.Logf("Transition object[%s] from tier[%] to tier[%d] is invalid.\n", obj.ObjectKey, obj.Tier)
-					continue
-				}
-				log.Logf("Will transition object[%s] from tier[%] to tier[%d].\n", obj.ObjectKey, obj.Tier, r.Tier)
-				acreq := datamover.LifecycleActionRequest{
-					ObjKey:obj.ObjectKey,
-					BucketName:obj.BucketName,
-					Action:action,
-					SourceTier:obj.Tier,
-					TargetTier:r.Tier,
-					SourceBackend:obj.Backend,
-					TargetBackend:r.Backend,
-				}
-
-				//If send failed, then ignore it, because it will be re-sent in the next period.
-				sendActionRequest(&acreq)
-
-				//Add object key to dupCheck.
-				dupCheck[obj.ObjectKey] = struct{}{}
+			}
+			if num < limit {
+				break
 			}
 		}
 	}
@@ -234,6 +265,7 @@ func sendActionRequest(req *datamover.LifecycleActionRequest) error {
 		return err
 	}
 
+
 	return kafka.ProduceMsg(topicLifecycle, data)
 }
 
@@ -244,18 +276,15 @@ func (r InterRules) Len() int {
 // Less reports whether the element with index i should sort before the element with index j.
 func (r InterRules) Less(i, j int) bool {
 	var ret bool
-	if r[i].Days < r[j].Days {
+	if r[i].ActionType < r[j].ActionType {
 		ret = true
-	} else if (r[i].Days > r[j].Days) {
+	} else if r[i].ActionType > r[j].ActionType {
 		ret = false
-	} else { // This means r[i].Days == r[j].Days
-		if (r[i].ActionType < r[j].ActionType) {
+	} else {
+		if r[i].Days <= r[j].Days {
 			ret = true
-		} else if (r[i].ActionType > r[j].ActionType) {
+		} else {
 			ret = false
-		} else { // This means r[i].ActionType == r[j].ActionType
-		    //TODO:??
-		    ret = true
 		}
 	}
 

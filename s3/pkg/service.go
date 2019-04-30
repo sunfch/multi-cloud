@@ -268,6 +268,19 @@ func (b *s3Service) CreateBucket(ctx context.Context, in *pb.Bucket, out *pb.Bas
 	if err.Code != ERR_OK && err.Code != http.StatusNotFound {
 		return err.Error()
 	}
+	// For test begin ...
+	if in.Backend == "obs1" {
+		r1 := pb.LifecycleRule{Id: "1", Status: "on", Filter: &pb.LifecycleFilter{Prefix: "test"}}
+		r1.Actions = []*pb.Action{
+			&pb.Action{Name: "transition", Days: 1, Tier: Tier99}, // transition in the same bucket
+			&pb.Action{Name: "transition", Days: 2, Tier: Tier999, Backend: "obs2"}, // transtion in different buckets but in the same cloud
+			&pb.Action{Name: "transition", Days: 3, Tier: Tier999, Backend: "aws1"}, // cross-cloud transition
+			&pb.Action{Name: "expiration", Days: 4}, // expiration
+		}
+
+		in.LifecycleConfiguration = append(in.LifecycleConfiguration, &r1)
+	}
+	// For test end   ...
 	if err.Code == http.StatusNotFound {
 		log.Log(".CreateBucket is called in s3 service.")
 		err1 := db.DbAdapter.CreateBucket(in)
@@ -326,10 +339,12 @@ func (b *s3Service) ListObjects(ctx context.Context, in *pb.ListObjectsRequest, 
 		return err.Error()
 	}
 	for j := 0; j < len(objects); j++ {
-		if objects[j].InitFlag != "0" && objects[j].IsDeleteMarker != "1" {
+		out.ListObjects = append(out.ListObjects, &objects[j])
+		/*if objects[j].InitFlag != "0" && objects[j].IsDeleteMarker != "1" {
 			out.ListObjects = append(out.ListObjects, &objects[j])
-		}
+		}*/
 	}
+
 	return nil
 }
 
@@ -477,4 +492,18 @@ func CheckReqObjMeta(req map[string]string, valid map[string]struct{}) (map[stri
 	}
 
 	return ret, NoError
+}
+
+func (b *s3Service) GetBackendTypeByTier(ctx context.Context, in *pb.GetBackendTypeByTierRequest, out *pb.GetBackendTypeByTierResponse) error {
+	for k, v := range Int2ExtTierMap {
+		for k1, _ := range *v {
+			if k1 == in.Tier {
+				out.Types = append(out.Types, k)
+			}
+		}
+	}
+
+	log.Logf("GetBackendTypesByTier, types:%v\n", out.Types)
+
+	return nil
 }

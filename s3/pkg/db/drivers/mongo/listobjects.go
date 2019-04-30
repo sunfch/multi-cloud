@@ -75,15 +75,23 @@ func (ad *adapter) ListObjects(in *pb.ListObjectsRequest, out *[]pb.Object) S3Er
 		}
 	}
 
+	//
+	filter = append(filter, bson.M{"initflag": bson.M{"$ne": "0"}})
+	filter = append(filter, bson.M{"isdeletemarker": bson.M{"$ne": "1"}})
+
 	log.Logf("filter:%+v\n", filter)
 	var err error
+	offset := int(in.Offset)
+	limit := int(in.Limit)
+	if limit == 0 {
+		limit = 1000  // as default
+	}
 	if len(filter) > 0 {
-		err = c.Find(bson.M{"$and":filter}).All(out)
+		err = c.Find(bson.M{"$and":filter}).Skip(offset).Limit(limit).All(out)
 	} else {
-		err = c.Find(bson.M{}).All(out)
+		err = c.Find(bson.M{}).Skip(offset).Limit(limit).All(out)
 	}
 
-	//TODO pagination
 	if err != nil {
 		log.Logf("Find objects from database failed, err:%v\n", err)
 		return InternalError

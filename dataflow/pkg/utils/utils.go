@@ -15,9 +15,9 @@
 package utils
 
 const (
-	ActionExpiration		int = iota
-	ActionIncloudTransition
-	ActionCrosscloudTransition
+	ActionExpiration		 = 1
+	ActionIncloudTransition  = 2
+	ActionCrosscloudTransition  = 3
 )
 
 const (

@@ -14,6 +14,7 @@ service S3 {
 	rpc GetTierMap(BaseRequest) returns (GetTierMapResponse) {}
 	rpc UpdateObjMeta(UpdateObjMetaRequest) returns (BaseResponse) {}
     rpc GetStorageClasses(BaseRequest) returns (GetStorageClassesResponse) {}
+	rpc GetBackendTypeByTier(GetBackendTypeByTierRequest) returns (GetBackendTypeByTierResponse) {}
 }
 
 message ACL {
@@ -209,6 +210,8 @@ message ListObjectsRequest {
     string Delimiter = 2;
     string Owner = 3;
 	map<string, string> Filter = 4;
+	int32  offset = 5;
+	int32  limit = 6;
 }
 
 message ListObjectResponse {
@@ -267,4 +270,12 @@ message StorageClass {
 
 message GetStorageClassesResponse {
     repeated StorageClass classes = 1;
+}
+
+message GetBackendTypeByTierRequest {
+	int32 Tier = 1;
+}
+
+message GetBackendTypeByTierResponse {
+	repeated string Types = 1;
 }

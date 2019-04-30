@@ -44,6 +44,8 @@ It has these top-level messages:
 	UpdateObjMetaRequest
 	StorageClass
 	GetStorageClassesResponse
+	GetBackendTypeByTierRequest
+	GetBackendTypeByTierResponse
 */
 package s3
 
@@ -88,6 +90,7 @@ type S3Service interface {
 	GetTierMap(ctx context.Context, in *BaseRequest, opts ...client.CallOption) (*GetTierMapResponse, error)
 	UpdateObjMeta(ctx context.Context, in *UpdateObjMetaRequest, opts ...client.CallOption) (*BaseResponse, error)
 	GetStorageClasses(ctx context.Context, in *BaseRequest, opts ...client.CallOption) (*GetStorageClassesResponse, error)
+	GetBackendTypeByTier(ctx context.Context, in *GetBackendTypeByTierRequest, opts ...client.CallOption) (*GetBackendTypeByTierResponse, error)
 }
 
 type s3Service struct {
@@ -228,6 +231,16 @@ func (c *s3Service) GetStorageClasses(ctx context.Context, in *BaseRequest, opts
 	return out, nil
 }
 
+func (c *s3Service) GetBackendTypeByTier(ctx context.Context, in *GetBackendTypeByTierRequest, opts ...client.CallOption) (*GetBackendTypeByTierResponse, error) {
+	req := c.c.NewRequest(c.name, "S3.GetBackendTypeByTier", in)
+	out := new(GetBackendTypeByTierResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for S3 service
 
 type S3Handler interface {
@@ -243,6 +256,7 @@ type S3Handler interface {
 	GetTierMap(context.Context, *BaseRequest, *GetTierMapResponse) error
 	UpdateObjMeta(context.Context, *UpdateObjMetaRequest, *BaseResponse) error
 	GetStorageClasses(context.Context, *BaseRequest, *GetStorageClassesResponse) error
+	GetBackendTypeByTier(context.Context, *GetBackendTypeByTierRequest, *GetBackendTypeByTierResponse) error
 }
 
 func RegisterS3Handler(s server.Server, hdlr S3Handler, opts ...server.HandlerOption) error {
@@ -259,6 +273,7 @@ func RegisterS3Handler(s server.Server, hdlr S3Handler, opts ...server.HandlerOp
 		GetTierMap(ctx context.Context, in *BaseRequest, out *GetTierMapResponse) error
 		UpdateObjMeta(ctx context.Context, in *UpdateObjMetaRequest, out *BaseResponse) error
 		GetStorageClasses(ctx context.Context, in *BaseRequest, out *GetStorageClassesResponse) error
+		GetBackendTypeByTier(ctx context.Context, in *GetBackendTypeByTierRequest, out *GetBackendTypeByTierResponse) error
 	}
 	type S3 struct {
 		s3
@@ -317,4 +332,8 @@ func (h *s3Handler) UpdateObjMeta(ctx context.Context, in *UpdateObjMetaRequest,
 
 func (h *s3Handler) GetStorageClasses(ctx context.Context, in *BaseRequest, out *GetStorageClassesResponse) error {
 	return h.S3Handler.GetStorageClasses(ctx, in, out)
+}
+
+func (h *s3Handler) GetBackendTypeByTier(ctx context.Context, in *GetBackendTypeByTierRequest, out *GetBackendTypeByTierResponse) error {
+	return h.S3Handler.GetBackendTypeByTier(ctx, in, out)
 }

@@ -30,6 +30,8 @@ import (
 	. "github.com/opensds/multi-cloud/s3/pkg/exception"
 	"github.com/opensds/multi-cloud/s3/proto"
 	"golang.org/x/net/context"
+	"fmt"
+	"github.com/opensds/multi-cloud/s3/pkg/utils"
 )
 
 //ObjectPut -
@@ -49,12 +51,12 @@ func (s *APIService) ObjectPut(request *restful.Request, response *restful.Respo
 	log.Logf("objectKey is %v:\n", objectKey)
 	contentLenght := request.HeaderParameter("content-length")
 	backendName := request.HeaderParameter("x-amz-storage-class")
-	/*sc := request.HeaderParameter("x-amz-storage-class")
-	if sc == "" { // If storage class is not specified, then STANDARD will be used.
-		sc = "STANDARD"
-	}
-	backendName := request.HeaderParameter("x-backend-name")*/
 	log.Logf("backendName is :%v\n", backendName)
+
+	// tierStr := request.HeaderParameter("x-opensds-tier")
+	// Currently, only support tier1
+	tier := int32(utils.Tier1)
+
 	object := s3.Object{}
 	object.BucketName = bucketName
 	size, _ := strconv.ParseInt(contentLenght, 10, 64)
@@ -63,7 +65,8 @@ func (s *APIService) ObjectPut(request *restful.Request, response *restful.Respo
 	object.IsDeleteMarker = ""
 	object.InitFlag = ""
 	object.LastModified = time.Now().Unix()
-	//object.StorageClass = sc
+	object.Tier = tier
+
 	ctx := context.WithValue(request.Request.Context(), "operation", "upload")
 
 	log.Logf("Received request for create bucket: %s", bucketName)
@@ -92,6 +95,29 @@ func (s *APIService) ObjectPut(request *restful.Request, response *restful.Respo
 		response.WriteError(http.StatusInternalServerError, s3err.Error())
 		return
 	}
+	// For test begin ...
+	fmt.Println("=============================")
+	if objectKey == "test1" {
+		val, _ := time.Parse("2006-01-02 15:04:05", "2019-04-28 08:20:00")
+		object.LastModified = val.Unix()
+		fmt.Printf("Change time to %v\n", object.LastModified)
+	}
+	if objectKey == "test2" {
+		val, _ := time.Parse("2006-01-02 15:04:05", "2019-04-27 08:20:00")
+		object.LastModified = val.Unix()
+		fmt.Printf("Change time to %v\n", object.LastModified)
+	}
+	if objectKey == "test3" {
+		val, _ := time.Parse("2006-01-02 15:04:05", "2019-04-26 08:20:00")
+		object.LastModified = val.Unix()
+		fmt.Printf("Change time to %v\n", object.LastModified)
+	}
+	if objectKey == "test4" {
+		val, _ := time.Parse("2006-01-02 15:04:05", "2019-04-25 08:20:00")
+		object.LastModified = val.Unix()
+		fmt.Printf("Change time to %v\n", object.LastModified)
+	}
+	// For test end   ...
 	res, err := s.s3Client.CreateObject(ctx, &object)
 	if err != nil {
 		log.Logf("err is %v\n", err)

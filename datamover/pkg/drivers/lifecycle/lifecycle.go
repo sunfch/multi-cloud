@@ -40,6 +40,7 @@ func Init() {
 	log.Logf("Lifecycle datamover init.")
 	s3client = osdss3.NewS3Service("s3", client.DefaultClient)
 	bkendclient = backend.NewBackendService("backend", client.DefaultClient)
+	bkendInfo = make(map[string]*BackendInfo)
 }
 
 func HandleMsg(msgData []byte) error {
@@ -91,7 +92,7 @@ func getBackendInfo(bucketName *string, backendName *string, force bool) (*Backe
 	} else {
 		loca := &BackendInfo{bk.Type, bk.Region, bk.Endpoint, bk.BucketName,
 		bk.Access, bk.Security, *backendName}
-		log.Logf("Refresh backend[name:%s,id:%s] successfully.\n", backendName, bk.Id.String())
+		log.Logf("Refresh backend[name:%s, loca:%+v] successfully.\n", *backendName, *loca)
 		bkendInfo[*backendName] = loca
 		return loca, nil
 	}

@@ -72,6 +72,14 @@ func (s *APIService) BucketGet(request *restful.Request, response *restful.Respo
 	if !policy.Authorize(request, response, "bucket:get") {
 		return
 	}
+
+	limit, offset, err := common.GetPaginationParam(request)
+	if err != nil {
+		log.Logf("Get pagination parameters failed: %v", err)
+		response.WriteError(http.StatusInternalServerError, err)
+		return
+	}
+
 	bucketName := request.PathParameter("bucketName")
 	log.Logf("Received request for bucket details: %s", bucketName)
 
@@ -120,6 +128,8 @@ func (s *APIService) BucketGet(request *restful.Request, response *restful.Respo
 	req := s3.ListObjectsRequest{
 		Bucket: bucketName,
 		Filter: filter,
+		Offset: offset,
+		Limit: limit,
 	}
 
 	ctx := context.Background()
