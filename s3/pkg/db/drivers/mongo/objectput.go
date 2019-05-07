@@ -45,13 +45,13 @@ func (ad *adapter) UpdateObject(in *pb.Object) S3Error {
 	ss := ad.s.Copy()
 	defer ss.Close()
 	c := ss.DB(DataBaseName).C(in.BucketName)
-	log.Logf("%%%%%%%%%%%%%%in:%+v\n", *in)
+	log.Logf("update object:%+v\n", *in)
 	err := c.Update(bson.M{"objectkey": in.ObjectKey}, in)
 	if err == mgo.ErrNotFound {
-		log.Log("Update object to database failed, err:%v\n", err)
+		log.Log("update object to database failed, err:%v\n", err)
 		return NoSuchObject
 	} else if err != nil {
-		log.Log("Update object to database failed, err:%v\n", err)
+		log.Log("update object to database failed, err:%v\n", err)
 		return InternalError
 	}
 

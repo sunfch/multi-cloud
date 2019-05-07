@@ -1,13 +1,14 @@
 package kafka
 
 import (
-	"github.com/Shopify/sarama"
-	"github.com/bsm/sarama-cluster"
-	"github.com/opensds/multi-cloud/datamover/pkg/drivers/https"
 	"log"
 	"os"
 	"os/signal"
 	"time"
+
+	"github.com/Shopify/sarama"
+	"github.com/bsm/sarama-cluster"
+	"github.com/opensds/multi-cloud/datamover/pkg/drivers/https"
 	"github.com/opensds/multi-cloud/datamover/pkg/drivers/lifecycle"
 )
 
@@ -21,7 +22,6 @@ func Init(addrs []string, group string, topics []string) error {
 	config := cluster.NewConfig()
 	config.Consumer.Return.Errors = true
 	config.Consumer.Offsets.Initial = sarama.OffsetNewest
-	//config.Consumer.Offsets.Initial = sarama.OffsetOldest
 	config.Group.Return.Notifications = true
 	config.Config.Version = sarama.V2_0_0_0
 	config.Config.Admin.Timeout = 10 * time.Second
@@ -79,15 +79,15 @@ func LoopConsume() {
 			if ok {
 				switch msg.Topic {
 				case "migration":
-					//TODO: think about how many jobs can run concurrently
+					// TODO: think about how many jobs can run concurrently
 					logger.Printf("Got an migration job:%s\n", msg.Value)
 					err = migration.HandleMsg(msg.Value)
 				case "lifecycle":
-					//Do lifecycle actions.
+					// Do lifecycle actions.
 					logger.Printf("Got an lifecycle action request:%s\n", msg.Value)
 					err = lifecycle.HandleMsg(msg.Value)
 				default:
-					logger.Printf("Not support topic:%s\n", msg.Topic)
+					logger.Printf("not supported topic:%s\n", msg.Topic)
 				}
 				if err == nil {
 					consumer.MarkOffset(msg, "")

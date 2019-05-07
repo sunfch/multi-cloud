@@ -27,10 +27,10 @@ type LocationInfo struct {
 }
 
 type BackendInfo struct {
-	StorType   string //aws-s3,azure-blob,hw-obs,ceph-s3 etc.
+	StorType   string // aws-s3,azure-blob,hw-obs,ceph-s3 etc.
 	Region     string
 	EndPoint   string
-	BucketName string //remote bucket name
+	BucketName string // remote bucket name
 	Access     string
 	Security   string
 	BakendName string

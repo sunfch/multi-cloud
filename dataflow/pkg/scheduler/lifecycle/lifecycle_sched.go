@@ -127,7 +127,7 @@ func handleBucketLifecyle(bucket string, rules []*osdss3.LifecycleRule) error {
 
 	var inRules InterRules
 	for _, rule := range rules {
-		if rule.Status == RuleStatusOff {
+		if rule.Status == RuleStatusDisabled {
 			continue
 		}
 

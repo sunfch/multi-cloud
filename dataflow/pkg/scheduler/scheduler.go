@@ -64,7 +64,7 @@ func LoadAllPlans() {
 	}
 }
 
-//This scheduler will traversing all buckets periodically to get lifecycle rules, and scheduling according to these rules.
+//This scheduler will scan all buckets periodically to get lifecycle rules, and scheduling according to these rules.
 func LoadLifecycleScheduler() error {
 	spec := os.Getenv("LIFECYCLE_CRON_CONFIG")
 	log.Logf("Value of LIFECYCLE_CRON_CONFIG is: %s\n", spec)

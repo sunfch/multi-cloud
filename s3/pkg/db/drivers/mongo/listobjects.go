@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Huawei Technologies Co., Ltd. All Rights Reserved.
+// Copyright 2019 The OpenSDS Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,13 +15,14 @@
 package mongo
 
 import (
+	"encoding/json"
+	"strconv"
+	"time"
+
 	"github.com/globalsign/mgo/bson"
 	"github.com/micro/go-log"
 	. "github.com/opensds/multi-cloud/s3/pkg/exception"
 	pb "github.com/opensds/multi-cloud/s3/proto"
-	"encoding/json"
-	"strconv"
-	"time"
 	"github.com/opensds/multi-cloud/api/pkg/common"
 )
 
@@ -35,7 +36,6 @@ func (ad *adapter) ListObjects(in *pb.ListObjectsRequest, out *[]pb.Object) S3Er
 	filter := []bson.M{}
 	if in.Filter != nil {
 		if in.Filter[common.KObjKey] != "" {
-			//str := "^" + in.Filter[common.KObjKey]
 			filter = append(filter, bson.M{"objectkey":bson.M{"$regex": in.Filter[common.KObjKey]}})
 		}
 		if in.Filter[common.KLastModified] != "" {
@@ -75,8 +75,7 @@ func (ad *adapter) ListObjects(in *pb.ListObjectsRequest, out *[]pb.Object) S3Er
 		}
 	}
 
-	//
-	//filter = append(filter, bson.M{"initflag": bson.M{"$ne": "0"}})
+	filter = append(filter, bson.M{"initflag": bson.M{"$ne": "0"}})
 	filter = append(filter, bson.M{"isdeletemarker": bson.M{"$ne": "1"}})
 
 	log.Logf("filter:%+v\n", filter)
@@ -84,7 +83,8 @@ func (ad *adapter) ListObjects(in *pb.ListObjectsRequest, out *[]pb.Object) S3Er
 	offset := int(in.Offset)
 	limit := int(in.Limit)
 	if limit == 0 {
-		limit = 1000  // as default
+		// as default
+		limit = 1000
 	}
 	if len(filter) > 0 {
 		err = c.Find(bson.M{"$and":filter}).Skip(offset).Limit(limit).All(out)

@@ -13,7 +13,7 @@ service S3 {
 	rpc DeleteObject(DeleteObjectInput) returns (BaseResponse) {}
 	rpc GetTierMap(BaseRequest) returns (GetTierMapResponse) {}
 	rpc UpdateObjMeta(UpdateObjMetaRequest) returns (BaseResponse) {}
-    rpc GetStorageClasses(BaseRequest) returns (GetStorageClassesResponse) {}
+	rpc GetStorageClasses(BaseRequest) returns (GetStorageClassesResponse) {}
 	rpc GetBackendTypeByTier(GetBackendTypeByTierRequest) returns (GetBackendTypeByTierResponse) {}
 }
 
@@ -101,15 +101,15 @@ message Tag {
 
 message LifecycleFilter {
 	string prefix = 1;
-	repeated Tag tags = 2;  //Do not support tags right now --20190321
+	repeated Tag tags = 2;
 }
 
 message Action {
-	string name = 1;   //expiration or transition
+	string name = 1;   			// expiration or transition
 	int32 days = 2;
-	string deleteMarker = 4;  //for versioning
-	int32 tier = 5;  //only for transition
-	string backend = 6;		  //for cross-cloud transition, if it is not set, that means in-cloud transition
+	string deleteMarker = 4;  	// for versioning
+	int32 tier = 5;  			// only for transition
+	string backend = 6;		  	// if it is not set for transition, that means in-cloud transition
 }
 
 message LifecycleRule {
@@ -139,7 +139,6 @@ message Bucket {
 	WebsiteConfiguration websiteConfiguration = 11;
 	CORSConfiguration cors = 12;
 	ReplicationConfiguration replicationConfiguration = 13;
-	//string storageClass = 14;
 	repeated LifecycleRule lifecycleConfiguration = 14;
 }
 
@@ -261,7 +260,7 @@ message UpdateObjMetaRequest {
 	string ObjKey = 1;
 	string BucketName = 2;
 	int64 LastModified = 3;
-    map<string, string> Setting = 4;
+	map<string, string> Setting = 4;
 }
 
 message StorageClass {

@@ -86,7 +86,6 @@ func (mover *S3Mover) UploadObj(objKey string, destLoca *LocationInfo, buf []byt
 	reader := bytes.NewReader(buf)
 	uploader := s3manager.NewUploader(sess)
 	log.Logf("[s3mover] Try to upload, bucket:%s,obj:%s\n", destLoca.BucketName, objKey)
-	//var input s3manager.UploadInput
 	input := s3manager.UploadInput{
 		Bucket: aws.String(destLoca.BucketName),
 		Key:    aws.String(objKey),
@@ -113,7 +112,7 @@ func (mover *S3Mover) UploadObj(objKey string, destLoca *LocationInfo, buf []byt
 	return errors.New(DMERR_InternalError)
 }
 
-func (mover *S3Mover) DownloadObj(objKey string, srcLoca *LocationInfo, buf []byte) (int64, error) {
+func (mover *S3Mover) DownloadObj(objKey string, srcLoca *LocationInfo, buf []byte) (size int64, err error) {
 	s3c := s3Cred{ak: srcLoca.Access, sk: srcLoca.Security}
 	creds := credentials.NewCredentials(&s3c)
 	sess, err := session.NewSession(&aws.Config{

@@ -21,7 +21,6 @@ import (
 var adap = &adapter{}
 var DataBaseName = "metadatastore"
 var BucketMD = "metadatabucket"
-//var StorageClassCol = "StorageClasses"
 
 func Init(host string) *adapter {
 	//fmt.Println("edps:", deps)
@@ -35,12 +34,6 @@ func Init(host string) *adapter {
 	adap.s = session
 	adap.userID = "unknown"
 
-	/*//Init default storage class definition.
-	err = adap.initDefaultStorageClasses()
-	if err != nil {
-		panic(err)
-	}*/
-
 	return adap
 }
 
@@ -52,100 +45,3 @@ type adapter struct {
 	s      *mgo.Session
 	userID string
 }
-
-//Init default storage classes, include STANDARD, STANDARD_IA, GLACIER.
-/*func (ad *adapter) initDefaultStorageClasses() error {
-	c := ad.s.DB(DataBaseName).C(StorageClassCol)
-	scs := []StorageClassDef{}
-	err := c.Find(bson.M{}).All(&scs)
-	if err != nil {
-		log.Logf("Get storage class definition failed:%v.\n", err)
-		return err
-	}
-
-	//Add the default storage classes to database.
-	if len(scs) == 0 {
-		standard := StorageClassDef{
-			Name:"STNADARD",
-			SupportedBackendTypes: []string{
-				constants.BackendTypeAws,
-				constants.BackendTypeAzure,
-				constants.BackendFusionStorage,
-				constants.BackendTypeCeph,
-				constants.BackendTypeObs,
-				constants.BackendTypeGcp,
-				constants.BackendTypeIBMCos,
-			},
-			NextStorageClasses:[]string{"STANDARD_IA", "GLACIER"}}
-		err = c.Insert(standard)
-		if err != nil {
-			log.Logf("Insert standard storage class to database failed:%v.\n", err)
-			return err
-		}
-		standardIA := StorageClassDef{
-			Name:"STNADARD_IA",
-			SupportedBackendTypes: []string{
-				constants.BackendTypeAws,
-				constants.BackendTypeAzure,
-				constants.BackendTypeObs,
-				constants.BackendTypeGcp,
-				constants.BackendTypeIBMCos,
-			},
-			NextStorageClasses:[]string{"GLACIER"}}
-		err = c.Insert(standardIA)
-		if err != nil {
-			log.Logf("Insert standard_ia storage class to database failed:%v.\n", err)
-			return err
-		}
-		glacier := StorageClassDef{
-			Name:"GLACIER",
-			SupportedBackendTypes: []string{
-				constants.BackendTypeAws,
-				constants.BackendTypeAzure,
-				constants.BackendTypeObs,
-				constants.BackendTypeGcp,
-				constants.BackendTypeIBMCos,
-			}}
-		err = c.Insert(glacier)
-		if err != nil {
-			log.Logf("Insert glacier storage class to database failed:%v.\n", err)
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (ad *adapter) CheckStorageClassValidation(sc *string) (error, string) {
-	//if *sc == "" {
-	//	return nil, "STANDARD"
-	//}
-
-	c := ad.s.DB(DataBaseName).C(StorageClassCol)
-	var scDef StorageClassDef
-	err := c.Find(bson.M{"name":sc}).One(&scDef)
-	if err == mgo.ErrNotFound {
-		log.Logf("Storage class [%s] has not defined.\n", sc)
-		return nil, ""
-	}
-	if err != nil {
-		log.Logf("Try to find storage class [%s] in database failed:%v.\n", err)
-		return err, ""
-	}
-
-	return nil, scDef.Name
-}
-
-//Get supported backend types of a specific storage class.
-func (ad *adapter) GetSupportedBackendTypes(sc *string) (error, []string) {
-	c := ad.s.DB(DataBaseName).C(StorageClassCol)
-	var scDef StorageClassDef
-	//err := c.Find(bson.M{"supportedbackendtypes":sc}).All(scDef)
-	err := c.Find(bson.M{"name":sc}).One(scDef)
-	if err != nil {
-		log.Logf("Get supported backend types for %s failed, err:%v.\n", sc, err)
-		return err, nil
-	}
-
-	return nil, scDef.SupportedBackendTypes
-}*/
