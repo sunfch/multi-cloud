@@ -260,7 +260,8 @@ message GetTierMapResponse {
 message UpdateObjMetaRequest {
 	string ObjKey = 1;
 	string BucketName = 2;
-    map<string, string> Setting = 3;
+	int64 LastModified = 3;
+    map<string, string> Setting = 4;
 }
 
 message StorageClass {

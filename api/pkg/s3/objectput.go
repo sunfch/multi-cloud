@@ -98,22 +98,22 @@ func (s *APIService) ObjectPut(request *restful.Request, response *restful.Respo
 	// For test begin ...
 	fmt.Println("=============================")
 	if objectKey == "test1" {
-		val, _ := time.Parse("2006-01-02 15:04:05", "2019-04-28 08:20:00")
+		val, _ := time.Parse("2006-01-02 15:04:05", "2019-05-05 07:20:00")
 		object.LastModified = val.Unix()
 		fmt.Printf("Change time to %v\n", object.LastModified)
 	}
 	if objectKey == "test2" {
-		val, _ := time.Parse("2006-01-02 15:04:05", "2019-04-27 08:20:00")
+		val, _ := time.Parse("2006-01-02 15:04:05", "2019-05-04 07:20:00")
 		object.LastModified = val.Unix()
 		fmt.Printf("Change time to %v\n", object.LastModified)
 	}
 	if objectKey == "test3" {
-		val, _ := time.Parse("2006-01-02 15:04:05", "2019-04-26 08:20:00")
+		val, _ := time.Parse("2006-01-02 15:04:05", "2019-05-03 07:20:00")
 		object.LastModified = val.Unix()
 		fmt.Printf("Change time to %v\n", object.LastModified)
 	}
 	if objectKey == "test4" {
-		val, _ := time.Parse("2006-01-02 15:04:05", "2019-04-25 08:20:00")
+		val, _ := time.Parse("2006-01-02 15:04:05", "2019-05-02 07:20:00")
 		object.LastModified = val.Unix()
 		fmt.Printf("Change time to %v\n", object.LastModified)
 	}

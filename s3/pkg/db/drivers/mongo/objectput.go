@@ -45,6 +45,7 @@ func (ad *adapter) UpdateObject(in *pb.Object) S3Error {
 	ss := ad.s.Copy()
 	defer ss.Close()
 	c := ss.DB(DataBaseName).C(in.BucketName)
+	log.Logf("%%%%%%%%%%%%%%in:%+v\n", *in)
 	err := c.Update(bson.M{"objectkey": in.ObjectKey}, in)
 	if err == mgo.ErrNotFound {
 		log.Log("Update object to database failed, err:%v\n", err)
@@ -57,18 +58,14 @@ func (ad *adapter) UpdateObject(in *pb.Object) S3Error {
 	return NoError
 }
 
-func (ad *adapter) UpdateObjMeta(objKey *string, bucketName *string, setting map[string]interface{}) S3Error {
+func (ad *adapter) UpdateObjMeta(objKey *string, bucketName *string, lastmod int64, setting map[string]interface{}) S3Error {
 	ss := ad.s.Copy()
 	defer ss.Close()
 	c := ss.DB(DataBaseName).C(*bucketName)
-	selector := bson.M{"objectkey":objKey}
-	sets := []bson.M{}
-	for k, v := range setting {
-		sets = append(sets, bson.M{k:v})
-	}
-	data := bson.M{"$set":sets}
-	err := c.Update(selector, data)
+	selector := bson.M{"objectkey":*objKey, "lastmodified":lastmod}
 
+	data := bson.M{"$set":setting}
+	err := c.Update(selector, data)
 	if err != nil {
 		log.Logf("Update object metadata failed:%v.\n", err)
 		return DBError

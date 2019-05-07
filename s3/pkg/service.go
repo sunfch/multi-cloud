@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Huawei Technologies Co., Ltd. All Rights Reserved.
+// Copyright 2019 The OpenSDS Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -340,9 +340,6 @@ func (b *s3Service) ListObjects(ctx context.Context, in *pb.ListObjectsRequest, 
 	}
 	for j := 0; j < len(objects); j++ {
 		out.ListObjects = append(out.ListObjects, &objects[j])
-		/*if objects[j].InitFlag != "0" && objects[j].IsDeleteMarker != "1" {
-			out.ListObjects = append(out.ListObjects, &objects[j])
-		}*/
 	}
 
 	return nil
@@ -403,7 +400,7 @@ func (b *s3Service) DeleteObject(ctx context.Context, in *pb.DeleteObjectInput, 
 		return err.Error()
 	}
 	object.IsDeleteMarker = "1"
-	log.Log("UpdateObject is called in s3 service.")
+	log.Log("DeleteObject is called in s3 service.")
 	err1 := db.DbAdapter.UpdateObject(&object)
 	if err1.Code != ERR_OK {
 		return err.Error()
@@ -423,9 +420,6 @@ func NewS3Service() pb.S3Handler {
 }
 
 func (b *s3Service)GetTierMap(ctx context.Context, in *pb.BaseRequest, out *pb.GetTierMapResponse) error {
-	log.Log("GetTierMap ...")
-	//out = &pb.GetTierMapResponse{}
-
 	//Get map from internal tier to external class name.
 	out.Tier2Name = make(map[string]*pb.Tier2ClassName)
 	for k, v := range Int2ExtTierMap {
@@ -450,18 +444,18 @@ func (b *s3Service)GetTierMap(ctx context.Context, in *pb.BaseRequest, out *pb.G
 }
 
 func (b *s3Service)UpdateObjMeta(ctx context.Context, in *pb.UpdateObjMetaRequest, out *pb.BaseResponse) error {
-	log.Logf("Update meatadata, setting:%v\n", in.Setting)
+	log.Logf("Update meatadata, objkey:%s, lastmodified:%d, setting:%v\n", in.ObjKey, in.LastModified, in.Setting)
 	valid := make(map[string]struct{})
 	valid["tier"] = struct{}{}
 	valid["backend"] = struct{}{}
-	ret, err := CheckReqObjMeta(in.Setting, valid)
+	set, err := CheckReqObjMeta(in.Setting, valid)
 	if err.Code != ERR_OK {
 		out.ErrorCode = fmt.Sprintf("%s", err.Code)
 		out.Msg = err.Description
 		return err.Error()
 	}
 
-	err = db.DbAdapter.UpdateObjMeta(&in.ObjKey, &in.BucketName, ret)
+	err = db.DbAdapter.UpdateObjMeta(&in.ObjKey, &in.BucketName, in.LastModified, set)
 	if err.Code != ERR_OK {
 		out.ErrorCode = fmt.Sprintf("%s", err.Code)
 		out.Msg = err.Description
@@ -473,6 +467,7 @@ func (b *s3Service)UpdateObjMeta(ctx context.Context, in *pb.UpdateObjMetaReques
 }
 
 func CheckReqObjMeta(req map[string]string, valid map[string]struct{}) (map[string]interface{}, S3Error) {
+	log.Logf("CheckReqObjMeta, req: %+v\n", req)
 	ret := make(map[string]interface{})
 	for k, v := range req {
 		if _, ok := valid[k]; !ok {
@@ -482,7 +477,7 @@ func CheckReqObjMeta(req map[string]string, valid map[string]struct{}) (map[stri
 		if k == "tier" {
 			v1, err := strconv.Atoi(v)
 			if err != nil {
-				log.Logf("CheckReqObjMeta: Invalid tier:%s.\n", v)
+				log.Logf("invalid tier:%v.\n", v)
 				return nil, BadRequest
 			}
 			ret[k] = v1

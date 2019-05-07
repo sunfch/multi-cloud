@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Huawei Technologies Co., Ltd. All Rights Reserved.
+// Copyright 2019 The OpenSDS Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ import (
 func (mover *ObsMover)ChangeStorageClass(objKey *string, newClass *string, bkend *BackendInfo) error {
 	obsClient, err := obs.New(bkend.Access, bkend.Security, bkend.EndPoint)
 	if err != nil {
-		log.Logf("[obsmover] New client failed when change storage class of obj[%s] to %s failed, err:%v\n",
+		log.Logf("[obsmover] new client failed when change storage class of obj[%s] to %s failed, err:%v\n",
 			objKey, newClass, err)
 		return err
 	}
@@ -40,12 +40,12 @@ func (mover *ObsMover)ChangeStorageClass(objKey *string, newClass *string, bkend
 	case "GLACIER":
 		input.StorageClass = obs.StorageClassCold
 	default:
-		log.Logf("[obslifecycle] Unspport storage class:%s", newClass)
+		log.Logf("[obslifecycle] unspport storage class:%s", newClass)
 		return errors.New(DMERR_UnSupportStorageClass)
 	}
 	_, err = obsClient.CopyObject(input)
 	if err != nil {
-		log.Logf("[obslifecycle] Change storage class of object[%s] to %s failed: %v.\n", objKey, newClass, err)
+		log.Logf("[obslifecycle] change storage class of object[%s] to %s failed: %v.\n", objKey, newClass, err)
 		e := handleHWObsErrors(err)
 		return e
 	}

@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Huawei Technologies Co., Ltd. All Rights Reserved.
+// Copyright 2019 The OpenSDS Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -37,8 +37,11 @@ func handleHWObsErrors(err error) error {
 			code := serr.Code
 			switch code { // Compare serviceCode to ServiceCodeXxx constants
 			case "SignatureDoesNotMatch":
-				log.Log("HuaweiOBS error: permission denied.")
+				log.Log("hw-obs error: SignatureDoesNotMatch.")
 				return errors.New(DMERR_NoPermission)
+			case "NoSuchKey":
+				log.Log("hw-obs error: NoSuchKey.")
+				return errors.New(DMERR_NoSuchKey)
 			default:
 				return err
 			}
@@ -64,7 +67,7 @@ func (mover *ObsMover) DownloadObj(objKey string, srcLoca *LocationInfo, buf []b
 		if err != nil {
 			log.Logf("[obsmover] Download object[%s] failed %d times, err:%v", objKey, tries, err)
 			e := handleHWObsErrors(err)
-			if tries >= 3 || e.Error() == DMERR_NoPermission { //If no permission, then no need to retry.
+			if tries >= 3 || e.Error() == DMERR_NoPermission || e.Error() == DMERR_NoSuchKey { //If no permission, then no need to retry.
 				return 0, e
 			}
 		} else {

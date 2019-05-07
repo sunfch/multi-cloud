@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Huawei Technologies Co., Ltd. All Rights Reserved.
+// Copyright 2019 The OpenSDS Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,6 +21,6 @@ import (
 )
 
 func (mover *GcpS3Mover)ChangeStorageClass(objKey *string, newClass *string, bkend *BackendInfo) error {
-	log.Log("[GcpS3Mover]Change storage class of %s to %s faild.", objKey, newClass)
+	log.Log("[gcpS3Mover]change storage class of %s to %s failed.", objKey, newClass)
 	return errors.New(DMERR_InternalError)
 }

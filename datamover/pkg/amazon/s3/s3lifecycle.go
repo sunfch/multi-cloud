@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Huawei Technologies Co., Ltd. All Rights Reserved.
+// Copyright 2019 The OpenSDS Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -33,7 +33,7 @@ func (mover *S3Mover)ChangeStorageClass(objKey *string, newClass *string, loca *
 		Credentials: creds,
 	})
 	if err != nil {
-		log.Logf("[s3lifecycle] New session failed, err:%v\n", err)
+		log.Logf("[s3lifecycle] new session failed, err:%v\n", err)
 		return handleAWSS3Errors(err)
 	}
 
@@ -42,7 +42,6 @@ func (mover *S3Mover)ChangeStorageClass(objKey *string, newClass *string, loca *
 		Bucket: aws.String(loca.BucketName),
 		Key: aws.String(*objKey),
 		CopySource: aws.String(loca.BucketName + "/" + *objKey),
-		//Metadata:meta,
 	}
 	input.StorageClass = aws.String(*newClass)
 	_, err = svc.CopyObject(input)

@@ -29,7 +29,7 @@ const (
 const (
 	AWS_STANDARD = "STANDARD"
 	AWS_STANDARD_IA = "STANDARD_IA"
-	AWS_GLACIER = "Glacier"
+	AWS_GLACIER = "GLACIER"
 )
 
 const (

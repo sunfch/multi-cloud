@@ -42,6 +42,7 @@ message LifecycleActionRequest {
 	string sourceBackend = 6;
 	string targetBackend = 7;
 	int64 objSize = 8;
+	int64 lastModified = 9;
 }
 
 message LifecycleActionResonse {

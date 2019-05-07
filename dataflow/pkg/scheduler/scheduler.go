@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Huawei Technologies Co., Ltd. All Rights Reserved.
+// Copyright 2019 The OpenSDS Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,16 +15,17 @@
 package scheduler
 
 import (
+	"os"
+	"fmt"
+
 	"github.com/micro/go-log"
 	"github.com/opensds/multi-cloud/api/pkg/filters/context"
 	"github.com/opensds/multi-cloud/dataflow/pkg/db"
 	"github.com/opensds/multi-cloud/dataflow/pkg/model"
 	"github.com/opensds/multi-cloud/dataflow/pkg/plan"
 	"github.com/opensds/multi-cloud/dataflow/pkg/scheduler/trigger"
-	"fmt"
 	"github.com/robfig/cron"
 	"github.com/opensds/multi-cloud/dataflow/pkg/scheduler/lifecycle"
-	"os"
 )
 
 var DEFAULT_LIFECYLE_SCHED_PERIOD = 1440

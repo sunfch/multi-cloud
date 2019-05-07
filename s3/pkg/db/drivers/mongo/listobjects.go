@@ -76,7 +76,7 @@ func (ad *adapter) ListObjects(in *pb.ListObjectsRequest, out *[]pb.Object) S3Er
 	}
 
 	//
-	filter = append(filter, bson.M{"initflag": bson.M{"$ne": "0"}})
+	//filter = append(filter, bson.M{"initflag": bson.M{"$ne": "0"}})
 	filter = append(filter, bson.M{"isdeletemarker": bson.M{"$ne": "1"}})
 
 	log.Logf("filter:%+v\n", filter)

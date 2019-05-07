@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Huawei Technologies Co., Ltd. All Rights Reserved.
+// Copyright 2019 The OpenSDS Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,6 +16,9 @@ package lifecycle
 
 import (
 	"errors"
+	"sync"
+	"fmt"
+
 	. "github.com/opensds/multi-cloud/datamover/pkg/utils"
 	"github.com/micro/go-log"
 	"github.com/opensds/multi-cloud/datamover/proto"
@@ -25,7 +28,13 @@ import (
 	"github.com/opensds/multi-cloud/datamover/pkg/db"
 	"github.com/micro/go-micro/client"
 	"github.com/opensds/multi-cloud/backend/proto"
-	"sync"
+	flowtype "github.com/opensds/multi-cloud/dataflow/pkg/model"
+	"github.com/opensds/multi-cloud/datamover/pkg/amazon/s3"
+	"github.com/opensds/multi-cloud/datamover/pkg/azure/blob"
+	"github.com/opensds/multi-cloud/datamover/pkg/ceph/s3"
+	"github.com/opensds/multi-cloud/datamover/pkg/hw/obs"
+	"github.com/opensds/multi-cloud/datamover/pkg/gcp/s3"
+	"github.com/opensds/multi-cloud/datamover/pkg/ibm/cos"
 )
 
 var bkendInfo map[string]*BackendInfo
@@ -47,7 +56,7 @@ func HandleMsg(msgData []byte) error {
 	var acReq datamover.LifecycleActionRequest
 	err := json.Unmarshal(msgData, &acReq)
 	if err != nil {
-		log.Logf("Unmarshal lifecycle action request failed, err:%v\n", err)
+		log.Logf("unmarshal lifecycle action request failed, err:%v\n", err)
 		return err
 	}
 
@@ -66,28 +75,27 @@ func doAction(acReq *datamover.LifecycleActionRequest){
 	case utils.ActionExpiration:
 		doExpirationAction(acReq)
 	default:
-		log.Logf("Unsupported action type: %d.\n", acType)
+		log.Logf("unsupported action type: %d.\n", acType)
 	}
 }
 
-//force means get location information from database not from cache.
-func getBackendInfo(bucketName *string, backendName *string, force bool) (*BackendInfo, error) {
+// force means get location information from database not from cache.
+func getBackendInfo(backendName *string, force bool) (*BackendInfo, error) {
 	if !force {
 		loc, exist := bkendInfo[*backendName]
 		if exist {
-			//loc.VirBucket = *bucketName
 			return loc, nil
 		}
 	}
 
 	if *backendName == "" {
-		log.Log("Get backend information failed, backendName is null.\n")
+		log.Log("get backend information failed, backendName is null.\n")
 		return nil, errors.New(DMERR_InternalError)
 	}
 
 	bk, err := db.DbAdapter.GetBackendByName(*backendName)
 	if err != nil {
-		log.Logf("Get backend[%s] information failed, err:%v\n", backendName, err)
+		log.Logf("get backend[%s] information failed, err:%v\n", backendName, err)
 		return nil, err
 	} else {
 		loca := &BackendInfo{bk.Type, bk.Region, bk.Endpoint, bk.BucketName,
@@ -96,4 +104,42 @@ func getBackendInfo(bucketName *string, backendName *string, force bool) (*Backe
 		bkendInfo[*backendName] = loca
 		return loca, nil
 	}
+}
+
+func deleteObjFromBackend(objKey string, loca *LocationInfo) error {
+	if loca.VirBucket != "" {
+		objKey = loca.VirBucket + "/" + objKey
+	}
+	var err error = nil
+	switch loca.StorType {
+	case flowtype.STOR_TYPE_AWS_S3:
+		mover := s3mover.S3Mover{}
+		err = mover.DeleteObj(objKey, loca)
+	case flowtype.STOR_TYPE_IBM_COS:
+		mover := ibmcosmover.IBMCOSMover{}
+		err = mover.DeleteObj(objKey, loca)
+	case flowtype.STOR_TYPE_HW_OBS, flowtype.STOR_TYPE_HW_FUSIONSTORAGE, flowtype.STOR_TYPE_HW_FUSIONCLOUD:
+		mover := obsmover.ObsMover{}
+		err = mover.DeleteObj(objKey, loca)
+	case flowtype.STOR_TYPE_AZURE_BLOB:
+		mover := blobmover.BlobMover{}
+		err = mover.DeleteObj(objKey, loca)
+	case flowtype.STOR_TYPE_CEPH_S3:
+		mover := cephs3mover.CephS3Mover{}
+		err = mover.DeleteObj(objKey, loca)
+	case flowtype.STOR_TYPE_GCP_S3:
+		mover := Gcps3mover.GcpS3Mover{}
+		err = mover.DeleteObj(objKey, loca)
+	default:
+		err = fmt.Errorf("unspport storage type:%s", loca.StorType)
+	}
+
+	if err != nil {
+		log.Logf("delete object[%s] from backend[type:%s,bucket:%s] failed.\n", objKey, loca.StorType, loca.BucketName)
+		// TODO: need to mark down, and delete again later.
+	} else {
+		log.Logf("delete object[%s] from backend[type:%s,bucket:%s] successfully.\n", objKey, loca.StorType, loca.BucketName)
+	}
+
+	return err
 }

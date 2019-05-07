@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Huawei Technologies Co., Ltd. All Rights Reserved.
+// Copyright 2019 The OpenSDS Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -48,17 +48,6 @@ type MoveWorker interface {
 	CompleteMultipartUpload(objKey string, destLoca *LocationInfo) error
 	ChangeStorageClass(objKey *string, newClass *string, bkend *BackendInfo) error
 }
-
-//Object Storage Type
-const (
-	OSTYPE_AWS = "AWSS3"
-	OSTYPE_Azure = "AzureBlob"
-	OSTYPE_OBS = "HuaweiOBS"
-	OSTYPE_GCS = "GoogleCloudStorage"
-	OSTYPE_CEPTH = "CephS3"
-	OSTYPE_FUSIONSTORAGE = "FusionStorage"
-	OSTYPE_IBM = "IBMCOS"
-)
 
 const (
 	Tier1 = 1
