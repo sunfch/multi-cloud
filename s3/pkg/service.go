@@ -16,26 +16,29 @@ package pkg
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"strconv"
-	"fmt"
 
+	"github.com/Azure/azure-storage-blob-go/azblob"
 	"github.com/micro/go-log"
+	"github.com/opensds/multi-cloud/api/pkg/utils/obs"
 	"github.com/opensds/multi-cloud/s3/pkg/db"
 	. "github.com/opensds/multi-cloud/s3/pkg/exception"
-	pb "github.com/opensds/multi-cloud/s3/proto"
 	. "github.com/opensds/multi-cloud/s3/pkg/utils"
-	"github.com/Azure/azure-storage-blob-go/azblob"
-	"github.com/opensds/multi-cloud/api/pkg/utils/obs"
+	pb "github.com/opensds/multi-cloud/s3/proto"
 )
 
 type Int2String map[int32]string
 type String2Int map[string]int32
+
 // map from cloud vendor name to it's map relation relationship between internal tier to it's storage class name.
 var Int2ExtTierMap map[string]*Int2String
+
 // map from cloud vendor name to it's map relation relationship between it's storage class name to internal tier.
 var Ext2IntTierMap map[string]*String2Int
+
 // map from a specific tier to an array of tiers, that means transition can happens from the specific tier to those tiers in the array.
 var TransitionMap map[int32][]int32
 var SupportedClasses []pb.StorageClass
@@ -160,17 +163,17 @@ func loadDefaultStorageClass() error {
 	  FusinoStorage Object: STANDARD		-					-
 	*/
 	/* Lifecycle transition:
-	  T1 -> T99:  allowed
-	  T1 -> T999: allowed
-	  T99 -> T999: allowed
-      T99 -> T1:  not allowed
-	  T999 -> T1: not allowed
-	  T999 -> T99: not allowed
+		  T1 -> T99:  allowed
+		  T1 -> T999: allowed
+		  T99 -> T999: allowed
+	      T99 -> T1:  not allowed
+		  T999 -> T1: not allowed
+		  T999 -> T99: not allowed
 	*/
 
-	SupportedClasses = append(SupportedClasses, pb.StorageClass{Name:string(AWS_STANDARD), Tier:int32(Tier1)})
-	SupportedClasses = append(SupportedClasses, pb.StorageClass{Name:string(AWS_STANDARD_IA), Tier:int32(Tier99)})
-	SupportedClasses = append(SupportedClasses, pb.StorageClass{Name:string(AWS_GLACIER), Tier:int32(Tier999)})
+	SupportedClasses = append(SupportedClasses, pb.StorageClass{Name: string(AWS_STANDARD), Tier: int32(Tier1)})
+	SupportedClasses = append(SupportedClasses, pb.StorageClass{Name: string(AWS_STANDARD_IA), Tier: int32(Tier99)})
+	SupportedClasses = append(SupportedClasses, pb.StorageClass{Name: string(AWS_GLACIER), Tier: int32(Tier999)})
 	log.Logf("Supported storage classes:%v\n", SupportedClasses)
 
 	Int2ExtTierMap = make(map[string]*Int2String)
@@ -189,8 +192,9 @@ func loadDefaultStorageClass() error {
 	return nil
 }
 
+// Currently user defined storage tiers and classes are not supported.
 func loadUserDefinedStorageClass() error {
-	log.Log("user defined storage class is not supported now.")
+	log.Log("user defined storage class is not supported now")
 	return fmt.Errorf("user defined storage class is not supported now")
 }
 
@@ -203,7 +207,7 @@ func loadDefaultTransition() error {
 	return nil
 }
 
-func loadUserDefinedTransition() error  {
+func loadUserDefinedTransition() error {
 	log.Log("user defined storage class is not supported now.")
 	return fmt.Errorf("user defined storage class is not supported now")
 }
@@ -213,7 +217,7 @@ func initStorageClass() {
 	set := os.Getenv("USE_DEFAULT_STORAGE_CLASS")
 	val, err := strconv.ParseInt(set, 10, 64)
 	log.Logf("USE_DEFAULT_STORAGE_CLASS:set=%s, val=%d, err=%v.\n", set, val, err)
-	if err != nil{
+	if err != nil {
 		log.Logf("invalid USE_DEFAULT_STORAGE_CLASS:%s\n", set)
 		panic("init s3service failed")
 	}
@@ -273,10 +277,10 @@ func (b *s3Service) CreateBucket(ctx context.Context, in *pb.Bucket, out *pb.Bas
 	if in.Backend == "obs1" {
 		r1 := pb.LifecycleRule{Id: "1", Status: "on", Filter: &pb.LifecycleFilter{Prefix: "test"}}
 		r1.Actions = []*pb.Action{
-			&pb.Action{Name: "transition", Days: 1, Tier: Tier99}, // transition in the same bucket
+			&pb.Action{Name: "transition", Days: 1, Tier: Tier99},                   // transition in the same bucket
 			&pb.Action{Name: "transition", Days: 2, Tier: Tier999, Backend: "obs2"}, // transtion in different buckets but in the same cloud
 			&pb.Action{Name: "transition", Days: 3, Tier: Tier999, Backend: "aws1"}, // cross-cloud transition
-			&pb.Action{Name: "expiration", Days: 4}, // expiration
+			&pb.Action{Name: "expiration", Days: 4},                                 // expiration
 		}
 
 		in.LifecycleConfiguration = append(in.LifecycleConfiguration, &r1)
@@ -420,7 +424,7 @@ func NewS3Service() pb.S3Handler {
 	return &s3Service{}
 }
 
-func (b *s3Service)GetTierMap(ctx context.Context, in *pb.BaseRequest, out *pb.GetTierMapResponse) error {
+func (b *s3Service) GetTierMap(ctx context.Context, in *pb.BaseRequest, out *pb.GetTierMapResponse) error {
 	// Get map from internal tier to external class name.
 	out.Tier2Name = make(map[string]*pb.Tier2ClassName)
 	for k, v := range Int2ExtTierMap {
@@ -444,7 +448,7 @@ func (b *s3Service)GetTierMap(ctx context.Context, in *pb.BaseRequest, out *pb.G
 	return nil
 }
 
-func (b *s3Service)UpdateObjMeta(ctx context.Context, in *pb.UpdateObjMetaRequest, out *pb.BaseResponse) error {
+func (b *s3Service) UpdateObjMeta(ctx context.Context, in *pb.UpdateObjMetaRequest, out *pb.BaseResponse) error {
 	log.Logf("Update meatadata, objkey:%s, lastmodified:%d, setting:%v\n", in.ObjKey, in.LastModified, in.Setting)
 	valid := make(map[string]struct{})
 	valid["tier"] = struct{}{}
@@ -463,22 +467,21 @@ func (b *s3Service)UpdateObjMeta(ctx context.Context, in *pb.UpdateObjMetaReques
 		return err.Error()
 	}
 
-	out.Msg = "Update object meta data successfully."
+	out.Msg = "update object meta data successfully."
 	return nil
 }
 
 func CheckReqObjMeta(req map[string]string, valid map[string]struct{}) (map[string]interface{}, S3Error) {
-	log.Logf("CheckReqObjMeta, req: %+v\n", req)
 	ret := make(map[string]interface{})
 	for k, v := range req {
 		if _, ok := valid[k]; !ok {
-			log.Logf("invalid %s.\n", k)
+			log.Logf("s3 service check object metadata failed, invalid key: %s.\n", k)
 			return nil, BadRequest
 		}
 		if k == "tier" {
 			v1, err := strconv.Atoi(v)
 			if err != nil {
-				log.Logf("invalid tier:%v.\n", v)
+				log.Logf("s3 service check object metadata failed, invalid tier: %s.\n", v)
 				return nil, BadRequest
 			}
 			ret[k] = v1

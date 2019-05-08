@@ -69,9 +69,9 @@ func LoadLifecycleScheduler() error {
 	spec := os.Getenv("LIFECYCLE_CRON_CONFIG")
 	log.Logf("Value of LIFECYCLE_CRON_CONFIG is: %s\n", spec)
 
-	//TODO: Check the validation of spec
+	// TODO: Check the validation of spec
 	cn := cron.New()
-	//0 */2 * * * ?
+	// example of spec: 0 */2 * * * ?
 	if err := cn.AddFunc(spec, lifecycle.ScheduleLifecycle); err != nil {
 		log.Logf("Add lifecyecle scheduler to cron trigger failed: %v.\n", err)
 		return fmt.Errorf("Add lifecyecle scheduler to cron trigger failed: %v", err)

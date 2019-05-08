@@ -17,11 +17,10 @@ package s3
 import (
 	"encoding/xml"
 	"net/http"
+	"time"
 
 	"github.com/emicklei/go-restful"
 	"github.com/micro/go-log"
-	//	"github.com/micro/go-micro/errors"
-	"time"
 
 	"github.com/opensds/multi-cloud/api/pkg/policy"
 	. "github.com/opensds/multi-cloud/s3/pkg/exception"
@@ -47,10 +46,6 @@ func (s *APIService) BucketPut(request *restful.Request, response *restful.Respo
 	bucket.Deleted = false
 	bucket.OwnerDisplayName = ownerDisplayName
 	bucket.CreationDate = time.Now().Unix()
-	/*bucket.StorageClass = request.HeaderParameter("x-default-storage-class")
-	if bucket.StorageClass == "" { //If no storage class is specified, then STANDARD will be used.
-		bucket.StorageClass = "STANDARD"
-	}*/
 	//log.Logf("Create bucket body: %s", string(body))
 	if body != nil {
 		createBucketConf := model.CreateBucketConfiguration{}

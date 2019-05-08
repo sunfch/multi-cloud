@@ -619,7 +619,6 @@ func (ad *adapter) GetPlanByPolicy(ctx *Context, policyId string, limit int, off
 func (ad *adapter) CreateJob(ctx *Context, job *Job) (*Job, error) {
 	job.Tenant = ctx.TenantId
 	ss := ad.s.Copy()
-
 	defer ss.Close()
 
 	c := ss.DB(DataBaseName).C(CollJob)

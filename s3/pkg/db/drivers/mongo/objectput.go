@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Huawei Technologies Co., Ltd. All Rights Reserved.
+// Copyright 2019 The OpenSDS Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -67,7 +67,7 @@ func (ad *adapter) UpdateObjMeta(objKey *string, bucketName *string, lastmod int
 	data := bson.M{"$set":setting}
 	err := c.Update(selector, data)
 	if err != nil {
-		log.Logf("Update object metadata failed:%v.\n", err)
+		log.Logf("update object metadata failed:%v.\n", err)
 		return DBError
 	}
 
