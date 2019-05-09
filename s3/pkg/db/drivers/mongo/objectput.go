@@ -62,9 +62,10 @@ func (ad *adapter) UpdateObjMeta(objKey *string, bucketName *string, lastmod int
 	ss := ad.s.Copy()
 	defer ss.Close()
 	c := ss.DB(DataBaseName).C(*bucketName)
-	selector := bson.M{"objectkey":*objKey, "lastmodified":lastmod}
+	log.Logf("update object metadata: key=%s, bucket=%s, lastmodified=%d\n", *objKey, *bucketName, lastmod)
 
-	data := bson.M{"$set":setting}
+	selector := bson.M{"objectkey": *objKey, "lastmodified": lastmod}
+	data := bson.M{"$set": setting}
 	err := c.Update(selector, data)
 	if err != nil {
 		log.Logf("Update object metadata failed:%v.\n", err)
