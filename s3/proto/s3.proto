@@ -244,7 +244,7 @@ message Tier2ClassName {
 }
 
 message GetTierMapResponse {
-	repeated string Transition = 1;  //format:[from:to from:to ....]
+	repeated string Transition = 1;  // format:[from:to from:to ....]
 	map<string, Tier2ClassName> Tier2Name = 2;
 }
 

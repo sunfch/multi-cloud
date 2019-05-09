@@ -24,18 +24,21 @@ import (
 	"github.com/micro/go-log"
 	"github.com/opensds/multi-cloud/s3/pkg/db"
 	. "github.com/opensds/multi-cloud/s3/pkg/exception"
-	pb "github.com/opensds/multi-cloud/s3/proto"
 	. "github.com/opensds/multi-cloud/s3/pkg/utils"
+	pb "github.com/opensds/multi-cloud/s3/proto"
 	"github.com/Azure/azure-storage-blob-go/azblob"
 	"github.com/opensds/multi-cloud/api/pkg/utils/obs"
 )
 
 type Int2String map[int32]string
 type String2Int map[string]int32
+
 // map from cloud vendor name to it's map relation relationship between internal tier to it's storage class name.
 var Int2ExtTierMap map[string]*Int2String
+
 // map from cloud vendor name to it's map relation relationship between it's storage class name to internal tier.
 var Ext2IntTierMap map[string]*String2Int
+
 // map from a specific tier to an array of tiers, that means transition can happens from the specific tier to those tiers in the array.
 var TransitionMap map[int32][]int32
 var SupportedClasses []pb.StorageClass
@@ -54,8 +57,8 @@ func getTierFromName(className string) (int32, S3Error) {
 		log.Logf("get tier of storage class[%s] failed.\n", className)
 		return 0, InternalError
 	}
-
-	log.Logf("get tier of storage class[%s] successfully.\n", className)
+	
+	log.Logf("Get tier of storage class[%s] successfully.\n", className)
 	return v2, NoError
 }
 
@@ -171,6 +174,7 @@ func loadDefaultStorageClass() error {
 	SupportedClasses = append(SupportedClasses, pb.StorageClass{Name:string(AWS_STANDARD), Tier:int32(Tier1)})
 	SupportedClasses = append(SupportedClasses, pb.StorageClass{Name:string(AWS_STANDARD_IA), Tier:int32(Tier99)})
 	SupportedClasses = append(SupportedClasses, pb.StorageClass{Name:string(AWS_GLACIER), Tier:int32(Tier999)})
+
 	log.Logf("Supported storage classes:%v\n", SupportedClasses)
 
 	Int2ExtTierMap = make(map[string]*Int2String)
@@ -189,8 +193,9 @@ func loadDefaultStorageClass() error {
 	return nil
 }
 
+// Currently user defined storage tiers and classes are not supported.
 func loadUserDefinedStorageClass() error {
-	log.Log("user defined storage class is not supported now.")
+	log.Log("user defined storage class is not supported now")
 	return fmt.Errorf("user defined storage class is not supported now")
 }
 
@@ -203,8 +208,8 @@ func loadDefaultTransition() error {
 	return nil
 }
 
-func loadUserDefinedTransition() error  {
-	log.Log("user defined storage class is not supported now.")
+func loadUserDefinedTransition() error {
+	log.Log("user defined storage class is not supported now")
 	return fmt.Errorf("user defined storage class is not supported now")
 }
 
@@ -420,8 +425,10 @@ func NewS3Service() pb.S3Handler {
 	return &s3Service{}
 }
 
-func (b *s3Service)GetTierMap(ctx context.Context, in *pb.BaseRequest, out *pb.GetTierMapResponse) error {
-	// Get map from internal tier to external class name.
+func (b *s3Service) GetTierMap(ctx context.Context, in *pb.BaseRequest, out *pb.GetTierMapResponse) error {
+	log.Log("GetTierMap ...")
+
+	//Get map from internal tier to external class name.
 	out.Tier2Name = make(map[string]*pb.Tier2ClassName)
 	for k, v := range Int2ExtTierMap {
 		var val pb.Tier2ClassName
@@ -463,22 +470,21 @@ func (b *s3Service)UpdateObjMeta(ctx context.Context, in *pb.UpdateObjMetaReques
 		return err.Error()
 	}
 
-	out.Msg = "Update object meta data successfully."
+	out.Msg = "update object meta data successfully."
 	return nil
 }
 
 func CheckReqObjMeta(req map[string]string, valid map[string]struct{}) (map[string]interface{}, S3Error) {
-	log.Logf("CheckReqObjMeta, req: %+v\n", req)
 	ret := make(map[string]interface{})
 	for k, v := range req {
 		if _, ok := valid[k]; !ok {
-			log.Logf("invalid %s.\n", k)
+			log.Logf("s3 service check object metadata failed, invalid key: %s.\n", k)
 			return nil, BadRequest
 		}
 		if k == "tier" {
 			v1, err := strconv.Atoi(v)
 			if err != nil {
-				log.Logf("invalid tier:%v.\n", v)
+				log.Logf("s3 service check object metadata failed, invalid tier: %s.\n", v)
 				return nil, BadRequest
 			}
 			ret[k] = v1

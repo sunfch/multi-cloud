@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/Shopify/sarama"
-	"github.com/bsm/sarama-cluster"
-	"github.com/opensds/multi-cloud/datamover/pkg/drivers/https"
+	cluster "github.com/bsm/sarama-cluster"
+	migration "github.com/opensds/multi-cloud/datamover/pkg/drivers/https"
 	"github.com/opensds/multi-cloud/datamover/pkg/drivers/lifecycle"
 )
 
@@ -93,7 +93,7 @@ func LoopConsume() {
 					consumer.MarkOffset(msg, "")
 				}
 			}
-		case <- signals:
+		case <-signals:
 			logger.Println("trap system SIGINT signal")
 			return
 		}
