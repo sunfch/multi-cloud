@@ -15,16 +15,17 @@
 package s3
 
 import (
-	"encoding/xml"
-	"net/http"
 	"crypto/md5"
+	"encoding/xml"
 	"errors"
 	"fmt"
-	"sync"
+	"net/http"
 	"sort"
+	"sync"
 
 	"github.com/emicklei/go-restful"
 	"github.com/micro/go-log"
+	"github.com/opensds/multi-cloud/api/pkg/policy"
 	. "github.com/opensds/multi-cloud/api/pkg/utils/constants"
 	"github.com/opensds/multi-cloud/s3/pkg/model"
 	s3 "github.com/opensds/multi-cloud/s3/proto"
@@ -115,30 +116,30 @@ func checkValidationOfActions(actions []*s3.Action) error {
 		log.Logf("ia: %+v\n", *ia)
 		if pre == nil {
 			if ia.Name == ActionNameExpiration && ia.Days < ExpirationMinDays {
-				// If only an expiration action for a rule, the days for that action should be more than ExpirationMinDays
+				// If only expiration action for a rule, the days for that action should be more than ExpirationMinDays.
 				log.Logf("expiration days: %d\n", ia.Days)
 				return fmt.Errorf("days for expiration must not less than %d", ExpirationMinDays)
 			}
 			if ia.Name == ActionNameTransition && ia.Days < TransitionMinDays {
-				// If only an expiration action for a rule, the days for that action should be more than ExpirationMinDays
+				// If only transition actions for a rule, the days for that action should be more than TransitionMinDays.
 				log.Logf("transition days: %d\n", ia.Days)
 				return fmt.Errorf("days for expiration must not less than %d", TransitionMinDays)
 			}
 		} else {
 			if pre.Name == ActionNameExpiration {
-				// Only one expiration action for each rule is supported
+				// Only one expiration action for each rule is supported.
 				return fmt.Errorf("more than one expiration action existed in one rule")
 			}
 
-			if ia.Name == ActionNameExpiration && pre.Days + ExpirationMinDays > ia.Days {
+			if ia.Name == ActionNameExpiration && pre.Days+ExpirationMinDays > ia.Days {
 				log.Logf("pre.Days=%d, ia.Days=%d\n", pre.Days, ia.Days)
-				return fmt.Errorf("object should be save in the current storage class not less than %d days before exipration(%d < %d + %d)",
+				return fmt.Errorf("object should be saved in the current storage class not less than %d days before exipration(%d < %d + %d)",
 					ExpirationMinDays, ia.Days, pre.Days, ExpirationMinDays)
 			}
 
-			if ia.Name == ActionNameTransition && pre.Days + LifecycleTransitionDaysStep > ia.Days {
+			if ia.Name == ActionNameTransition && pre.Days+LifecycleTransitionDaysStep > ia.Days {
 				log.Logf("pre.Days=%d, ia.Days=%d\n", pre.Days, ia.Days)
-				return fmt.Errorf("object should be save in the current storage class not less than %d days before transition(%d < %d + %d)",
+				return fmt.Errorf("object should be saved in the current storage class not less than %d days before transition(%d < %d + %d)",
 					LifecycleTransitionDaysStep, ia.Days, pre.Days, LifecycleTransitionDaysStep)
 			}
 		}
@@ -150,9 +151,9 @@ func checkValidationOfActions(actions []*s3.Action) error {
 }
 
 func (s *APIService) BucketLifecyclePut(request *restful.Request, response *restful.Response) {
-	/*if !policy.Authorize(request, response, "bucket:put") {
+	if !policy.Authorize(request, response, "bucket:put") {
 		return
-	}*/
+	}
 	bucketName := request.PathParameter("bucketName")
 	log.Logf("Received request for create bucket lifecycle: %s", bucketName)
 	ctx := context.Background()
@@ -185,7 +186,7 @@ func (s *APIService) BucketLifecyclePut(request *restful.Request, response *rest
 					return
 				}
 				// Assigning the rule ID
-				dupIdCheck[rule.ID] = struct {}{}
+				dupIdCheck[rule.ID] = struct{}{}
 				s3Rule.Id = rule.ID
 
 				// Assigning the status value to s3 status

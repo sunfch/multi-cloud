@@ -15,14 +15,15 @@
 package s3
 
 import (
+	"fmt"
+
 	"github.com/emicklei/go-restful"
 	"github.com/micro/go-log"
 	"github.com/opensds/multi-cloud/api/pkg/policy"
-	"github.com/opensds/multi-cloud/s3/pkg/model"
-	"github.com/opensds/multi-cloud/s3/proto"
-	"golang.org/x/net/context"
 	. "github.com/opensds/multi-cloud/api/pkg/utils/constants"
-	"fmt"
+	"github.com/opensds/multi-cloud/s3/pkg/model"
+	s3 "github.com/opensds/multi-cloud/s3/proto"
+	"golang.org/x/net/context"
 )
 
 func (s *APIService) tier2class(tier int32) (string, error) {
@@ -129,4 +130,3 @@ func converts3UploadToRuleUpload(upload *s3.AbortMultipartUpload) model.AbortInc
 
 	return retUpload
 }
-
