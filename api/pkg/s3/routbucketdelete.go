@@ -17,11 +17,10 @@ package s3
 import (
 	"github.com/emicklei/go-restful"
 	"github.com/opensds/multi-cloud/api/pkg/policy"
-	"github.com/go-log/log"
 )
 
-func (s *APIService) RouteBucketPut(request *restful.Request, response *restful.Response) {
-	if !policy.Authorize(request, response, "routbucket:put") {
+func (s *APIService) RouteBucketDelete(request *restful.Request, response *restful.Response) {
+	if !policy.Authorize(request, response, "routbucket:delete") {
 		return
 	}
 	if IsQuery(request, "acl") {
@@ -37,10 +36,9 @@ func (s *APIService) RouteBucketPut(request *restful.Request, response *restful.
 		//TODO
 
 	} else if IsQuery(request, "lifecycle") {
-		log.Log("999999999999999999999999999999999")
-		s.BucketLifecyclePut(request, response)
+		s.BucketLifecycleDelete(request, response)
 
 	} else {
-		s.BucketPut(request, response)
+		s.BucketDelete(request, response)
 	}
 }

@@ -39,3 +39,14 @@ const (
 const (
 	StorageClassAWSStandard = "STANDARD"
 )
+
+const (
+	ActionNameExpiration = "expiration"
+	ActionNameTransition = "transition"
+)
+
+const (
+	ExpirationMinDays = 1
+	TransitionMinDays = 30
+	LifecycleTransitionDaysStep = 30 // The days an object should be save in the current tier before transition to the next tier
+)

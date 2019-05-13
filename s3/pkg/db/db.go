@@ -68,4 +68,5 @@ type DBAdapter interface {
 	GetObject(in *pb.GetObjectInput, out *pb.Object) S3Error
 	ListObjects(in *pb.ListObjectsRequest, out *[]pb.Object) S3Error
 	UpdateObjMeta(objKey *string, bucketName *string, lastmod int64, setting map[string]interface{}) S3Error
+	DeleteLifecycle(bucketName string, lifecycleId string) S3Error
 }

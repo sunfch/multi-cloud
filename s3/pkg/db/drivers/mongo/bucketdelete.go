@@ -55,3 +55,19 @@ func (ad *adapter) DeleteBucket(bucketName string) S3Error {
 
 	return NoError
 }
+
+func (ad *adapter) DeleteLifecycle(bucketName string, lifecycleId string) S3Error {
+	ss := ad.s.Copy()
+	defer ss.Close()
+
+	//Update database
+	c := ss.DB(DataBaseName).C(BucketMD)
+	err := c.Update(bson.M{"name": bucketName}, bson.M{"$pull": bson.M{"lifecycleconfiguration": bson.M{"id": lifecycleId}}})
+	if err != nil {
+		log.Logf("delete lifecycle[bucket=%s, lifecycleid=%s] failed: %v\n", bucketName, lifecycleId, err)
+		return DBError
+	}
+
+	log.Logf("delete lifecycle[bucket=%s, lifecycleid=%s] successfully\n", bucketName, lifecycleId)
+	return NoError
+}

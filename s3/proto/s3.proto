@@ -1,7 +1,6 @@
 syntax = "proto3";
 
 service S3 {
-	
 	rpc ListBuckets(BaseRequest) returns (ListBucketsResponse) {}
 	rpc CreateBucket(Bucket) returns (BaseResponse) {}
 	rpc DeleteBucket(Bucket) returns (BaseResponse) {}
@@ -15,6 +14,8 @@ service S3 {
 	rpc UpdateObjMeta(UpdateObjMetaRequest) returns (BaseResponse) {}
 	rpc GetStorageClasses(BaseRequest) returns (GetStorageClassesResponse) {}
 	rpc GetBackendTypeByTier(GetBackendTypeByTierRequest) returns (GetBackendTypeByTierResponse) {}
+	rpc UpdateBucket(Bucket) returns (BaseResponse) {}
+	rpc DeleteLifecycle(DeleteLifecycleRequest) returns (BaseResponse) {}
 }
 
 message ServerSideEncryption {
@@ -91,8 +92,10 @@ message Tag {
 }
 
 message LifecycleFilter {
-	string prefix = 1;
-	repeated Tag tags = 2;
+	//Object prefix for lifecycle filter
+	string Prefix = 1;
+	//Tags will not be used for current release
+	//repeated Tag tags = 2;
 }
 
 message Action {
@@ -103,11 +106,16 @@ message Action {
 	string backend = 6;		  	// if it is not set for transition, that means in-cloud transition
 }
 
+message AbortMultipartUpload {
+	int32 DaysAfterInitiation = 1;
+}
+
 message LifecycleRule {
 	string id = 1;
 	string status = 2;
 	LifecycleFilter filter = 3;
 	repeated Action actions = 4;
+	AbortMultipartUpload AbortIncompleteMultipartUpload = 6;
 }
 
 message ReplicationInfo {
@@ -270,4 +278,9 @@ message GetBackendTypeByTierRequest {
 
 message GetBackendTypeByTierResponse {
 	repeated string Types = 1;
+}
+
+message DeleteLifecycleRequest {
+	string BucketName = 1;
+	string LifecycleId = 2;
 }

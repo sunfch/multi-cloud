@@ -33,10 +33,10 @@ import (
 type Int2String map[int32]string
 type String2Int map[string]int32
 
-// map from cloud vendor name to it's map relation relationship between internal tier to it's storage class name.
+// map from cloud vendor name to a map, which is used to map from internal tier to it's storage class name.
 var Int2ExtTierMap map[string]*Int2String
 
-// map from cloud vendor name to it's map relation relationship between it's storage class name to internal tier.
+// map from cloud vendor name to a map, which is used to map from storage class name to internal tier.
 var Ext2IntTierMap map[string]*String2Int
 
 // map from a specific tier to an array of tiers, that means transition can happens from the specific tier to those tiers in the array.
@@ -276,7 +276,8 @@ func (b *s3Service) CreateBucket(ctx context.Context, in *pb.Bucket, out *pb.Bas
 	}
 	// For test begin ...
 	if in.Backend == "obs1" {
-		r1 := pb.LifecycleRule{Id: "1", Status: "on", Filter: &pb.LifecycleFilter{Prefix: "test"}}
+		//r1 := pb.LifecycleRule{Id: "1", Status: "on", Filter: &pb.LifecycleFilter{Prefix: "test"}}
+		r1 := pb.LifecycleRule{Id: "1", Status: "on"}
 		r1.Actions = []*pb.Action{
 			&pb.Action{Name: "transition", Days: 1, Tier: Tier99}, // transition in the same bucket
 			&pb.Action{Name: "transition", Days: 2, Tier: Tier999, Backend: "obs2"}, // transtion in different buckets but in the same cloud
@@ -507,5 +508,34 @@ func (b *s3Service) GetBackendTypeByTier(ctx context.Context, in *pb.GetBackendT
 
 	log.Logf("GetBackendTypesByTier, types:%v\n", out.Types)
 
+	return nil
+}
+
+func (b *s3Service) UpdateBucket(ctx context.Context, in *pb.Bucket, out *pb.BaseResponse) error {
+	log.Log("UpdateBucket is called in s3 service.")
+
+	in.Deleted = false
+	err := db.DbAdapter.UpdateBucket(in)
+	if err.Code != ERR_OK {
+		out.ErrorCode = fmt.Sprintf("%d", err.Code)
+		out.Msg = err.Description
+		return err.Error()
+	}
+
+	out.Msg = "update bucket successfully"
+	return nil
+}
+
+func (b *s3Service) DeleteLifecycle(ctx context.Context, in *pb.DeleteLifecycleRequest, out *pb.BaseResponse) error {
+	log.Logf("Delete lifecycle is called in s3 service, bucket:%s, lifecycle:%s\n", in.BucketName, in.LifecycleId)
+
+	err := db.DbAdapter.DeleteLifecycle(in.BucketName, in.LifecycleId)
+	if err.Code != ERR_OK {
+		out.ErrorCode = fmt.Sprintf("%d", err.Code)
+		out.Msg = err.Description
+		return err.Error()
+	}
+
+	out.Msg = "delete lifecycle successfully"
 	return nil
 }
