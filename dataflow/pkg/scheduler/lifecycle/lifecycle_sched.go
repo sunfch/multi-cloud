@@ -156,8 +156,10 @@ func handleBucketLifecyle(bucket string, defaultBackend string, rules []*osdss3.
 		}
 	}
 
-	// Sort rules, expiration actions has the highest priority, for the same action, bigger Days has higher priority.
-	sort.Sort(inRules)
+	// Sort rules, in case different actions exist for an object at the same time, for example, transition to aws after
+	// 30 days and transition to azure after 30 days, we need to make sure only one action will be taken, and that needs
+	// the sorting be stable.
+	sort.Stable(inRules)
 	// Begin: Log for debug
 	for _, v := range inRules {
 		log.Logf("rule: %+v\n", *v)
@@ -218,7 +220,6 @@ func schedAccordingSortedRules(inRules *InterRules) error {
 			}
 			num := int32(len(objs))
 			offset += num
-			//log.Logf("offset=%d, num=%d\n", offset, num)
 			// Check if the object exist in the dupCheck map.
 			for _, obj := range objs {
 				if obj.IsDeleteMarker == "1" {
@@ -230,6 +231,9 @@ func schedAccordingSortedRules(inRules *InterRules) error {
 					if r.ActionType != ActionExpiration && obj.Backend == r.Backend && obj.Tier == r.Tier {
 						// For transition, if target backend and storage class is the same as source backend and storage class, then no transition is need.
 						log.Logf("No need transition for object[%s], backend=%s, tier=%d\n", obj.ObjectKey, r.Backend, r.Tier)
+						// in case different actions exist for an object at the same time, for example transition to aws after 30 days
+						// and transition to azure after 30 days, we need to make sure only one action will be taken.
+						dupCheck[obj.ObjectKey] = struct{}{}
 						continue
 					}
 
@@ -245,6 +249,9 @@ func schedAccordingSortedRules(inRules *InterRules) error {
 
 					if r.ActionType != ActionExpiration && checkTransitionValidation(obj.Tier, r.Tier) != true {
 						log.Logf("transition object[%s] from tier[%d] to tier[%d] is invalid.\n", obj.ObjectKey, obj.Tier, r.Tier)
+						// in case different actions exist for an object at the same time, for example transition to aws after 30 days
+						// and transition to azure after 30 days, we need to make sure only one action will be taken.
+						dupCheck[obj.ObjectKey] = struct{}{}
 						continue
 					}
 					log.Logf("Lifecycle action: object=[%s] type=[%d] source-tier=[%d] target-tier=[%d] source-backend=[%s] target-backend=[%s].\n",
@@ -294,9 +301,11 @@ func (r InterRules) Len() int {
 	return len(r)
 }
 
-// Less reports whether the element with index i should sort before the element with index j.
-// Expiration action has higher priority than transition action.
-// For the same action type, bigger Days has higher priority.
+/*
+ Less reports whether the element with index i should sort before the element with index j.
+ Expiration action has higher priority than transition action.
+ For the same action type, bigger Days has higher priority.
+*/
 func (r InterRules) Less(i, j int) bool {
 	var ret bool
 	if r[i].ActionType < r[j].ActionType {
