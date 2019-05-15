@@ -45,3 +45,4 @@ var BackendDeleteError = S3Error{Code: 500, Description: "The backend can not be
 var InvalidQueryParameter = S3Error{Code:400, Description:"invalid query parameter"}
 var InvalidStorageClass = S3Error{Code: 400, Description: "the storage class you specified is not valid"}
 var BadRequest = S3Error{Code:400, Description:"request is invalid"}
+var NoSuchLifecycleRule = S3Error{Code: 404, Description: "the specified bucket or lifecycle rule does not exist."}

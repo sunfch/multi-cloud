@@ -101,9 +101,9 @@ message LifecycleFilter {
 message Action {
 	string name = 1;   			// expiration or transition
 	int32 days = 2;
-	string deleteMarker = 4;  	// for versioning
-	int32 tier = 5;  			// only for transition
-	string backend = 6;		  	// if it is not set for transition, that means in-cloud transition
+	string deleteMarker = 3;  	// for versioning
+	int32 tier = 4;  			// only for transition
+	string backend = 5;		  	// if it is not set for transition, that means in-cloud transition
 }
 
 message AbortMultipartUpload {
@@ -115,7 +115,7 @@ message LifecycleRule {
 	string status = 2;
 	LifecycleFilter filter = 3;
 	repeated Action actions = 4;
-	AbortMultipartUpload AbortIncompleteMultipartUpload = 6;
+	AbortMultipartUpload AbortIncompleteMultipartUpload = 5;
 }
 
 message ReplicationInfo {

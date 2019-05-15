@@ -15,27 +15,29 @@
 package lifecycle
 
 import (
-	"sort"
+	"encoding/json"
 	"fmt"
+	"sort"
 	"sync"
 	"strconv"
-	"encoding/json"
 
 	"github.com/micro/go-log"
-	"github.com/opensds/multi-cloud/datamover/proto"
-	"github.com/opensds/multi-cloud/dataflow/pkg/kafka"
-	"github.com/opensds/multi-cloud/s3/proto"
-	osdss3 "github.com/opensds/multi-cloud/s3/proto"
 	"github.com/micro/go-micro/client"
-	"golang.org/x/net/context"
-	. "github.com/opensds/multi-cloud/dataflow/pkg/utils"
-	. "github.com/opensds/multi-cloud/dataflow/pkg/model"
 	"github.com/opensds/multi-cloud/dataflow/pkg/db"
+	"github.com/opensds/multi-cloud/dataflow/pkg/kafka"
+	. "github.com/opensds/multi-cloud/dataflow/pkg/model"
+	. "github.com/opensds/multi-cloud/dataflow/pkg/utils"
+	datamover "github.com/opensds/multi-cloud/datamover/proto"
+	osdss3 "github.com/opensds/multi-cloud/s3/proto"
+	s3 "github.com/opensds/multi-cloud/s3/proto"
+	"golang.org/x/net/context"
 )
 
 var topicLifecycle = "lifecycle"
 var s3client = osdss3.NewS3Service("s3", client.DefaultClient)
+
 type InterRules []*InternalLifecycleRule
+
 // map from a specific tier to an array of tiers, that means transition can happens from the specific tier to those tiers in the array.
 var TransitionMap map[string]struct{}
 var mutext sync.Mutex
@@ -91,7 +93,7 @@ func ScheduleLifecycle() {
 
 		log.Logf("[ScheduleLifecycle]Bucket[%s] has lifecycle rule.\n", v.Name)
 
-		err := handleBucketLifecyle(v.Name, v.LifecycleConfiguration)
+		err := handleBucketLifecyle(v.Name, v.Backend, v.LifecycleConfiguration)
 		if err != nil {
 			log.Logf("[ScheduleLifecycle]Handle bucket lifecycle for bucket[%s] failed, err:%v.\n", v.Name, err)
 			continue
@@ -103,7 +105,7 @@ func ScheduleLifecycle() {
 
 // Need to lock the bucket, incase the schedule period is too shoort and the bucket is scheduled at the same time.
 // Need to consider confliction between rules.
-func handleBucketLifecyle(bucket string, rules []*osdss3.LifecycleRule) error {
+func handleBucketLifecyle(bucket string, defaultBackend string, rules []*osdss3.LifecycleRule) error {
 	// Translate rules set by user to internal rules which can be sorted.
 
 	// Lifecycle scheduling must be mutual excluded among several schedulers, so get lock first.
@@ -132,19 +134,24 @@ func handleBucketLifecyle(bucket string, rules []*osdss3.LifecycleRule) error {
 		}
 
 		for _, ac := range rule.Actions {
+			if ac.Backend == "" {
+				// if no backend specified, then use the default backend of the bucket
+				ac.Backend = defaultBackend
+			}
 			var acType int
 			if ac.Name == ActionNameExpiration {
 				// Eexpiration
 				acType = ActionExpiration
-			} else if ac.Backend == "" {
-				// no backend specified means in-cloud transition
+			} else if ac.Backend == defaultBackend {
 				acType = ActionIncloudTransition
 			} else {
 				acType = ActionCrosscloudTransition
 			}
 
-			v := InternalLifecycleRule{Bucket: bucket, Filter:InternalLifecycleFilter{Prefix:rule.Filter.Prefix},
-			Days:ac.Days, ActionType:acType, Tier: ac.Tier, Backend: ac.Backend}
+			v := InternalLifecycleRule{Bucket: bucket, Days: ac.GetDays(), ActionType: acType, Tier: ac.GetTier(), Backend: ac.GetBackend()}
+			if rule.GetFilter() != nil {
+				v.Filter = InternalLifecycleFilter{Prefix: rule.Filter.Prefix}
+			}
 			inRules = append(inRules, &v)
 		}
 	}
@@ -186,7 +193,7 @@ func getObjects(r *InternalLifecycleRule, offset, limit int32) ([]*osdss3.Object
 		Bucket: r.Bucket,
 		Filter: filt,
 		Offset: offset,
-		Limit: limit,
+		Limit:  limit,
 	}
 	ctx := context.Background()
 	log.Logf("ListObjectsRequest:%+v\n", s3req)
@@ -199,9 +206,10 @@ func getObjects(r *InternalLifecycleRule, offset, limit int32) ([]*osdss3.Object
 	return s3rsp.ListObjects, nil
 }
 
-func schedAccordingSortedRules (inRules *InterRules) error {
+func schedAccordingSortedRules(inRules *InterRules) error {
 	dupCheck := map[string]struct{}{}
 	for _, r := range *inRules {
+		//log.Logf("r:%v\n", *r)
 		var offset, limit int32 = 0, 1000
 		for {
 			objs, err := getObjects(r, offset, limit)
@@ -210,6 +218,7 @@ func schedAccordingSortedRules (inRules *InterRules) error {
 			}
 			num := int32(len(objs))
 			offset += num
+			//log.Logf("offset=%d, num=%d\n", offset, num)
 			// Check if the object exist in the dupCheck map.
 			for _, obj := range objs {
 				if obj.IsDeleteMarker == "1" {
@@ -228,7 +237,7 @@ func schedAccordingSortedRules (inRules *InterRules) error {
 					var action int32
 					if r.ActionType == ActionExpiration {
 						action = int32(ActionExpiration)
-					} else if r.Backend == "" || obj.Backend == r.Backend {
+					} else if obj.Backend == r.Backend {
 						action = int32(ActionIncloudTransition)
 					} else {
 						action = int32(ActionCrosscloudTransition)
@@ -241,15 +250,15 @@ func schedAccordingSortedRules (inRules *InterRules) error {
 					log.Logf("Lifecycle action: object=[%s] type=[%d] source-tier=[%d] target-tier=[%d] source-backend=[%s] target-backend=[%s].\n",
 						obj.ObjectKey, r.ActionType, obj.Tier, r.Tier, obj.Backend, r.Backend)
 					acreq := datamover.LifecycleActionRequest{
-						ObjKey: obj.ObjectKey,
-						BucketName: obj.BucketName,
-						Action: action,
-						SourceTier: obj.Tier,
-						TargetTier: r.Tier,
+						ObjKey:        obj.ObjectKey,
+						BucketName:    obj.BucketName,
+						Action:        action,
+						SourceTier:    obj.Tier,
+						TargetTier:    r.Tier,
 						SourceBackend: obj.Backend,
 						TargetBackend: r.Backend,
-						ObjSize: obj.Size,
-						LastModified: obj.LastModified,
+						ObjSize:       obj.Size,
+						LastModified:  obj.LastModified,
 					}
 
 					// If send failed, then ignore it, because it will be re-sent in the next period.
@@ -277,7 +286,6 @@ func sendActionRequest(req *datamover.LifecycleActionRequest) error {
 		log.Logf("marshal run job request failed, err:%v\n", data)
 		return err
 	}
-
 
 	return kafka.ProduceMsg(topicLifecycle, data)
 }

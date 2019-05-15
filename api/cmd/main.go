@@ -20,8 +20,8 @@ import (
 	"github.com/micro/go-web"
 	"github.com/opensds/multi-cloud/api/pkg/backend"
 	"github.com/opensds/multi-cloud/api/pkg/dataflow"
-
 	"github.com/opensds/multi-cloud/api/pkg/s3"
+	"github.com/opensds/multi-cloud/api/pkg/filters/context"
 )
 
 const (
@@ -47,7 +47,7 @@ func main() {
 	dataflow.RegisterRouter(ws)
 	// add filter for authentication context
 	//wc.Filter(logging.FilterFactory())
-	//wc.Filter(context.FilterFactory())
+	wc.Filter(context.FilterFactory())
 
 	s3ws := new(restful.WebService)
 	s3ws.Path("/v1/s3")

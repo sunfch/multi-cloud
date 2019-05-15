@@ -71,7 +71,7 @@ func (ad *adapter) ListObjects(in *pb.ListObjectsRequest, out *[]pb.Object) S3Er
 				log.Logf("invalid storage class:%s\n", in.Filter[common.KStorageTier])
 				return InvalidQueryParameter
 			}
-			filter = append(filter, bson.M{"tier": bson.M{"$lt": tier}})
+			filter = append(filter, bson.M{"tier": bson.M{"$lte": tier}})
 		}
 	}
 

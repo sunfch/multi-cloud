@@ -28,8 +28,9 @@ import (
 	"github.com/opensds/multi-cloud/api/pkg/policy"
 	. "github.com/opensds/multi-cloud/api/pkg/utils/constants"
 	"github.com/opensds/multi-cloud/s3/pkg/model"
-	s3 "github.com/opensds/multi-cloud/s3/proto"
+	"github.com/opensds/multi-cloud/s3/proto"
 	"golang.org/x/net/context"
+	"github.com/opensds/multi-cloud/s3/pkg/utils"
 )
 
 // Map from storage calss to tier
@@ -97,8 +98,15 @@ func sortActions(actions []*s3.Action) {
 			return true
 		} else {
 			// Transitions are sorted by tier, as default, it should be like: Tier_1 before Tier_99 before Tier_999
-			if actions[i].Tier <= actions[j].Tier {
+			if actions[i].Tier < actions[j].Tier {
 				return true
+			} else if actions[i].Tier == actions[j].Tier {
+				// For actions with the same tier, then action without backend specified should be sort before action with backend
+				if actions[i].Backend == "" {
+					return true
+				} else {
+					return false
+				}
 			} else {
 				return false
 			}
@@ -126,18 +134,23 @@ func checkValidationOfActions(actions []*s3.Action) error {
 				return fmt.Errorf("days for expiration must not less than %d", TransitionMinDays)
 			}
 		} else {
-			if pre.Name == ActionNameExpiration {
+			if pre.Name == ActionNameExpiration && ia.Name == ActionNameExpiration {
 				// Only one expiration action for each rule is supported.
 				return fmt.Errorf("more than one expiration action existed in one rule")
 			}
 
-			if ia.Name == ActionNameExpiration && pre.Days+ExpirationMinDays > ia.Days {
+			if pre.Tier == ia.Tier && pre.Tier == utils.Tier999 {
+				log.Logf("archived data cannot be transition to other storage class\n")
+				return fmt.Errorf("archived data in one backend cannot be transition to other backend")
+			}
+
+			if ia.Name == ActionNameExpiration && pre.Days + ExpirationMinDays > ia.Days {
 				log.Logf("pre.Days=%d, ia.Days=%d\n", pre.Days, ia.Days)
 				return fmt.Errorf("object should be saved in the current storage class not less than %d days before exipration(%d < %d + %d)",
 					ExpirationMinDays, ia.Days, pre.Days, ExpirationMinDays)
 			}
 
-			if ia.Name == ActionNameTransition && pre.Days+LifecycleTransitionDaysStep > ia.Days {
+			if ia.Name == ActionNameTransition && pre.Days + LifecycleTransitionDaysStep > ia.Days {
 				log.Logf("pre.Days=%d, ia.Days=%d\n", pre.Days, ia.Days)
 				return fmt.Errorf("object should be saved in the current storage class not less than %d days before transition(%d < %d + %d)",
 					LifecycleTransitionDaysStep, ia.Days, pre.Days, LifecycleTransitionDaysStep)
@@ -185,8 +198,8 @@ func (s *APIService) BucketLifecyclePut(request *restful.Request, response *rest
 					response.WriteError(http.StatusBadRequest, fmt.Errorf("duplicate rule id: %s", rule.ID))
 					return
 				}
-				// Assigning the rule ID
 				dupIdCheck[rule.ID] = struct{}{}
+				// Assigning the rule ID
 				s3Rule.Id = rule.ID
 
 				// Assigning the status value to s3 status

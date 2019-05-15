@@ -28,9 +28,8 @@ import (
 
 	"github.com/opensds/multi-cloud/api/pkg/policy"
 	. "github.com/opensds/multi-cloud/s3/pkg/exception"
-	s3 "github.com/opensds/multi-cloud/s3/proto"
+	"github.com/opensds/multi-cloud/s3/proto"
 	"golang.org/x/net/context"
-	"fmt"
 	"github.com/opensds/multi-cloud/s3/pkg/utils"
 )
 
@@ -95,29 +94,7 @@ func (s *APIService) ObjectPut(request *restful.Request, response *restful.Respo
 		response.WriteError(http.StatusInternalServerError, s3err.Error())
 		return
 	}
-	// For test begin ...
-	fmt.Println("=============================")
-	if objectKey == "test1" {
-		val, _ := time.Parse("2006-01-02 15:04:05", "2019-05-05 07:20:00")
-		object.LastModified = val.Unix()
-		fmt.Printf("Change time to %v\n", object.LastModified)
-	}
-	if objectKey == "test2" {
-		val, _ := time.Parse("2006-01-02 15:04:05", "2019-05-04 07:20:00")
-		object.LastModified = val.Unix()
-		fmt.Printf("Change time to %v\n", object.LastModified)
-	}
-	if objectKey == "test3" {
-		val, _ := time.Parse("2006-01-02 15:04:05", "2019-05-03 07:20:00")
-		object.LastModified = val.Unix()
-		fmt.Printf("Change time to %v\n", object.LastModified)
-	}
-	if objectKey == "test4" {
-		val, _ := time.Parse("2006-01-02 15:04:05", "2019-05-02 07:20:00")
-		object.LastModified = val.Unix()
-		fmt.Printf("Change time to %v\n", object.LastModified)
-	}
-	// For test end   ...
+
 	res, err := s.s3Client.CreateObject(ctx, &object)
 	if err != nil {
 		log.Logf("err is %v\n", err)

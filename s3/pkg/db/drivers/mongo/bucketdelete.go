@@ -63,7 +63,11 @@ func (ad *adapter) DeleteLifecycle(bucketName string, lifecycleId string) S3Erro
 	//Update database
 	c := ss.DB(DataBaseName).C(BucketMD)
 	err := c.Update(bson.M{"name": bucketName}, bson.M{"$pull": bson.M{"lifecycleconfiguration": bson.M{"id": lifecycleId}}})
-	if err != nil {
+	if err == mgo.ErrNotFound {
+		log.Logf("delete lifecycle[id=%s] of bucket[%s] failed, err:the specified bucket or lifecycle rule does not exist.",
+			lifecycleId, bucketName)
+		return NoSuchLifecycleRule
+	} else if err != nil {
 		log.Logf("delete lifecycle[bucket=%s, lifecycleid=%s] failed: %v\n", bucketName, lifecycleId, err)
 		return DBError
 	}

@@ -50,12 +50,6 @@ type MoveWorker interface {
 }
 
 const (
-	Tier1 = 1
-	Tier9 = 99
-	Tier99 = 999
-)
-
-const (
 	OBJMETA_TIER = "tier"
 	OBJMETA_BACKEND = "backend"
 )
