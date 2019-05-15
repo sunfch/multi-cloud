@@ -28,6 +28,7 @@ import (
 	. "github.com/opensds/multi-cloud/s3/pkg/exception"
 	. "github.com/opensds/multi-cloud/s3/pkg/utils"
 	pb "github.com/opensds/multi-cloud/s3/proto"
+	"errors"
 )
 
 type Int2String map[int32]string
@@ -45,21 +46,38 @@ var SupportedClasses []pb.StorageClass
 
 type s3Service struct{}
 
-func getTierFromName(className string) (int32, S3Error) {
+/*func getTierFromName(className string) (int32, S3Error) {
 	v, ok := Ext2IntTierMap[OSTYPE_OPENSDS]
 	if !ok {
-		log.Logf("get tier of storage class[%s] failed.\n", className)
+		log.Logf("get opensds tier of storage class[%s] failed.\n", className)
 		return 0, InternalError
 	}
 
 	v2, ok := (*v)[className]
 	if !ok {
-		log.Logf("get tier of storage class[%s] failed.\n", className)
+		log.Logf("get opensds tier of storage class[%s] failed.\n", className)
 		return 0, InternalError
 	}
 
-	log.Logf("Get tier of storage class[%s] successfully.\n", className)
+	log.Logf("opensds tier of storage class[%s] is %d.\n", className, v2)
 	return v2, NoError
+}*/
+
+func getNameFromTier(tier int32) (string, error) {
+	v, ok := Int2ExtTierMap[OSTYPE_OPENSDS]
+	if !ok {
+		log.Logf("get opensds storage class of tier[%d] failed.\n", tier)
+		return "", errors.New("internal error")
+	}
+
+	v2, ok := (*v)[tier]
+	if !ok {
+		log.Logf("get opensds storage class of tier[%d] failed.\n", tier)
+		return "", errors.New("internal error")
+	}
+
+	log.Logf("opensds storage class of tier[%d] is %s.\n", tier, v2)
+	return v2, nil
 }
 
 func loadAWSDefault(i2e *map[string]*Int2String, e2i *map[string]*String2Int) {
@@ -478,6 +496,14 @@ func CheckReqObjMeta(req map[string]string, valid map[string]struct{}) (map[stri
 				return nil, BadRequest
 			}
 			ret[k] = v1
+
+			// update storage class accordingly
+			name, err := getNameFromTier(int32(v1))
+			if err != nil {
+				return nil, InternalError
+			} else {
+				ret["storageclass"] = name
+			}
 		} else {
 			ret[k] = v
 		}

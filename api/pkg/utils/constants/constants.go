@@ -37,6 +37,7 @@ const (
 )
 
 const (
+	StorageClassOpenSDSStandard = "STANDARD"
 	StorageClassAWSStandard = "STANDARD"
 )
 
