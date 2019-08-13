@@ -26,8 +26,7 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/micro/go-log"
 	"github.com/opensds/multi-cloud/api/pkg/common"
-	"github.com/opensds/multi-cloud/api/pkg/policy"
-	s3 "github.com/opensds/multi-cloud/s3/proto"
+	"github.com/opensds/multi-cloud/s3/proto"
 )
 
 func checkLastmodifiedFilter(fmap *map[string]string) error {
@@ -69,10 +68,6 @@ func checkObjKeyFilter(val string) (string, error) {
 }
 
 func (s *APIService) BucketGet(request *restful.Request, response *restful.Response) {
-	if !policy.Authorize(request, response, "bucket:get") {
-		return
-	}
-
 	limit, offset, err := common.GetPaginationParam(request)
 	if err != nil {
 		log.Logf("get pagination parameters failed: %v\n", err)

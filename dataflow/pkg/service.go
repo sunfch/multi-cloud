@@ -24,7 +24,7 @@ import (
 	"strings"
 
 	"github.com/micro/go-log"
-	c "github.com/opensds/multi-cloud/api/pkg/filters/context"
+	c "github.com/opensds/multi-cloud/api/pkg/context"
 	"github.com/opensds/multi-cloud/dataflow/pkg/db"
 	"github.com/opensds/multi-cloud/dataflow/pkg/job"
 	"github.com/opensds/multi-cloud/dataflow/pkg/kafka"
@@ -63,7 +63,7 @@ func policyModel2Resp(policy *model.Policy) *pb.Policy {
 		Id:          policy.Id.Hex(),
 		Name:        policy.Name,
 		Description: policy.Description,
-		Tenant:      policy.Tenant,
+		TenantId:    policy.TenantId,
 		Schedule: &pb.Schedule{
 			Type:             policy.Schedule.Type,
 			TiggerProperties: policy.Schedule.TriggerProperties,

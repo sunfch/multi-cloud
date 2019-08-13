@@ -19,17 +19,13 @@ import (
 
 	"github.com/emicklei/go-restful"
 	"github.com/micro/go-log"
-	"github.com/opensds/multi-cloud/api/pkg/policy"
 	. "github.com/opensds/multi-cloud/s3/pkg/exception"
-	s3 "github.com/opensds/multi-cloud/s3/proto"
+	"github.com/opensds/multi-cloud/s3/proto"
 	"golang.org/x/net/context"
 	//	"github.com/micro/go-micro/errors"
 )
 
 func (s *APIService) BucketDelete(request *restful.Request, response *restful.Response) {
-	if !policy.Authorize(request, response, "bucket:delete") {
-		return
-	}
 	bucketName := request.PathParameter("bucketName")
 	ctx := context.Background()
 	log.Logf("Received request for bucket details: %s", bucketName)

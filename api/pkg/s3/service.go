@@ -15,17 +15,15 @@
 package s3
 
 import (
-	"math"
-
-	"github.com/emicklei/go-restful"
-	"github.com/micro/go-micro/client"
-
-	//	"github.com/micro/go-micro/errors"
 	"context"
 	"io"
 	"io/ioutil"
+	"math"
 
+	"github.com/emicklei/go-restful"
 	"github.com/micro/go-log"
+	"github.com/micro/go-micro/client"
+	c "github.com/opensds/multi-cloud/api/pkg/context"
 	"github.com/opensds/multi-cloud/api/pkg/s3/datastore"
 	backend "github.com/opensds/multi-cloud/backend/proto"
 	backendpb "github.com/opensds/multi-cloud/backend/proto"
@@ -86,9 +84,10 @@ func getBackendClient(s *APIService, bucketName string) datastore.DataStoreAdapt
 	//backendRep, backendErr := s.backendClient.GetBackend(ctx, &backendpb.GetBackendRequest{Id: bucket.Backend})
 	log.Logf("bucketName is %v\n", bucketName)
 	backendRep, backendErr := s.backendClient.ListBackend(ctx, &backendpb.ListBackendRequest{
-		Offset: 0,
-		Limit:  math.MaxInt32,
-		Filter: map[string]string{"name": bucket.Backend}})
+		Context: c.NewAdminContext().ToJson(),
+		Offset:  0,
+		Limit:   math.MaxInt32,
+		Filter:  map[string]string{"name": bucket.Backend}})
 	log.Logf("backendErr is %v:", backendErr)
 	if backendErr != nil {
 		log.Logf("Get backend %s failed.", bucket.Backend)
@@ -103,9 +102,10 @@ func getBackendClient(s *APIService, bucketName string) datastore.DataStoreAdapt
 func getBackendByName(s *APIService, backendName string) datastore.DataStoreAdapter {
 	ctx := context.Background()
 	backendRep, backendErr := s.backendClient.ListBackend(ctx, &backendpb.ListBackendRequest{
-		Offset: 0,
-		Limit:  math.MaxInt32,
-		Filter: map[string]string{"name": backendName}})
+		Context: c.NewAdminContext().ToJson(),
+		Offset:  0,
+		Limit:   math.MaxInt32,
+		Filter:  map[string]string{"name": backendName}})
 	log.Logf("backendErr is %v:", backendErr)
 	if backendErr != nil {
 		log.Logf("Get backend %s failed.", backendName)
@@ -120,6 +120,7 @@ func getBackendByName(s *APIService, backendName string) datastore.DataStoreAdap
 func getBucketNameByBackend(s *APIService, backendName string) string {
 	ctx := context.Background()
 	backendRep, backendErr := s.backendClient.ListBackend(ctx, &backendpb.ListBackendRequest{
+	        Context: c.NewAdminContext().ToJson(),
 		Offset: 0,
 		Limit:  math.MaxInt32,
 		Filter: map[string]string{"name": backendName}})

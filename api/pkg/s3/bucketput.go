@@ -19,30 +19,24 @@ import (
 	"net/http"
 	"time"
 
+	c "github.com/opensds/multi-cloud/api/pkg/context"
 	"github.com/emicklei/go-restful"
 	"github.com/micro/go-log"
-	"github.com/opensds/multi-cloud/api/pkg/policy"
 	. "github.com/opensds/multi-cloud/s3/pkg/exception"
 	"github.com/opensds/multi-cloud/s3/pkg/model"
-	s3 "github.com/opensds/multi-cloud/s3/proto"
+	"github.com/opensds/multi-cloud/s3/proto"
 	"golang.org/x/net/context"
 )
 
 func (s *APIService) BucketPut(request *restful.Request, response *restful.Response) {
-	if !policy.Authorize(request, response, "bucket:put") {
-		return
-	}
 	bucketName := request.PathParameter("bucketName")
 	log.Logf("Received request for create bucket: %s", bucketName)
 	ctx := context.Background()
 	bucket := s3.Bucket{Name: bucketName}
 	body := ReadBody(request)
-	//TODO owner
-	owner := "test"
-	ownerDisplayName := "test"
-	bucket.Owner = owner
+	actx := request.Attribute(c.KContext).(*c.Context)
+	bucket.OwnerID = actx.TenantId
 	bucket.Deleted = false
-	bucket.OwnerDisplayName = ownerDisplayName
 	bucket.CreationDate = time.Now().Unix()
 
 	if body != nil {

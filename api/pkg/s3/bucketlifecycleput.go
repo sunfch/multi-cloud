@@ -29,9 +29,8 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/micro/go-log"
 
-	"github.com/opensds/multi-cloud/api/pkg/policy"
 	"github.com/opensds/multi-cloud/s3/pkg/model"
-	s3 "github.com/opensds/multi-cloud/s3/proto"
+	"github.com/opensds/multi-cloud/s3/proto"
 	"golang.org/x/net/context"
 )
 
@@ -117,9 +116,6 @@ func checkValidationOfActions(actions []*s3.Action) error {
 }
 
 func (s *APIService) BucketLifecyclePut(request *restful.Request, response *restful.Response) {
-	if !policy.Authorize(request, response, "bucket:put") {
-		return
-	}
 	bucketName := request.PathParameter("bucketName")
 	log.Logf("received request for create bucket lifecycle: %s", bucketName)
 	ctx := context.Background()

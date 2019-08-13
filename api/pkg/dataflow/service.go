@@ -25,7 +25,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/opensds/multi-cloud/api/pkg/common"
-	c "github.com/opensds/multi-cloud/api/pkg/filters/context"
+	c "github.com/opensds/multi-cloud/api/pkg/context"
 	"github.com/opensds/multi-cloud/api/pkg/policy"
 	backend "github.com/opensds/multi-cloud/backend/proto"
 	dataflow "github.com/opensds/multi-cloud/dataflow/proto"
@@ -324,7 +324,7 @@ func (s *APIService) UpdatePlan(request *restful.Request, response *restful.Resp
 	actx := request.Attribute(c.KContext).(*c.Context)
 
 	planId := request.PathParameter("id")
-	log.Logf("Received request for update plan(%d).\n", planId)
+	log.Logf("Received request for update plan(%s).\n", planId)
 	body, err := ioutil.ReadAll(request.Request.Body)
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, err)

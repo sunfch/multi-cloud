@@ -137,7 +137,7 @@ message ReplicationInfo {
 
 message Bucket {
 	string name = 1;
-	string owner = 2;
+	string ownerID = 2;
 	string ownerDisplayName = 3;
 	string acl = 4;
     int64 creationDate = 5;
@@ -209,17 +209,19 @@ message BaseResponse {
 }
 
 message BaseRequest {
-	string id = 1;
+	string Context = 1;
+	string id = 2;
 }
 
 message ListObjectsRequest {
     // Bucket is a required field
-    string Bucket = 1;
-    string Delimiter = 2;
-    string Owner = 3;
-	map<string, string> Filter = 4;
-	int32  offset = 5;
-	int32  limit = 6;
+	string Context = 1;
+    string Bucket = 2;
+    string Delimiter = 3;
+    string Owner = 4;
+	map<string, string> Filter = 5;
+	int32  offset = 6;
+	int32  limit = 7;
 }
 
 message ListObjectResponse {
@@ -288,7 +290,8 @@ message GetStorageClassesResponse {
 }
 
 message GetBackendTypeByTierRequest {
-	int32 Tier = 1;
+	string context = 1;
+	int32 Tier = 2;
 }
 
 message GetBackendTypeByTierResponse {
@@ -309,11 +312,12 @@ message MultipartUploadRecord {
 }
 
 message ListMultipartUploadRequest {
-	string Bucket = 1;
-	string Prefix = 2;
-	int32  Days = 3;
-	int32  limit = 4;
-	int32  offset = 5;
+	string Context = 1;
+	string Bucket = 2;
+	string Prefix = 3;
+	int32  Days = 4;
+	int32  limit = 5;
+	int32  offset = 6;
 }
 
 message ListMultipartUploadResponse {

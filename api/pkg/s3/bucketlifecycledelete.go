@@ -20,15 +20,11 @@ import (
 
 	"github.com/emicklei/go-restful"
 	"github.com/micro/go-log"
-	"github.com/opensds/multi-cloud/api/pkg/policy"
-	s3 "github.com/opensds/multi-cloud/s3/proto"
+	"github.com/opensds/multi-cloud/s3/proto"
 	"golang.org/x/net/context"
 )
 
 func (s *APIService) BucketLifecycleDelete(request *restful.Request, response *restful.Response) {
-	if !policy.Authorize(request, response, "bucket:delete") {
-		return
-	}
 	//var foundID int
 	FoundIDArray := []string{}
 	NonFoundIDArray := []string{}

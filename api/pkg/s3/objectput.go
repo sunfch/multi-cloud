@@ -22,20 +22,16 @@ import (
 
 	"github.com/emicklei/go-restful"
 	"github.com/micro/go-log"
-	"github.com/opensds/multi-cloud/api/pkg/policy"
 	"github.com/opensds/multi-cloud/api/pkg/s3/datastore"
 	"github.com/opensds/multi-cloud/api/pkg/utils/constants"
 	. "github.com/opensds/multi-cloud/s3/pkg/exception"
 	"github.com/opensds/multi-cloud/s3/pkg/utils"
-	s3 "github.com/opensds/multi-cloud/s3/proto"
+	"github.com/opensds/multi-cloud/s3/proto"
 	"golang.org/x/net/context"
 )
 
 //ObjectPut -
 func (s *APIService) ObjectPut(request *restful.Request, response *restful.Response) {
-	if !policy.Authorize(request, response, "object:put") {
-		return
-	}
 	url := request.Request.URL
 	log.Logf("URL is %v", request.Request.URL.String())
 	log.Logf("request  is %v\n", request)

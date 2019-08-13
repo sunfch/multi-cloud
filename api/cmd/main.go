@@ -60,6 +60,7 @@ func main() {
 	s3ws.Consumes(restful.MIME_XML)
 	s3ws.Produces(restful.MIME_XML)
 	s3ws.Filter(logging.FilterFactory())
+	s3ws.Filter(context.FilterFactory())
 	s3ws.Filter(signer.FilterFactory())
 	s3.RegisterRouter(s3ws)
 
@@ -69,5 +70,4 @@ func main() {
 	if err := webService.Run(); err != nil {
 		log.Fatal(err)
 	}
-
 }

@@ -21,17 +21,13 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/micro/go-log"
 	. "github.com/opensds/multi-cloud/s3/pkg/exception"
-	s3 "github.com/opensds/multi-cloud/s3/proto"
+	"github.com/opensds/multi-cloud/s3/proto"
 	"golang.org/x/net/context"
 
-	//	"github.com/micro/go-micro/errors"
-	"github.com/opensds/multi-cloud/api/pkg/policy"
+
 )
 
 func (s *APIService) ObjectDelete(request *restful.Request, response *restful.Response) {
-	if !policy.Authorize(request, response, "object:delete") {
-		return
-	}
 	url := request.Request.URL
 	log.Logf("URL is %v", request.Request.URL.String())
 	bucketName := request.PathParameter("bucketName")
@@ -62,5 +58,4 @@ func (s *APIService) ObjectDelete(request *restful.Request, response *restful.Re
 		log.Logf("No such object")
 		return
 	}
-
 }
