@@ -202,7 +202,7 @@ func Authorize(req *restful.Request, res *restful.Response, action string) bool 
 	}
 	log.Logf("Action: %v", action)
 	log.Logf("Target: %v", target)
-	log.Logf("Credentials: %v", credentials)
+	log.Logf("policy-Credentials: %v", credentials)
 	ok, err := enforcer.Authorize(action, target, credentials)
 	if err != nil {
 		log.Logf("authorize failed, %s", err)

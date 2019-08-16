@@ -20,7 +20,7 @@ import (
 )
 
 func (s *APIService) RouteBucketDelete(request *restful.Request, response *restful.Response) {
-	if !policy.Authorize(request, response, "routbucket:delete") {
+	if !policy.Authorize(request, response, "bucket:delete") {
 		return
 	}
 	if IsQuery(request, "acl") {
@@ -37,7 +37,6 @@ func (s *APIService) RouteBucketDelete(request *restful.Request, response *restf
 
 	} else if IsQuery(request, "lifecycle") {
 		s.BucketLifecycleDelete(request, response)
-
 	} else {
 		s.BucketDelete(request, response)
 	}

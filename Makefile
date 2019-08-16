@@ -20,11 +20,11 @@ VERSION ?= $(shell git describe --exact-match 2> /dev/null || \
              --always --dirty --abbrev=8)
 BUILD_TGT := opensds-multicloud-$(VERSION)-linux-amd64
 
-.PHONY: all build prebuild api backend s3 dataflow docker clean
+.PHONY: all build prebuild api backend s3 dataflow yigs3 docker clean
 
 all: build
 
-build: api backend s3 dataflow datamover
+build: api backend s3 dataflow datamover yigs3
 
 prebuild:
 	mkdir -p  $(BUILD_DIR)
@@ -43,6 +43,9 @@ dataflow: prebuild
 
 datamover: prebuild
 	CGO_ENABLED=0 GOOS=linux go build -ldflags '-w -s -extldflags "-static"' -o $(BUILD_DIR)/datamover github.com/opensds/multi-cloud/datamover/cmd
+
+yigs3: prebuild
+	CGO_ENABLED=0 GOOS=linux go build -ldflags '-w -s -extldflags "-static"' -o $(BUILD_DIR)/yigs3 github.com/opensds/multi-cloud/yigs3/cmd
 
 docker: build
 
@@ -65,6 +68,10 @@ docker: build
 	cp $(BUILD_DIR)/datamover datamover
 	chmod 755 datamover/datamover
 	docker build datamover -t opensdsio/multi-cloud-datamover:latest
+
+	cp $(BUILD_DIR)/yigs3 yigs3
+	chmod 755 yigs3/yigs3
+	docker build s3 -t opensdsio/multi-cloud-yigs3:latest
 
 goimports:
 	goimports -w $(shell go list -f {{.Dir}} ./... |grep -v /vendor/)
