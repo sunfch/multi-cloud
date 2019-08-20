@@ -17,7 +17,7 @@ package main
 import (
 	"fmt"
 
-	micro "github.com/micro/go-micro"
+	"github.com/micro/go-micro"
 	handler "github.com/opensds/multi-cloud/s3/pkg"
 	pb "github.com/opensds/multi-cloud/s3/proto"
 )

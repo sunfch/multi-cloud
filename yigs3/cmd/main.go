@@ -20,6 +20,7 @@ import (
 	micro "github.com/micro/go-micro"
 	handler "github.com/opensds/multi-cloud/s3/pkg"
 	pb "github.com/opensds/multi-cloud/s3/proto"
+	_ "github.com/opensds/multi-cloud/yigs3/pkg/datastore"
 )
 
 func main() {
