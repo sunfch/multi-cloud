@@ -43,7 +43,7 @@ func (s *APIService) BucketLifecycleDelete(request *restful.Request, response *r
 	ctx := context.Background()
 	actx := request.Attribute(c.KContext).(*c.Context)
 
-	bucket, err := s.s3Client.GetBucket(ctx, &s3.CommonRequest{Context: actx.ToJson(), Id: bucketName})
+	bucket, err := s.s3Client.GetBucket(ctx, &s3.BaseRequest{Context: actx.ToJson(), Id: bucketName})
 	if err != nil {
 		log.Logf("get bucket[name=%s] failed, err=%v.\n", bucketName, err)
 		response.WriteError(http.StatusInternalServerError, NoSuchBucket.Error())

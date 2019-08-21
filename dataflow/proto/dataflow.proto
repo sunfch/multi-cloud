@@ -178,22 +178,24 @@ message RunPlanResponse {
 
 message Job {
 	string id = 1;
-	string type = 2;
-	string planName = 3;
-	string planId = 4;
-	string description = 5; //describe statistic information, such as total objs, finished objs
-	string sourceLocation = 6;
-	string destLocation = 7;
-	string status = 8;
-	int64  createTime = 9;
-	int64  startTime = 10;
-	int64  endTime = 11;
-	bool remainSource = 12;
-	int64 totalCapacity = 13;
-	int64 passedCapacity = 14;
-	int64 totalCount = 15;
-	int64 passedCount = 16;
-	int64 progress = 17;
+	string tenantId = 2;
+	string userId = 3;
+	string type = 4;
+	string planName = 5;
+	string planId = 6;
+	string description = 7; //describe statistic information, such as total objs, finished objs
+	string sourceLocation = 8;
+	string destLocation = 9;
+	string status = 10;
+	int64  createTime = 11;
+	int64  startTime = 12;
+	int64  endTime = 13;
+	bool remainSource = 14;
+	int64 totalCapacity = 15;
+	int64 passedCapacity = 16;
+	int64 totalCount = 17;
+	int64 passedCount = 18;
+	int64 progress = 19;
 }
 
 message GetJobRequest {

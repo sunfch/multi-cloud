@@ -8,6 +8,7 @@ It is generated from these files:
 	s3.proto
 
 It has these top-level messages:
+	CopyObjectRequest
 	PutObjectRequest
 	PutBucketVersioningRequest
 	PutBucketACLRequest
@@ -43,7 +44,6 @@ It has these top-level messages:
 	ListBucketsResponse
 	BaseResponse
 	BaseRequest
-	CommonRequest
 	ListObjectsRequest
 	ListObjectResponse
 	CountObjectsResponse
@@ -95,10 +95,10 @@ var _ server.Option
 // Client API for S3 service
 
 type S3Service interface {
-	ListBuckets(ctx context.Context, in *CommonRequest, opts ...client.CallOption) (*ListBucketsResponse, error)
+	ListBuckets(ctx context.Context, in *BaseRequest, opts ...client.CallOption) (*ListBucketsResponse, error)
 	CreateBucket(ctx context.Context, in *Bucket, opts ...client.CallOption) (*BaseResponse, error)
 	DeleteBucket(ctx context.Context, in *Bucket, opts ...client.CallOption) (*BaseResponse, error)
-	GetBucket(ctx context.Context, in *CommonRequest, opts ...client.CallOption) (*Bucket, error)
+	GetBucket(ctx context.Context, in *BaseRequest, opts ...client.CallOption) (*Bucket, error)
 	ListObjects(ctx context.Context, in *ListObjectsRequest, opts ...client.CallOption) (*ListObjectResponse, error)
 	CountObjects(ctx context.Context, in *ListObjectsRequest, opts ...client.CallOption) (*CountObjectsResponse, error)
 	// rpc CreateObject(Object) returns (BaseResponse) {}
@@ -124,7 +124,7 @@ type S3Service interface {
 	AddUploadRecord(ctx context.Context, in *MultipartUploadRecord, opts ...client.CallOption) (*BaseResponse, error)
 	DeleteUploadRecord(ctx context.Context, in *MultipartUploadRecord, opts ...client.CallOption) (*BaseResponse, error)
 	HeadObject(ctx context.Context, in *BaseObjRequest, opts ...client.CallOption) (*Object, error)
-	CopyObject(ctx context.Context, in *BaseRequest, opts ...client.CallOption) (*BaseResponse, error)
+	CopyObject(ctx context.Context, in *CopyObjectRequest, opts ...client.CallOption) (*BaseResponse, error)
 	CopyObjPart(ctx context.Context, in *CopyObjPartRequest, opts ...client.CallOption) (*CopyObjPartResponse, error)
 	PutObjACL(ctx context.Context, in *PutObjACLRequest, opts ...client.CallOption) (*BaseResponse, error)
 	GetObjACL(ctx context.Context, in *BaseObjRequest, opts ...client.CallOption) (*ObjACL, error)
@@ -139,7 +139,7 @@ type S3Service interface {
 	PutBucketPolicy(ctx context.Context, in *BaseRequest, opts ...client.CallOption) (*BaseResponse, error)
 	GetBucketPolicy(ctx context.Context, in *BaseRequest, opts ...client.CallOption) (*BaseResponse, error)
 	DeleteBucketPolicy(ctx context.Context, in *BaseRequest, opts ...client.CallOption) (*BaseResponse, error)
-	HeadBucket(ctx context.Context, in *CommonRequest, opts ...client.CallOption) (*Bucket, error)
+	HeadBucket(ctx context.Context, in *BaseRequest, opts ...client.CallOption) (*Bucket, error)
 }
 
 type s3Service struct {
@@ -160,7 +160,7 @@ func NewS3Service(name string, c client.Client) S3Service {
 	}
 }
 
-func (c *s3Service) ListBuckets(ctx context.Context, in *CommonRequest, opts ...client.CallOption) (*ListBucketsResponse, error) {
+func (c *s3Service) ListBuckets(ctx context.Context, in *BaseRequest, opts ...client.CallOption) (*ListBucketsResponse, error) {
 	req := c.c.NewRequest(c.name, "S3.ListBuckets", in)
 	out := new(ListBucketsResponse)
 	err := c.c.Call(ctx, req, out, opts...)
@@ -190,7 +190,7 @@ func (c *s3Service) DeleteBucket(ctx context.Context, in *Bucket, opts ...client
 	return out, nil
 }
 
-func (c *s3Service) GetBucket(ctx context.Context, in *CommonRequest, opts ...client.CallOption) (*Bucket, error) {
+func (c *s3Service) GetBucket(ctx context.Context, in *BaseRequest, opts ...client.CallOption) (*Bucket, error) {
 	req := c.c.NewRequest(c.name, "S3.GetBucket", in)
 	out := new(Bucket)
 	err := c.c.Call(ctx, req, out, opts...)
@@ -430,7 +430,7 @@ func (c *s3Service) HeadObject(ctx context.Context, in *BaseObjRequest, opts ...
 	return out, nil
 }
 
-func (c *s3Service) CopyObject(ctx context.Context, in *BaseRequest, opts ...client.CallOption) (*BaseResponse, error) {
+func (c *s3Service) CopyObject(ctx context.Context, in *CopyObjectRequest, opts ...client.CallOption) (*BaseResponse, error) {
 	req := c.c.NewRequest(c.name, "S3.CopyObject", in)
 	out := new(BaseResponse)
 	err := c.c.Call(ctx, req, out, opts...)
@@ -580,7 +580,7 @@ func (c *s3Service) DeleteBucketPolicy(ctx context.Context, in *BaseRequest, opt
 	return out, nil
 }
 
-func (c *s3Service) HeadBucket(ctx context.Context, in *CommonRequest, opts ...client.CallOption) (*Bucket, error) {
+func (c *s3Service) HeadBucket(ctx context.Context, in *BaseRequest, opts ...client.CallOption) (*Bucket, error) {
 	req := c.c.NewRequest(c.name, "S3.HeadBucket", in)
 	out := new(Bucket)
 	err := c.c.Call(ctx, req, out, opts...)
@@ -593,10 +593,10 @@ func (c *s3Service) HeadBucket(ctx context.Context, in *CommonRequest, opts ...c
 // Server API for S3 service
 
 type S3Handler interface {
-	ListBuckets(context.Context, *CommonRequest, *ListBucketsResponse) error
+	ListBuckets(context.Context, *BaseRequest, *ListBucketsResponse) error
 	CreateBucket(context.Context, *Bucket, *BaseResponse) error
 	DeleteBucket(context.Context, *Bucket, *BaseResponse) error
-	GetBucket(context.Context, *CommonRequest, *Bucket) error
+	GetBucket(context.Context, *BaseRequest, *Bucket) error
 	ListObjects(context.Context, *ListObjectsRequest, *ListObjectResponse) error
 	CountObjects(context.Context, *ListObjectsRequest, *CountObjectsResponse) error
 	// rpc CreateObject(Object) returns (BaseResponse) {}
@@ -622,7 +622,7 @@ type S3Handler interface {
 	AddUploadRecord(context.Context, *MultipartUploadRecord, *BaseResponse) error
 	DeleteUploadRecord(context.Context, *MultipartUploadRecord, *BaseResponse) error
 	HeadObject(context.Context, *BaseObjRequest, *Object) error
-	CopyObject(context.Context, *BaseRequest, *BaseResponse) error
+	CopyObject(context.Context, *CopyObjectRequest, *BaseResponse) error
 	CopyObjPart(context.Context, *CopyObjPartRequest, *CopyObjPartResponse) error
 	PutObjACL(context.Context, *PutObjACLRequest, *BaseResponse) error
 	GetObjACL(context.Context, *BaseObjRequest, *ObjACL) error
@@ -637,15 +637,15 @@ type S3Handler interface {
 	PutBucketPolicy(context.Context, *BaseRequest, *BaseResponse) error
 	GetBucketPolicy(context.Context, *BaseRequest, *BaseResponse) error
 	DeleteBucketPolicy(context.Context, *BaseRequest, *BaseResponse) error
-	HeadBucket(context.Context, *CommonRequest, *Bucket) error
+	HeadBucket(context.Context, *BaseRequest, *Bucket) error
 }
 
 func RegisterS3Handler(s server.Server, hdlr S3Handler, opts ...server.HandlerOption) error {
 	type s3 interface {
-		ListBuckets(ctx context.Context, in *CommonRequest, out *ListBucketsResponse) error
+		ListBuckets(ctx context.Context, in *BaseRequest, out *ListBucketsResponse) error
 		CreateBucket(ctx context.Context, in *Bucket, out *BaseResponse) error
 		DeleteBucket(ctx context.Context, in *Bucket, out *BaseResponse) error
-		GetBucket(ctx context.Context, in *CommonRequest, out *Bucket) error
+		GetBucket(ctx context.Context, in *BaseRequest, out *Bucket) error
 		ListObjects(ctx context.Context, in *ListObjectsRequest, out *ListObjectResponse) error
 		CountObjects(ctx context.Context, in *ListObjectsRequest, out *CountObjectsResponse) error
 		PutObject(ctx context.Context, in *PutObjectRequest, out *BaseResponse) error
@@ -669,7 +669,7 @@ func RegisterS3Handler(s server.Server, hdlr S3Handler, opts ...server.HandlerOp
 		AddUploadRecord(ctx context.Context, in *MultipartUploadRecord, out *BaseResponse) error
 		DeleteUploadRecord(ctx context.Context, in *MultipartUploadRecord, out *BaseResponse) error
 		HeadObject(ctx context.Context, in *BaseObjRequest, out *Object) error
-		CopyObject(ctx context.Context, in *BaseRequest, out *BaseResponse) error
+		CopyObject(ctx context.Context, in *CopyObjectRequest, out *BaseResponse) error
 		CopyObjPart(ctx context.Context, in *CopyObjPartRequest, out *CopyObjPartResponse) error
 		PutObjACL(ctx context.Context, in *PutObjACLRequest, out *BaseResponse) error
 		GetObjACL(ctx context.Context, in *BaseObjRequest, out *ObjACL) error
@@ -684,7 +684,7 @@ func RegisterS3Handler(s server.Server, hdlr S3Handler, opts ...server.HandlerOp
 		PutBucketPolicy(ctx context.Context, in *BaseRequest, out *BaseResponse) error
 		GetBucketPolicy(ctx context.Context, in *BaseRequest, out *BaseResponse) error
 		DeleteBucketPolicy(ctx context.Context, in *BaseRequest, out *BaseResponse) error
-		HeadBucket(ctx context.Context, in *CommonRequest, out *Bucket) error
+		HeadBucket(ctx context.Context, in *BaseRequest, out *Bucket) error
 	}
 	type S3 struct {
 		s3
@@ -697,7 +697,7 @@ type s3Handler struct {
 	S3Handler
 }
 
-func (h *s3Handler) ListBuckets(ctx context.Context, in *CommonRequest, out *ListBucketsResponse) error {
+func (h *s3Handler) ListBuckets(ctx context.Context, in *BaseRequest, out *ListBucketsResponse) error {
 	return h.S3Handler.ListBuckets(ctx, in, out)
 }
 
@@ -709,7 +709,7 @@ func (h *s3Handler) DeleteBucket(ctx context.Context, in *Bucket, out *BaseRespo
 	return h.S3Handler.DeleteBucket(ctx, in, out)
 }
 
-func (h *s3Handler) GetBucket(ctx context.Context, in *CommonRequest, out *Bucket) error {
+func (h *s3Handler) GetBucket(ctx context.Context, in *BaseRequest, out *Bucket) error {
 	return h.S3Handler.GetBucket(ctx, in, out)
 }
 
@@ -805,7 +805,7 @@ func (h *s3Handler) HeadObject(ctx context.Context, in *BaseObjRequest, out *Obj
 	return h.S3Handler.HeadObject(ctx, in, out)
 }
 
-func (h *s3Handler) CopyObject(ctx context.Context, in *BaseRequest, out *BaseResponse) error {
+func (h *s3Handler) CopyObject(ctx context.Context, in *CopyObjectRequest, out *BaseResponse) error {
 	return h.S3Handler.CopyObject(ctx, in, out)
 }
 
@@ -865,6 +865,6 @@ func (h *s3Handler) DeleteBucketPolicy(ctx context.Context, in *BaseRequest, out
 	return h.S3Handler.DeleteBucketPolicy(ctx, in, out)
 }
 
-func (h *s3Handler) HeadBucket(ctx context.Context, in *CommonRequest, out *Bucket) error {
+func (h *s3Handler) HeadBucket(ctx context.Context, in *BaseRequest, out *Bucket) error {
 	return h.S3Handler.HeadBucket(ctx, in, out)
 }

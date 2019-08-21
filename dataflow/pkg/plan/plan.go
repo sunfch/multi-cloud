@@ -110,12 +110,17 @@ func Create(ctx *c.Context, plan *Plan) (*Plan, error) {
 		return nil, ERR_DEST_SRC_CONN_EQUAL
 	}
 	if checkConnValidation(&plan.SourceConn) != nil {
-		log.Logf("Source connector is invalid, type=%s\n", plan.SourceConn.StorType)
+		log.Logf("source connector is invalid, type=%s\n", plan.SourceConn.StorType)
 		return nil, ERR_SRC_CONN_NOT_EXIST
 	}
 	if checkConnValidation(&plan.DestConn) != nil {
-		log.Logf("Target connector is invalid, type=%s\n", plan.DestConn.StorType)
+		log.Logf("target connector is invalid, type=%s\n", plan.DestConn.StorType)
 		return nil, ERR_DEST_CONN_NOT_EXIST
+	}
+	if (plan.SourceConn.StorType == STOR_TYPE_OPENSDS && plan.DestConn.StorType != STOR_TYPE_OPENSDS) ||
+		(plan.DestConn.StorType == STOR_TYPE_OPENSDS && plan.SourceConn.StorType != STOR_TYPE_OPENSDS) {
+		log.Logf("one of source connector[type=%s] and target connector[type=%s] is %s, but the other is not.\n",
+			plan.SourceConn.StorType, plan.DestConn.StorType, STOR_TYPE_OPENSDS)
 	}
 
 	//Add to database
@@ -331,13 +336,16 @@ func Run(ctx *c.Context, id string) (bson.ObjectId, error) {
 	job.Status = JOB_STATUS_PENDING
 	job.RemainSource = plan.RemainSource
 	job.StartTime = time.Time{}
+	job.TenantId = ctx.TenantId
+	job.UserId = ctx.UserId
+
 	//add job to database
 	_, err = db.DbAdapter.CreateJob(ctx, &job)
 	if err == nil {
-		//TODO: change to send job to datamover by kafka
-		//This way send job is the temporary
 		filt := datamover.Filter{Prefix: plan.Filter.Prefix}
-		req := datamover.RunJobRequest{Id: job.Id.Hex(), RemainSource: plan.RemainSource, Filt: &filt}
+		req := datamover.RunJobRequest{
+			Context: ctx.ToJson(), Id: job.Id.Hex(), RemainSource: plan.RemainSource, Filt: &filt,
+		}
 		srcConn := datamover.Connector{Type: plan.SourceConn.StorType}
 		buildConn(&srcConn, &plan.SourceConn)
 		req.SourceConn = &srcConn

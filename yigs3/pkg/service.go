@@ -27,10 +27,10 @@ import (
 	"github.com/micro/go-log"
 
 	"github.com/opensds/multi-cloud/api/pkg/utils/obs"
-	"github.com/opensds/multi-cloud/s3/pkg/db"
-	. "github.com/opensds/multi-cloud/s3/pkg/exception"
-	. "github.com/opensds/multi-cloud/s3/pkg/utils"
-	pb "github.com/opensds/multi-cloud/s3/proto"
+	"github.com/opensds/multi-cloud/yigs3/pkg/db"
+	. "github.com/opensds/multi-cloud/yigs3/pkg/exception"
+	. "github.com/opensds/multi-cloud/yigs3/pkg/utils"
+	pb "github.com/opensds/multi-cloud/yigs3/proto"
 )
 
 type Int2String map[int32]string
@@ -138,11 +138,11 @@ func loadGCPDefault(i2e *map[string]*Int2String, e2i *map[string]*String2Int) {
 func loadCephDefault(i2e *map[string]*Int2String, e2i *map[string]*String2Int) {
 	t2n := make(Int2String)
 	t2n[Tier1] = CEPH_STANDARD
-	(*i2e)[OSTYPE_CEPTH] = &t2n
+	(*i2e)[OSTYPE_CEPH] = &t2n
 
 	n2t := make(String2Int)
 	n2t[CEPH_STANDARD] = Tier1
-	(*e2i)[OSTYPE_OBS] = &n2t
+	(*e2i)[OSTYPE_CEPH] = &n2t
 }
 
 func loadFusionStroageDefault(i2e *map[string]*Int2String, e2i *map[string]*String2Int) {
@@ -234,13 +234,23 @@ func initStorageClass() {
 		err1 = loadDefaultStorageClass()
 		err2 = loadDefaultTransition()
 	} else {
-		err1 = loadDefaultTransition()
+		err1 = loadUserDefinedStorageClass()
 		err2 = loadUserDefinedTransition()
 	}
 	// Exit if init failed.
 	if err1 != nil || err2 != nil {
 		panic("init s3service failed")
 	}
+}
+
+func NewS3Service() pb.S3Handler {
+	host := os.Getenv("DB_HOST")
+	dbstor := Database{Credential: "unkonwn", Driver: "mongodb", Endpoint: host}
+	db.Init(&dbstor)
+
+	initStorageClass()
+
+	return &s3Service{}
 }
 
 func (b *s3Service) GetStorageClasses(ctx context.Context, in *pb.BaseRequest, out *pb.GetStorageClassesResponse) error {
@@ -371,6 +381,12 @@ func (b *s3Service) CreateObject(ctx context.Context, in *pb.Object, out *pb.Bas
 	return nil
 }
 
+func (b *s3Service) CopyObject(ctx context.Context, in *pb.CopyObjectRequest, out *pb.BaseResponse) error {
+	log.Log("CopyObject is called in s3 service.")
+
+	return nil
+}
+
 func (b *s3Service) UpdateObject(ctx context.Context, in *pb.Object, out *pb.BaseResponse) error {
 	log.Log("PutObject is called in s3 service.")
 	err := db.DbAdapter.UpdateObject(in)
@@ -399,7 +415,7 @@ func (b *s3Service) DeleteObject(ctx context.Context, in *pb.DeleteObjectInput, 
 	if err.Code != ERR_OK {
 		return err.Error()
 	}
-	object.IsDeleteMarker = "1"
+	object.DeleteMarker = true
 	log.Log("DeleteObject is called in s3 service.")
 	err1 := db.DbAdapter.UpdateObject(&object)
 	if err1.Code != ERR_OK {
@@ -436,16 +452,6 @@ func (b *s3Service) UpdateBucket(ctx context.Context, in *pb.Bucket, out *pb.Bas
 	}
 	out.Msg = "Update bucket successfully."
 	return nil
-}
-
-func NewS3Service() pb.S3Handler {
-	host := os.Getenv("DB_HOST")
-	dbstor := Database{Credential: "unkonwn", Driver: "mongodb", Endpoint: host}
-	db.Init(&dbstor)
-
-	initStorageClass()
-
-	return &s3Service{}
 }
 
 func (b *s3Service) GetTierMap(ctx context.Context, in *pb.BaseRequest, out *pb.GetTierMapResponse) error {
@@ -556,20 +562,6 @@ func (b *s3Service) DeleteUploadRecord(ctx context.Context, record *pb.Multipart
 	err := db.DbAdapter.DeleteMultipartUpload(record)
 	if err.Code != ERR_OK {
 		return err.Error()
-	}
-
-	return nil
-}
-
-func (b *s3Service) ListUploadRecord(ctx context.Context, in *pb.ListMultipartUploadRequest, out *pb.ListMultipartUploadResponse) error {
-	log.Logf("list multipart upload records")
-	records := []pb.MultipartUploadRecord{}
-	err := db.DbAdapter.ListUploadRecords(in, &records)
-	if err.Code != ERR_OK {
-		return err.Error()
-	}
-	for i := 0; i < len(records); i++ {
-		out.Records = append(out.Records, &records[i])
 	}
 
 	return nil

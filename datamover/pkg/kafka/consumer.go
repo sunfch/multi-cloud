@@ -8,8 +8,8 @@ import (
 
 	"github.com/Shopify/sarama"
 	cluster "github.com/bsm/sarama-cluster"
-	migration "github.com/opensds/multi-cloud/datamover/pkg/drivers/https"
-	"github.com/opensds/multi-cloud/datamover/pkg/drivers/lifecycle"
+	migration "github.com/opensds/multi-cloud/datamover/pkg/drivers/https/migration"
+	"github.com/opensds/multi-cloud/datamover/pkg/drivers/https/lifecycle"
 )
 
 var consumer *cluster.Consumer
