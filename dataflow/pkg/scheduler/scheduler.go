@@ -15,22 +15,26 @@
 package scheduler
 
 import (
+	"context"
 	"fmt"
 	"os"
 
 	"github.com/micro/go-log"
-	"github.com/opensds/multi-cloud/api/pkg/filters/context"
+	"github.com/micro/go-micro/metadata"
+	"github.com/opensds/multi-cloud/api/pkg/common"
 	"github.com/opensds/multi-cloud/dataflow/pkg/db"
 	"github.com/opensds/multi-cloud/dataflow/pkg/model"
 	"github.com/opensds/multi-cloud/dataflow/pkg/plan"
 	"github.com/opensds/multi-cloud/dataflow/pkg/scheduler/lifecycle"
 	"github.com/opensds/multi-cloud/dataflow/pkg/scheduler/trigger"
 	"github.com/robfig/cron"
+	"strconv"
 )
 
-
 func LoadAllPlans() {
-	ctx := context.NewAdminContext()
+	ctx := metadata.NewContext(context.Background(), map[string]string{
+		common.CTX_KEY_IS_ADMIN: strconv.FormatBool(true),
+	})
 
 	offset := model.DefaultOffset
 	limit := model.DefaultLimit
@@ -52,7 +56,7 @@ func LoadAllPlans() {
 			if p.PolicyId == "" || !p.PolicyEnabled {
 				continue
 			}
-			e := plan.NewPlanExecutor(ctx, &p)
+			e := plan.NewPlanExecutor(&p)
 			err := trigger.GetTriggerMgr().Add(ctx, &p, e)
 			if err != nil {
 				log.Logf("Load plan(%s) to trigger filed, %v", p.Id.Hex(), err)
