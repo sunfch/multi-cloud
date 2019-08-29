@@ -18,8 +18,8 @@ import (
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/micro/go-log"
-	. "github.com/opensds/multi-cloud/s3/pkg/exception"
-	pb "github.com/opensds/multi-cloud/s3/proto"
+	. "github.com/opensds/multi-cloud/yigs3/pkg/exception"
+	pb "github.com/opensds/multi-cloud/yigs3/proto"
 )
 
 func (ad *adapter) CreateBucket(in *pb.Bucket) S3Error {

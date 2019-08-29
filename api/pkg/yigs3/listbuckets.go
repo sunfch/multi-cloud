@@ -62,7 +62,7 @@ func (s *APIService) ListBuckets(request *restful.Request, response *restful.Res
 	log.Log("Received request for all buckets.")
 	ctx := context.Background()
 	actx := request.Attribute(c.KContext).(*c.Context)
-	res, err := s.s3Client.ListBuckets(ctx, &s3.CommonRequest{Context: actx.ToJson()})
+	res, err := s.s3Client.ListBuckets(ctx, &s3.BaseRequest{Context: actx.ToJson()})
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, err)
 		return

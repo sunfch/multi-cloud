@@ -16,14 +16,13 @@ package model
 
 import (
 	"errors"
-	"time"
-
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
+	"time"
 )
 
 var (
-	STOR_TYPE_OPENSDS          = "opensds-obj"
+	STOR_TYPE_OPENSDS          = "opensds-s3"
 	STOR_TYPE_AWS_S3           = "aws-s3"
 	STOR_TYPE_AZURE_BLOB       = "azure-blob"
 	STOR_TYPE_HW_OBS           = "hw-obs"
@@ -149,6 +148,7 @@ type Job struct {
 	RemainSource   bool      `json:"remainSource" bson:"remainSource"`
 	Status         string    `json:"status" bson:"status"` //queueing,
 	TenantId       string    `json:"tenantId" bson:"tenantId"`
+	UserId         string    `json:"userId" bson:"userId"`
 	Progress       int64     `json:"progress" bson:"progress"`
 }
 

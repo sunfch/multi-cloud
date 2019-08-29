@@ -3,10 +3,10 @@ syntax = "proto3";
 service S3 {
 	// TODO: Redefine parameters
 
-	rpc ListBuckets(CommonRequest) returns (ListBucketsResponse) {}
+	rpc ListBuckets(BaseRequest) returns (ListBucketsResponse) {}
 	rpc CreateBucket(Bucket) returns (BaseResponse) {}
 	rpc DeleteBucket(Bucket) returns (BaseResponse) {}
-	rpc GetBucket(CommonRequest) returns (Bucket) {}
+	rpc GetBucket(BaseRequest) returns (Bucket) {}
 	rpc ListObjects(ListObjectsRequest) returns (ListObjectResponse) {}
 	rpc CountObjects(ListObjectsRequest) returns (CountObjectsResponse) {}
 	//rpc CreateObject(Object) returns (BaseResponse) {}
@@ -35,7 +35,7 @@ service S3 {
 	rpc DeleteUploadRecord(MultipartUploadRecord) returns (BaseResponse) {}
 
 	rpc HeadObject(BaseObjRequest) returns (Object) {}
-	rpc CopyObject(BaseRequest) returns (BaseResponse) {}
+	rpc CopyObject(CopyObjectRequest) returns (BaseResponse) {}
 	rpc CopyObjPart(CopyObjPartRequest) returns (CopyObjPartResponse) {}
 	rpc PutObjACL(PutObjACLRequest) returns (BaseResponse) {}
 	rpc GetObjACL(BaseObjRequest) returns (ObjACL) {}
@@ -50,7 +50,16 @@ service S3 {
 	rpc PutBucketPolicy(BaseRequest) returns (BaseResponse) {}
 	rpc GetBucketPolicy(BaseRequest) returns (BaseResponse) {}
 	rpc DeleteBucketPolicy(BaseRequest) returns (BaseResponse) {}
-	rpc HeadBucket(CommonRequest) returns (Bucket) {}
+	rpc HeadBucket(BaseRequest) returns (Bucket) {}
+}
+
+message CopyObjectRequest {
+	string Context = 1; // if no context provided, then owner of the target object will keep the same as source object
+	string objKey = 2;
+	string srcBucket = 3;
+	string targetBucket = 4;
+	string targetBackend = 5;
+	int32  targetTier = 6;
 }
 
 message PutObjectRequest {
@@ -253,7 +262,7 @@ message Bucket {
 
 message Partion {
 	string key = 1;
-	string partNumber = 2;
+	int64 partNumber = 2;
 	int64 size = 3;
 	string etag = 4;
 	int64 lastModified = 5;
@@ -270,8 +279,8 @@ message Version {
 message Object {
 	string objectKey = 1;
 	string bucketName = 2;
-	string ownerId = 3;
-	string ownerDisplayName = 4;
+	string tenantId = 3;
+	string userId = 4;
 	string location = 5;
 	string versionId = 6;
 	int64 size = 7;
@@ -301,13 +310,14 @@ message BaseResponse {
 }
 
 message BaseRequest {
-	string id = 1;
-}
-
-message CommonRequest {
 	string context = 1;
 	string id = 2;
 }
+
+/*message CommonRequest {
+	string context = 1;
+	string id = 2;
+}*/
 
 message ListObjectsRequest {
 	string context = 1;
@@ -333,7 +343,7 @@ message DeleteObjectInput {
     string bucket = 2;
     string key = 3;
     string versioId = 4;
-    int64  lastModified = 5;
+    //int64  lastModified = 5;
 }
 
 message GetObjectInput {

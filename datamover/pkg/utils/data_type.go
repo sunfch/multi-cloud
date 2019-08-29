@@ -15,19 +15,19 @@
 package utils
 
 type LocationInfo struct {
-	StorType   string //aws-s3,azure-blob,hw-obs,ceph-s3 etc.
+	StorType   string // opensds-obj, aws-s3,azure-blob,hw-obs,ceph-s3 etc.
 	Region     string
 	EndPoint   string
-	BucketName string //remote bucket name
-	VirBucket  string //local bucket name
+	BucketName string // bucket name
+	//VirBucket  string // local bucket name
 	Access     string
 	Security   string
-	BakendName string
+	//BakendName string
 	ClassName  string
 }
 
 type BackendInfo struct {
-	StorType   string // aws-s3,azure-blob,hw-obs,ceph-s3 etc.
+	StorType   string // opensds-obj,aws-s3,azure-blob,hw-obs,ceph-s3 etc.
 	Region     string
 	EndPoint   string
 	BucketName string // remote bucket name

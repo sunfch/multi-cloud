@@ -590,6 +590,7 @@ func (ad *adapter) GetPlan(ctx *Context, id string) (*Plan, error) {
 
 	log.Logf("GetPlan: id=%s,tenantId=%s\n", id, ctx.TenantId)
 	m := bson.M{"_id": bson.ObjectIdHex(id)}
+	UpdateContextFilter(m, ctx)
 	err := ss.DB(DataBaseName).C(CollPlan).Find(m).One(&p)
 	if err == mgo.ErrNotFound {
 		log.Log("Plan does not exist.")

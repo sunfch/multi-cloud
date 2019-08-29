@@ -120,7 +120,7 @@ func (s *APIService) BucketLifecyclePut(request *restful.Request, response *rest
 
 	ctx := context.Background()
 	actx := request.Attribute(c.KContext).(*c.Context)
-	bucket, _ := s.s3Client.GetBucket(ctx, &s3.CommonRequest{Context: actx.ToJson(), Id: bucketName})
+	bucket, _ := s.s3Client.GetBucket(ctx, &s3.BaseRequest{Context: actx.ToJson(), Id: bucketName})
 	body := ReadBody(request)
 	log.Logf("MD5 sum for body is %x", md5.Sum(body))
 
