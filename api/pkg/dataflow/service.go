@@ -30,7 +30,7 @@ import (
 	"github.com/opensds/multi-cloud/api/pkg/policy"
 	backend "github.com/opensds/multi-cloud/backend/proto"
 	dataflow "github.com/opensds/multi-cloud/dataflow/proto"
-	s3 "github.com/opensds/multi-cloud/s3/proto"
+	s3 "github.com/opensds/multi-cloud/yigs3/proto"
 	"strconv"
 )
 

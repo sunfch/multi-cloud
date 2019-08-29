@@ -1,9 +1,5 @@
 package common
 
-import (
-	"time"
-)
-
 type PutResult struct {
 	// bytes written to backend.
 	Written int64
@@ -16,5 +12,6 @@ type PutResult struct {
 	// meta will be save by grpc server and transfer it to storage driver.
 	Meta string
 	// update time for this object.
-	UpdateTime time.Time
+	//UpdateTime time.Time
+	UpdateTime int64
 }

@@ -15,10 +15,7 @@ import (
 	bus "github.com/opensds/multi-cloud/yigs3/pkg/datastore/yig/messagebus"
 	"github.com/opensds/multi-cloud/yigs3/pkg/datastore/yig/redis"
 	"github.com/opensds/multi-cloud/yigs3/pkg/datastore/yig/storage"
-)
-
-const (
-	YIG_DRIVER_TYPE = "yig-s3"
+	"github.com/opensds/multi-cloud/backend/pkg/utils/constants"
 )
 
 type YigDriverFactory struct {
@@ -77,5 +74,5 @@ func (ydf *YigDriverFactory) init() {
 }
 
 func init() {
-	driver.RegisterDriverFactory(YIG_DRIVER_TYPE, &YigDriverFactory{})
+	driver.RegisterDriverFactory(constants.BackendTypeYIGS3, &YigDriverFactory{})
 }

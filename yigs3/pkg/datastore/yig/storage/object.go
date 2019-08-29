@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
+	. "github.com/opensds/multi-cloud/yigs3/error"
 	dscommon "github.com/opensds/multi-cloud/yigs3/pkg/datastore/common"
-	. "github.com/opensds/multi-cloud/yigs3/pkg/datastore/yig/error"
 	"github.com/opensds/multi-cloud/yigs3/pkg/datastore/yig/helper"
 	pb "github.com/opensds/multi-cloud/yigs3/proto"
 )
@@ -310,7 +310,8 @@ func copyEncryptedPart(pool string, part *types.Part, cephCluster *CephStorage, 
  * encryptionKey:
  * md5: the md5 put by user for the uploading object.
  */
-func (yig *YigStorage) Put(ctx context.Context, stream io.Reader, obj *pb.Object) (result dscommon.PutResult, err error) {
+func (yig *YigStorage) Put(ctx context.Context, stream io.Reader, obj *pb.Object) (result dscommon.PutResult,
+	err error) {
 	// get size from context.
 	val := ctx.Value(dscommon.CONTEXT_KEY_SIZE)
 	if val == nil {
@@ -404,7 +405,7 @@ func (yig *YigStorage) Put(ctx context.Context, stream io.Reader, obj *pb.Object
 	result.Written = bytesWritten
 	result.ObjectId = oid
 	result.Etag = calculatedMd5
-	result.UpdateTime = time.Now().UTC()
+	result.UpdateTime = time.Now().Unix()
 	result.Meta = string(metaBytes)
 
 	return result, nil

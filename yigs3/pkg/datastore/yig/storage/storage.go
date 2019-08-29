@@ -12,7 +12,7 @@ import (
 
 	"github.com/opensds/multi-cloud/yigs3/pkg/datastore/yig/crypto"
 	"github.com/opensds/multi-cloud/yigs3/pkg/datastore/yig/datatype"
-	. "github.com/opensds/multi-cloud/yigs3/pkg/datastore/yig/error"
+	. "github.com/opensds/multi-cloud/yigs3/error"
 	"github.com/opensds/multi-cloud/yigs3/pkg/datastore/yig/helper"
 	"github.com/opensds/multi-cloud/yigs3/pkg/datastore/yig/log"
 	"github.com/opensds/multi-cloud/yigs3/pkg/datastore/yig/meta"

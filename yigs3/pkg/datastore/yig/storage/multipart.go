@@ -38,11 +38,13 @@ func (yig *YigStorage) InitMultipartUpload(ctx context.Context, object *pb.Objec
 	return nil, errors.New("not implemented.")
 }
 
-func (yig *YigStorage) UploadPart(ctx context.Context, stream io.Reader, multipartUpload *pb.MultipartUpload, partNumber int64, upBytes int64) (*model.UploadPartResult, error) {
+func (yig *YigStorage) UploadPart(ctx context.Context, stream io.Reader, multipartUpload *pb.MultipartUpload,
+	partNumber int64, upBytes int64) (*model.UploadPartResult, error) {
 	return nil, errors.New("not implemented.")
 }
 
-func (yig *YigStorage) CompleteMultipartUpload(ctx context.Context, multipartUpload *pb.MultipartUpload, completeUpload *model.CompleteMultipartUpload) (*model.CompleteMultipartUploadResult, error) {
+func (yig *YigStorage) CompleteMultipartUpload(ctx context.Context, multipartUpload *pb.MultipartUpload,
+	completeUpload *model.CompleteMultipartUpload) (*model.CompleteMultipartUploadResult, error) {
 	return nil, errors.New("not implemented.")
 }
 

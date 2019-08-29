@@ -14,31 +14,31 @@
  * limitations under the License.
  */
 
-package error
+package s3error
 
 import (
 	"net/http"
 )
 
-type ApiError interface {
+type S3Error interface {
 	error
 	AwsErrorCode() string
 	Description() string
 	HttpStatusCode() int
 }
 
-type ApiErrorStruct struct {
+type S3ErrorStruct struct {
 	AwsErrorCode   string
 	Description    string
 	HttpStatusCode int
 }
 
 // APIErrorCode type of error status.
-type ApiErrorCode int
+type S3ErrorCode int
 
 // Error codes, non exhaustive list - http://docs.aws.amazon.com/AmazonS3/latest/API/ErrorResponses.html
 const (
-	ErrAccessDenied ApiErrorCode = iota
+	ErrAccessDenied S3ErrorCode = iota
 	ErrBadDigest
 	ErrBucketAlreadyExists
 	ErrEmptyEntity
@@ -147,11 +147,17 @@ const (
 	ErrInvalidLc
 	ErrNoSuchBucketLc
 	ErrInvalidStorageClass
+	ErrPutToBackendFailed
+	ErrGetFromBackendFailed
+	ErrDeleteFromBackendFailed
+	ErrBackendInitMultipartFailed
+	ErrBackendCompleteMultipartFailed
+	ErrBackendAbortMultipartFailed
 )
 
 // error code to APIError structure, these fields carry respective
 // descriptions for all the error responses.
-var ErrorCodeResponse = map[ApiErrorCode]ApiErrorStruct{
+var ErrorCodeResponse = map[S3ErrorCode]S3ErrorStruct{
 	ErrInvalidCopyDest: {
 		AwsErrorCode:   "InvalidRequest",
 		Description:    "This copy request is illegal because it is trying to copy an object to itself.",
@@ -653,9 +659,39 @@ var ErrorCodeResponse = map[ApiErrorCode]ApiErrorStruct{
 		Description:    "The storage class you specified in header is invalid.",
 		HttpStatusCode: http.StatusBadRequest,
 	},
+	ErrPutToBackendFailed: {
+		AwsErrorCode:   "PutToBackendFailed",
+		Description:    "Put object to backend failed.",
+		HttpStatusCode: http.StatusInternalServerError,
+	},
+	ErrGetFromBackendFailed: {
+		AwsErrorCode:   "GetFromBackendFailed",
+		Description:    "Get object from backend failed.",
+		HttpStatusCode: http.StatusInternalServerError,
+	},
+	ErrDeleteFromBackendFailed: {
+		AwsErrorCode:   "DeleteFromBackendFailed",
+		Description:    "Delete object from backend failed.",
+		HttpStatusCode: http.StatusInternalServerError,
+	},
+	ErrBackendInitMultipartFailed: {
+		AwsErrorCode:   "BackendInitMultipartFailed",
+		Description:    "Backend init multipart upload failed.",
+		HttpStatusCode: http.StatusInternalServerError,
+	},
+	ErrBackendCompleteMultipartFailed: {
+		AwsErrorCode:   "BackendCompleteMultipartFailed",
+		Description:    "Backend complete multipart upload failed.",
+		HttpStatusCode: http.StatusInternalServerError,
+	},
+	ErrBackendAbortMultipartFailed: {
+		AwsErrorCode:   "BackendAbortMultipartFailed",
+		Description:    "Backend abort multipart upload failed.",
+		HttpStatusCode: http.StatusInternalServerError,
+	},
 }
 
-func (e ApiErrorCode) AwsErrorCode() string {
+func (e S3ErrorCode) AwsErrorCode() string {
 	awsError, ok := ErrorCodeResponse[e]
 	if !ok {
 		return "InternalError"
@@ -663,7 +699,7 @@ func (e ApiErrorCode) AwsErrorCode() string {
 	return awsError.AwsErrorCode
 }
 
-func (e ApiErrorCode) Description() string {
+func (e S3ErrorCode) Description() string {
 	awsError, ok := ErrorCodeResponse[e]
 	if !ok {
 		return "We encountered an internal error, please try again."
@@ -671,11 +707,11 @@ func (e ApiErrorCode) Description() string {
 	return awsError.Description
 }
 
-func (e ApiErrorCode) Error() string {
+func (e S3ErrorCode) Error() string {
 	return e.Description()
 }
 
-func (e ApiErrorCode) HttpStatusCode() int {
+func (e S3ErrorCode) HttpStatusCode() int {
 	awsError, ok := ErrorCodeResponse[e]
 	if !ok {
 		return http.StatusInternalServerError
