@@ -20,7 +20,6 @@ import (
 	"fmt"
 
 	"github.com/micro/go-log"
-	c "github.com/opensds/multi-cloud/api/pkg/context"
 	"github.com/opensds/multi-cloud/backend/pkg/db"
 	"github.com/opensds/multi-cloud/backend/pkg/model"
 	"github.com/opensds/multi-cloud/backend/pkg/utils/constants"
@@ -46,7 +45,7 @@ func (b *backendService) CreateBackend(ctx context.Context, in *pb.CreateBackend
 		Access:     in.Backend.Access,
 		Security:   in.Backend.Security,
 	}
-	res, err := db.Repo.CreateBackend(c.NewContextFromJson(in.GetContext()), backend)
+	res, err := db.Repo.CreateBackend(ctx, backend)
 	if err != nil {
 		log.Logf("Failed to create backend: %v", err)
 		return err
@@ -70,7 +69,7 @@ func (b *backendService) CreateBackend(ctx context.Context, in *pb.CreateBackend
 
 func (b *backendService) GetBackend(ctx context.Context, in *pb.GetBackendRequest, out *pb.GetBackendResponse) error {
 	log.Log("Received GetBackend request.")
-	res, err := db.Repo.GetBackend(c.NewContextFromJson(in.GetContext()), in.Id)
+	res, err := db.Repo.GetBackend(ctx, in.Id)
 	if err != nil {
 		log.Logf("failed to get backend: %v\n", err)
 		return err
@@ -94,14 +93,14 @@ func (b *backendService) GetBackend(ctx context.Context, in *pb.GetBackendReques
 func (b *backendService) ListBackend(ctx context.Context, in *pb.ListBackendRequest, out *pb.ListBackendResponse) error {
 	log.Log("Received ListBackend request.")
 	// (query *model.QueryField, sort *model.SortField, sortBy *model.SortBy, page *model.Pagination
-	actx := c.NewContextFromJson(in.GetContext())
+
 	if in.Limit < 0 || in.Offset < 0 {
 		msg := fmt.Sprintf("invalid pagination parameter, limit = %d and offset = %d.", in.Limit, in.Offset)
 		log.Log(msg)
 		return errors.New(msg)
 	}
 
-	res, err := db.Repo.ListBackend(actx, int(in.Limit), int(in.Offset), in.Filter)
+	res, err := db.Repo.ListBackend(ctx, int(in.Limit), int(in.Offset), in.Filter)
 	if err != nil {
 		log.Logf("failed to list backend: %v\n", err)
 		return err
@@ -125,13 +124,13 @@ func (b *backendService) ListBackend(ctx context.Context, in *pb.ListBackendRequ
 	out.Backends = backends
 	out.Next = in.Offset + int32(len(res))
 
-	log.Log("Get backend successfully.")
+	log.Logf("Get backend successfully, #num=%d\n", len(backends))
 	return nil
 }
 
 func (b *backendService) UpdateBackend(ctx context.Context, in *pb.UpdateBackendRequest, out *pb.UpdateBackendResponse) error {
 	log.Log("Received UpdateBackend request.")
-	backend, err := db.Repo.GetBackend(c.NewContextFromJson(in.GetContext()), in.Id)
+	backend, err := db.Repo.GetBackend(ctx, in.Id)
 	if err != nil {
 		log.Logf("failed to get backend: %v\n", err)
 		return err
@@ -140,7 +139,7 @@ func (b *backendService) UpdateBackend(ctx context.Context, in *pb.UpdateBackend
 	// TODO: check if access and security is valid.
 	backend.Access = in.Access
 	backend.Security = in.Security
-	res, err := db.Repo.UpdateBackend(c.NewContextFromJson(in.GetContext()), backend)
+	res, err := db.Repo.UpdateBackend(ctx, backend)
 	if err != nil {
 		log.Logf("failed to update backend: %v\n", err)
 		return err
@@ -164,7 +163,7 @@ func (b *backendService) UpdateBackend(ctx context.Context, in *pb.UpdateBackend
 
 func (b *backendService) DeleteBackend(ctx context.Context, in *pb.DeleteBackendRequest, out *pb.DeleteBackendResponse) error {
 	log.Log("Received DeleteBackend request.")
-	err := db.Repo.DeleteBackend(c.NewContextFromJson(in.GetContext()), in.Id)
+	err := db.Repo.DeleteBackend(ctx, in.Id)
 	if err != nil {
 		log.Logf("failed to delete backend: %v\n", err)
 		return err

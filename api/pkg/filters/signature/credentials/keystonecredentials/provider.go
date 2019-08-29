@@ -100,11 +100,11 @@ func (p *KeystoneProvider) getCredentials(accessKeyID string) (*GetCredentialOut
 	allPages, err := creds.List(p.Identity, nil).AllPages()
 
 	credentials, err := creds.ExtractCredentials(allPages)
-	log.Logf("provider-Credentials: %s", credentials)
-
 	if err != nil {
+		log.Logf("getCredentials failed, err: %+v", err)
 		return nil, err
 	}
+	log.Logf("provider-Credentials: %+v", credentials)
 
 	cred, err := getCredential(credentials, accessKeyID)
 	log.Logf("cred: %+v", cred)

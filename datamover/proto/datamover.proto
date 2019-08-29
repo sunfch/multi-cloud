@@ -22,12 +22,13 @@ message Connector {
 }
 
 message RunJobRequest{
-	string Context = 1;
-	string id = 2;
-	Connector sourceConn = 3;
-	Connector destConn = 4;
-	Filter filt = 5;
-	bool remainSource = 6;
+	string id = 1;
+	string tenanId = 2;
+	string userId = 3;
+	Connector sourceConn = 4;
+	Connector destConn = 5;
+	Filter filt = 6;
+	bool remainSource = 7;
 }
 
 message RunJobResponse {
@@ -35,17 +36,16 @@ message RunJobResponse {
 }
 
 message LifecycleActionRequest {
-	string actx = 1;
-	string objKey = 2;      // for transition and expiration
-	string bucketName = 3;
-	int32 action = 4;		// 0-Expiration, 1-IncloudTransition, 2-CrossCloudTransition, 3-AbortMultipartUpload
-	int32 sourceTier = 5;   // only for transition
-	int32 targetTier = 6;   // only for transtion
-	string sourceBackend = 7; // for transition and expiration
-	string targetBackend = 8; // for transition and abort incomplete multipart upload
-	int64 objSize = 9;  	  // for transition
-	int64 lastModified = 10;   // for transition and expiration
-	string uploadId = 11;     // only for abort incomplete multipart upload
+	string objKey = 1;      // for transition and expiration
+	string bucketName = 2;
+	int32 action = 3;		// 0-Expiration, 1-IncloudTransition, 2-CrossCloudTransition, 3-AbortMultipartUpload
+	int32 sourceTier = 4;   // only for transition
+	int32 targetTier = 5;   // only for transtion
+	string sourceBackend = 6; // for transition and expiration
+	string targetBackend = 7; // for transition and abort incomplete multipart upload
+	int64 objSize = 8;  	  // for transition
+	int64 lastModified = 9;   // for transition and expiration
+	string uploadId = 10;     // only for abort incomplete multipart upload
 }
 
 message LifecycleActionResonse {

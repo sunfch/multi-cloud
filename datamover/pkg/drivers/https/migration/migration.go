@@ -18,28 +18,30 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log"
 	"os"
 	"strconv"
 	"time"
-	"log"
 
 	"github.com/globalsign/mgo/bson"
 	"github.com/micro/go-micro/client"
-	backend "github.com/opensds/multi-cloud/backend/proto"
+	"github.com/opensds/multi-cloud/backend/proto"
 	flowtype "github.com/opensds/multi-cloud/dataflow/pkg/model"
-	s3mover "github.com/opensds/multi-cloud/datamover/pkg/amazon/s3"
-	blobmover "github.com/opensds/multi-cloud/datamover/pkg/azure/blob"
-	cephs3mover "github.com/opensds/multi-cloud/datamover/pkg/ceph/s3"
+	"github.com/opensds/multi-cloud/datamover/pkg/amazon/s3"
+	"github.com/opensds/multi-cloud/datamover/pkg/azure/blob"
+	"github.com/opensds/multi-cloud/datamover/pkg/ceph/s3"
 	"github.com/opensds/multi-cloud/datamover/pkg/db"
-	Gcps3mover "github.com/opensds/multi-cloud/datamover/pkg/gcp/s3"
-	obsmover "github.com/opensds/multi-cloud/datamover/pkg/hw/obs"
-	ibmcosmover "github.com/opensds/multi-cloud/datamover/pkg/ibm/cos"
+	"github.com/opensds/multi-cloud/datamover/pkg/gcp/s3"
+	"github.com/opensds/multi-cloud/datamover/pkg/huawei/obs"
+	"github.com/opensds/multi-cloud/datamover/pkg/ibm/cos"
 	. "github.com/opensds/multi-cloud/datamover/pkg/utils"
 	pb "github.com/opensds/multi-cloud/datamover/proto"
 	s3utils "github.com/opensds/multi-cloud/yigs3/pkg/utils"
 	osdss3 "github.com/opensds/multi-cloud/yigs3/proto"
 	mvtool "github.com/opensds/multi-cloud/datamover/pkg/drivers/https/common"
+	"github.com/micro/go-micro/metadata"
 	"fmt"
+	"github.com/opensds/multi-cloud/api/pkg/common"
 )
 
 var simuRoutines = 10
@@ -539,7 +541,10 @@ func runjob(in *pb.RunJobRequest) error {
 	logger.Printf("Request: %+v\n", in)
 
 	// set context tiemout
-	ctx := context.Background()
+	ctx := metadata.NewContext(context.Background(), map[string]string{
+		common.CTX_KEY_USER_ID:    in.UserId,
+		common.CTX_KEY_TENENT_ID:  in.TenanId,
+	})
 	dur := getCtxTimeout()
 	_, ok := ctx.Deadline()
 	if !ok {
@@ -551,7 +556,7 @@ func runjob(in *pb.RunJobRequest) error {
 	updateJob(&j)
 
 	// get connector information
-	mvReqStaticInfo := MoveReqStaticInfo{remainSource: in.RemainSource, actx: in.GetContext()}
+	mvReqStaticInfo := MoveReqStaticInfo{remainSource: in.RemainSource}
 	err := getConnectorInfo(ctx, in, &mvReqStaticInfo)
 	if err != nil {
 		j.Status = flowtype.JOB_STATUS_FAILED

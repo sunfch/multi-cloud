@@ -26,7 +26,6 @@ func doInCloudTransition(acReq *datamover.LifecycleActionRequest) error {
 		acReq.ObjKey, acReq.SourceTier, acReq.TargetTier, acReq.SourceBackend)
 
 	req := osdss3.CopyObjectRequest{
-		Context: acReq.Actx,
 		ObjKey: acReq.ObjKey,
 		SrcBucket: acReq.BucketName,
 		TargetTier: acReq.TargetTier,

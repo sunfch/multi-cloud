@@ -22,7 +22,6 @@ func OsdsS3CopyObj(ctx context.Context, s3client osdss3.S3Service, obj *osdss3.O
 	return err
 }
 
-
 func OsdsS3DeleteObj(ctx context.Context, s3client osdss3.S3Service, obj *osdss3.Object, actx string) error {
 	req := osdss3.DeleteObjectInput{
 		Context: actx,

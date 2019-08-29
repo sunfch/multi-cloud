@@ -27,12 +27,11 @@ import (
 	"github.com/opensds/multi-cloud/dataflow/pkg/kafka"
 	. "github.com/opensds/multi-cloud/dataflow/pkg/model"
 	. "github.com/opensds/multi-cloud/dataflow/pkg/utils"
-	"github.com/opensds/multi-cloud/datamover/proto"
-	osdss3 "github.com/opensds/multi-cloud/yigs3/proto"
-	"github.com/opensds/multi-cloud/yigs3/proto"
-	s3utils "github.com/opensds/multi-cloud/yigs3/pkg/utils"
+	datamover "github.com/opensds/multi-cloud/datamover/proto"
+	osdss3 "github.com/opensds/multi-cloud/s3/proto"
+	s3 "github.com/opensds/multi-cloud/s3/proto"
+	s3utils "github.com/opensds/multi-cloud/s3/pkg/utils"
 	"golang.org/x/net/context"
-	c "github.com/opensds/multi-cloud/api/pkg/context"
 )
 
 var topicLifecycle = "lifecycle"
@@ -79,7 +78,7 @@ func ScheduleLifecycle() {
 	}
 
 	// Get bucket list.
-	listReq := s3.BaseRequest{Id: "test"}
+	listReq := s3.BaseRequest{}
 	listRsp, err := s3client.ListBuckets(context.Background(), &listReq)
 	if err != nil {
 		log.Logf("[ScheduleLifecycle]list buckets failed: %v.\n", err)
@@ -88,20 +87,14 @@ func ScheduleLifecycle() {
 
 	for _, v := range listRsp.Buckets {
 		// For each bucket, get the lifecycle rules, and schedule each rule.
-		if v.LifeCycle == "" {
+		if v.LifecycleConfiguration == nil {
 			log.Logf("[ScheduleLifecycle]bucket[%s] has no lifecycle rule.\n", v.Name)
 			continue
 		}
 
 		log.Logf("[ScheduleLifecycle]bucket[%s] has lifecycle rule.\n", v.Name)
 
-		lifecycleConf := []*osdss3.LifecycleRule{}
-		err = json.Unmarshal([]byte(v.LifeCycle), &lifecycleConf)
-		if err != nil {
-			log.Logf("[ScheduleLifecycle]bucket[%s] has invliad lifecycle.\n", v.Name, v.LifeCycle)
-			continue
-		}
-		err = handleBucketLifecyle(v.Name, lifecycleConf)
+		err := handleBucketLifecyle(v.Name, v.LifecycleConfiguration)
 		if err != nil {
 			log.Logf("[ScheduleLifecycle]handle bucket lifecycle for bucket[%s] failed, err:%v.\n", v.Name, err)
 			continue
@@ -187,7 +180,7 @@ func handleBucketLifecyle(bucket string, rules []*osdss3.LifecycleRule) error {
 		log.Logf("abort rule: %+v\n", *v)
 	}
 	// End: Log for debug
-	//schedSortedAbortRules(&abortRules)
+	schedSortedAbortRules(&abortRules)
 
 	return nil
 }
@@ -214,9 +207,7 @@ func getObjects(r *InternalLifecycleRule, offset, limit int32) ([]*osdss3.Object
 		filt[KStorageTier] = strconv.Itoa(int(r.Tier))
 	}
 
-	actx := c.Context{IsAdmin: true}
 	s3req := osdss3.ListObjectsRequest{
-		Context: actx.ToJson(),
 		Bucket: r.Bucket,
 		Filter: filt,
 		Offset: offset,
@@ -232,7 +223,7 @@ func getObjects(r *InternalLifecycleRule, offset, limit int32) ([]*osdss3.Object
 
 	return s3rsp.ListObjects, nil
 }
-/*
+
 func schedSortedAbortRules(inRules *InterRules) {
 	log.Log("schedSortedAbortRules begin ...")
 	dupCheck := map[string]struct{}{}
@@ -258,7 +249,6 @@ func schedSortedAbortRules(inRules *InterRules) {
 						TargetBackend: rc.Backend,
 						Action:        AbortIncompleteMultipartUpload,
 					}
-
 					// If send failed, then ignore it, because it will be re-sent in the next schedule period.
 					sendActionRequest(&req)
 
@@ -276,7 +266,7 @@ func schedSortedAbortRules(inRules *InterRules) {
 	}
 	log.Log("schedSortedAbortRules end ...")
 }
-*/
+
 func schedSortedActionsRules(inRules *InterRules) {
 	log.Log("schedSortedActionsRules begin ...")
 	dupCheck := map[string]struct{}{}
@@ -291,7 +281,7 @@ func schedSortedActionsRules(inRules *InterRules) {
 			offset += num
 			// Check if the object exist in the dupCheck map.
 			for _, obj := range objs {
-				if obj.DeleteMarker == true {
+				if obj.IsDeleteMarker == "1" {
 					log.Logf("deleteMarker of object[%s] is set, no lifecycle action need.\n", obj.ObjectKey)
 					continue
 				}
@@ -302,8 +292,7 @@ func schedSortedActionsRules(inRules *InterRules) {
 				}
 				if _, ok := dupCheck[obj.ObjectKey]; !ok {
 					// Not exist means this object has is not processed in this round of scheduling.
-					if r.ActionType != ActionExpiration && obj.Tier == r.Tier &&
-						(obj.Location == r.Backend || r.Backend == "") {
+					if r.ActionType != ActionExpiration && obj.Tier == r.Tier && (obj.Backend == r.Backend || r.Backend == "") {
 						// For transition, if target backend and storage class is the same as source backend and storage class, then no transition is need.
 						log.Logf("no need transition for object[%s], backend=%s, tier=%d\n", obj.ObjectKey, r.Backend, r.Tier)
 						// in case different actions exist for an object at the same time, for example transition to aws after 30 days
@@ -316,7 +305,7 @@ func schedSortedActionsRules(inRules *InterRules) {
 					var action int32
 					if r.ActionType == ActionExpiration {
 						action = int32(ActionExpiration)
-					} else if r.Backend == "" || obj.Location == r.Backend {
+					} else if r.Backend == "" || obj.Backend == r.Backend {
 						action = int32(ActionIncloudTransition)
 					} else {
 						action = int32(ActionCrosscloudTransition)
@@ -329,21 +318,18 @@ func schedSortedActionsRules(inRules *InterRules) {
 						dupCheck[obj.ObjectKey] = struct{}{}
 						continue
 					}
-					log.Logf("lifecycle action: object=[%s] type=[%d] source-tier=[%d] target-tier=[%d] " +
-						"source-backend=[%s] target-backend=[%s].\n", obj.ObjectKey, r.ActionType, obj.Tier, r.Tier,
-						obj.Location, r.Backend)
-					actx := c.Context{TenantId: obj.TenantId, UserId: obj.UserId}
+					log.Logf("lifecycle action: object=[%s] type=[%d] source-tier=[%d] target-tier=[%d] source-backend=[%s] target-backend=[%s].\n",
+						obj.ObjectKey, r.ActionType, obj.Tier, r.Tier, obj.Backend, r.Backend)
 					acreq := datamover.LifecycleActionRequest{
-						Actx: actx.ToJson(),
 						ObjKey:        obj.ObjectKey,
 						BucketName:    obj.BucketName,
 						Action:        action,
 						SourceTier:    obj.Tier,
 						TargetTier:    r.Tier,
-						SourceBackend: obj.Location,
+						SourceBackend: obj.Backend,
 						TargetBackend: r.Backend,
 						ObjSize:       obj.Size,
-						LastModified:  obj.LastModifiedTime,
+						LastModified:  obj.LastModified,
 					}
 
 					// If send failed, then ignore it, because it will be re-sent in the next schedule period.

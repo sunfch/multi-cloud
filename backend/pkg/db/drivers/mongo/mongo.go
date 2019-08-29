@@ -15,12 +15,16 @@
 package mongo
 
 import (
+	"context"
+	"errors"
 	"math"
 	"sync"
 
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
-	c "github.com/opensds/multi-cloud/api/pkg/context"
+	"github.com/micro/go-log"
+	"github.com/micro/go-micro/metadata"
+	"github.com/opensds/multi-cloud/api/pkg/common"
 	"github.com/opensds/multi-cloud/backend/pkg/model"
 )
 
@@ -50,6 +54,7 @@ func Init(host string) *mongoRepository {
 	return mongoRepo
 }
 
+// The implementation of Repository
 func UpdateFilter(m bson.M, filter map[string]string) error {
 	for k, v := range filter {
 		m[k] = interface{}(v)
@@ -57,23 +62,34 @@ func UpdateFilter(m bson.M, filter map[string]string) error {
 	return nil
 }
 
-func UpdateContextFilter(m bson.M, ctx *c.Context) error {
+func UpdateContextFilter(ctx context.Context, m bson.M) error {
 	// if context is admin, no need filter by tenantId.
-	if !ctx.IsAdmin {
-		m["tenantId"] = ctx.TenantId
+	md, ok := metadata.FromContext(ctx)
+	if !ok {
+		log.Log("get context failed")
+		return errors.New("get context failed")
 	}
+
+	isAdmin, _ := md[common.CTX_KEY_IS_ADMIN]
+	if isAdmin != common.CTX_VAL_TRUE {
+		tenantId, ok := md[common.CTX_KEY_TENENT_ID]
+		if !ok {
+			log.Log("get tenantid failed")
+			return errors.New("get tenantid failed")
+		}
+		m["tenantId"] = tenantId
+	}
+
 	return nil
 }
 
-// The implementation of Repository
-func (repo *mongoRepository) CreateBackend(ctx *c.Context, backend *model.Backend) (*model.Backend, error) {
+func (repo *mongoRepository) CreateBackend(ctx context.Context, backend *model.Backend) (*model.Backend, error) {
 	session := repo.session.Copy()
 	defer session.Close()
 
 	if backend.Id == "" {
 		backend.Id = bson.NewObjectId()
 	}
-	backend.TenantId = ctx.TenantId
 
 	err := session.DB(defaultDBName).C(defaultCollection).Insert(backend)
 	if err != nil {
@@ -82,47 +98,60 @@ func (repo *mongoRepository) CreateBackend(ctx *c.Context, backend *model.Backen
 	return backend, nil
 }
 
-func (repo *mongoRepository) DeleteBackend(ctx *c.Context, id string) error {
+func (repo *mongoRepository) DeleteBackend(ctx context.Context, id string) error {
 	session := repo.session.Copy()
 	defer session.Close()
 
 	m := bson.M{"_id": bson.ObjectIdHex(id)}
-	UpdateContextFilter(m, ctx)
+	err := UpdateContextFilter(ctx, m)
+	if err != nil {
+		return err
+	}
 
 	return session.DB(defaultDBName).C(defaultCollection).Remove(m)
 }
 
-func (repo *mongoRepository) UpdateBackend(ctx *c.Context, backend *model.Backend) (*model.Backend, error) {
+func (repo *mongoRepository) UpdateBackend(ctx context.Context,
+	backend *model.Backend) (*model.Backend, error) {
 	session := repo.session.Copy()
 	defer session.Close()
 
 	m := bson.M{"_id": backend.Id}
-	UpdateContextFilter(m, ctx)
-
-	err := session.DB(defaultDBName).C(defaultCollection).Update(m, backend)
+	err := UpdateContextFilter(ctx, m)
 	if err != nil {
 		return nil, err
 	}
+
+	err = session.DB(defaultDBName).C(defaultCollection).Update(m, backend)
+	if err != nil {
+		return nil, err
+	}
+
 	return backend, nil
 }
 
-func (repo *mongoRepository) GetBackend(ctx *c.Context, id string) (*model.Backend, error) {
+func (repo *mongoRepository) GetBackend(ctx context.Context, id string) (*model.Backend,
+	error) {
 	session := repo.session.Copy()
 	defer session.Close()
 
 	m := bson.M{"_id": bson.ObjectIdHex(id)}
-	UpdateContextFilter(m, ctx)
+	err := UpdateContextFilter(ctx, m)
+	if err != nil {
+		return nil, err
+	}
 
 	var backend = &model.Backend{}
 	collection := session.DB(defaultDBName).C(defaultCollection)
-	err := collection.Find(m).One(backend)
+	err = collection.Find(m).One(backend)
 	if err != nil {
 		return nil, err
 	}
 	return backend, nil
 }
 
-func (repo *mongoRepository) ListBackend(ctx *c.Context, limit, offset int, query interface{}) ([]*model.Backend, error) {
+func (repo *mongoRepository) ListBackend(ctx context.Context, limit, offset int,
+	query interface{}) ([]*model.Backend, error) {
 
 	session := repo.session.Copy()
 	defer session.Close()
@@ -131,13 +160,20 @@ func (repo *mongoRepository) ListBackend(ctx *c.Context, limit, offset int, quer
 		limit = math.MinInt32
 	}
 	var backends []*model.Backend
+
 	m := bson.M{}
 	UpdateFilter(m, query.(map[string]string))
-	UpdateContextFilter(m, ctx)
-	err := session.DB(defaultDBName).C(defaultCollection).Find(m).Skip(offset).Limit(limit).All(&backends)
+	err := UpdateContextFilter(ctx, m)
 	if err != nil {
 		return nil, err
 	}
+	log.Logf("ListBackend, limit=%d, offset=%d\n", limit, offset)
+
+	err = session.DB(defaultDBName).C(defaultCollection).Find(m).Skip(offset).Limit(limit).All(&backends)
+	if err != nil {
+		return nil, err
+	}
+
 	return backends, nil
 }
 
