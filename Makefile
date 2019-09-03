@@ -45,7 +45,9 @@ datamover: prebuild
 	CGO_ENABLED=0 GOOS=linux go build -ldflags '-w -s -extldflags "-static"' -o $(BUILD_DIR)/datamover github.com/opensds/multi-cloud/datamover/cmd
 
 yigs3: prebuild
-	CGO_ENABLED=0 GOOS=linux go build -ldflags '-w -s -extldflags "-static"' -o $(BUILD_DIR)/yigs3 github.com/opensds/multi-cloud/yigs3/cmd
+	#CGO_ENABLED=1 GOOS=linux go build -o $(BUILD_DIR)/yigs3 github.com/opensds/multi-cloud/yigs3/cmd
+	CGO_ENABLED=1 GOOS=linux go build -ldflags '-w -s -extldflags "-dynamic"' -o $(BUILD_DIR)/yigs3 github.com/opensds/multi-cloud/yigs3/cmd
+	#CGO_ENABLED=0 GOOS=linux go build -ldflags '-w -s -extldflags "-static"' -o $(BUILD_DIR)/yigs3 github.com/opensds/multi-cloud/yigs3/cmd
 
 docker: build
 

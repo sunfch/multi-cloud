@@ -23,7 +23,7 @@ import (
 	"github.com/micro/go-log"
 	c "github.com/opensds/multi-cloud/api/pkg/context"
 	. "github.com/opensds/multi-cloud/api/pkg/utils/constants"
-	. "github.com/opensds/multi-cloud/s3/pkg/exception"
+	. "github.com/opensds/multi-cloud/yigs3/pkg/exception"
 	"github.com/opensds/multi-cloud/yigs3/pkg/model"
 	"github.com/opensds/multi-cloud/yigs3/proto"
 	"golang.org/x/net/context"

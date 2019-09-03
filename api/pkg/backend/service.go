@@ -23,14 +23,15 @@ import (
 	"github.com/micro/go-log"
 	"github.com/micro/go-micro/client"
 	"github.com/opensds/multi-cloud/api/pkg/common"
-	c "github.com/opensds/multi-cloud/api/pkg/context"
 	"github.com/opensds/multi-cloud/api/pkg/policy"
-	backend "github.com/opensds/multi-cloud/backend/proto"
-	dataflow "github.com/opensds/multi-cloud/dataflow/proto"
-	. "github.com/opensds/multi-cloud/s3/pkg/exception"
-	pb "github.com/opensds/multi-cloud/s3/proto"
-	s3 "github.com/opensds/multi-cloud/s3/proto"
+	"github.com/opensds/multi-cloud/backend/proto"
+	"github.com/opensds/multi-cloud/dataflow/proto"
+	. "github.com/opensds/multi-cloud/yigs3/pkg/exception"
+	pb "github.com/opensds/multi-cloud/yigs3/proto"
+	"github.com/opensds/multi-cloud/yigs3/proto"
 	"golang.org/x/net/context"
+	"github.com/micro/go-micro/metadata"
+	c "github.com/opensds/multi-cloud/api/pkg/context"
 )
 
 const (
@@ -59,9 +60,14 @@ func (s *APIService) GetBackend(request *restful.Request, response *restful.Resp
 	}
 	log.Logf("Received request for backend details: %s\n", request.PathParameter("id"))
 	id := request.PathParameter("id")
+
 	actx := request.Attribute(c.KContext).(*c.Context)
-	ctx := context.Background()
-	res, err := s.backendClient.GetBackend(ctx, &backend.GetBackendRequest{Context: actx.ToJson(), Id: id})
+	ctx := metadata.NewContext(context.Background(), map[string]string{
+		common.CTX_KEY_USER_ID: actx.UserId,
+		common.CTX_KEY_TENENT_ID: actx.TenantId,
+		common.CTX_KEY_IS_ADMIN: strconv.FormatBool(actx.IsAdmin),
+	})
+	res, err := s.backendClient.GetBackend(ctx, &backend.GetBackendRequest{Id: id})
 	if err != nil {
 		log.Logf("failed to get backend details: %v\n", err)
 		response.WriteError(http.StatusInternalServerError, err)
@@ -76,7 +82,7 @@ func (s *APIService) GetBackend(request *restful.Request, response *restful.Resp
 	response.WriteEntity(res.Backend)
 }
 
-func (s *APIService) listBackendDefault(request *restful.Request, response *restful.Response) {
+func (s *APIService) listBackendDefault(ctx context.Context, request *restful.Request, response *restful.Response) {
 	listBackendRequest := &backend.ListBackendRequest{}
 
 	limit, offset, err := common.GetPaginationParam(request)
@@ -106,8 +112,6 @@ func (s *APIService) listBackendDefault(request *restful.Request, response *rest
 	}
 	listBackendRequest.Filter = filter
 
-	listBackendRequest.Context = request.Attribute(c.KContext).(*c.Context).ToJson()
-	ctx := context.Background()
 	res, err := s.backendClient.ListBackend(ctx, listBackendRequest)
 	if err != nil {
 		log.Logf("failed to list backends: %v\n", err)
@@ -125,9 +129,10 @@ func (s *APIService) listBackendDefault(request *restful.Request, response *rest
 	response.WriteEntity(res)
 }
 
-func (s *APIService) FilterBackendByTier(request *restful.Request, response *restful.Response, tier int32) {
+func (s *APIService) FilterBackendByTier(ctx context.Context, request *restful.Request, response *restful.Response,
+	tier int32) {
 	// Get those backend type which supporte the specific tier.
-	req := pb.GetBackendTypeByTierRequest{Tier: tier, Context: request.Attribute(c.KContext).(*c.Context).ToJson()}
+	req := pb.GetBackendTypeByTierRequest{Tier: tier}
 	res, _ := s.s3Client.GetBackendTypeByTier(context.Background(), &req)
 	req1 := &backend.ListBackendRequest{}
 	resp := &backend.ListBackendResponse{}
@@ -136,7 +141,7 @@ func (s *APIService) FilterBackendByTier(request *restful.Request, response *res
 		filter := make(map[string]string)
 		filter["type"] = v
 		req1.Filter = filter
-		res1, err := s.backendClient.ListBackend(context.Background(), req1)
+		res1, err := s.backendClient.ListBackend(ctx, req1)
 		if err != nil {
 			log.Logf("failed to list backends of type[%s]: %v\n", v, err)
 			response.WriteError(http.StatusInternalServerError, err)
@@ -163,6 +168,13 @@ func (s *APIService) ListBackend(request *restful.Request, response *restful.Res
 	}
 	log.Log("Received request for backend list.")
 
+	actx := request.Attribute(c.KContext).(*c.Context)
+	ctx := metadata.NewContext(context.Background(), map[string]string{
+		common.CTX_KEY_USER_ID: actx.UserId,
+		common.CTX_KEY_TENENT_ID: actx.TenantId,
+		common.CTX_KEY_IS_ADMIN: strconv.FormatBool(actx.IsAdmin),
+	})
+
 	para := request.QueryParameter("tier")
 	if para != "" { //List those backends which support the specific tier.
 		tier, err := strconv.Atoi(para)
@@ -171,9 +183,9 @@ func (s *APIService) ListBackend(request *restful.Request, response *restful.Res
 			response.WriteError(http.StatusBadRequest, errors.New("invalid tier"))
 			return
 		}
-		s.FilterBackendByTier(request, response, int32(tier))
+		s.FilterBackendByTier(ctx, request, response, int32(tier))
 	} else {
-		s.listBackendDefault(request, response)
+		s.listBackendDefault(ctx, request, response)
 	}
 }
 
@@ -191,8 +203,14 @@ func (s *APIService) CreateBackend(request *restful.Request, response *restful.R
 	}
 
 	actx := request.Attribute(c.KContext).(*c.Context)
-	ctx := context.Background()
-	res, err := s.backendClient.CreateBackend(ctx, &backend.CreateBackendRequest{Context: actx.ToJson(), Backend: backendDetail})
+	ctx := metadata.NewContext(context.Background(), map[string]string{
+		common.CTX_KEY_USER_ID: actx.UserId,
+		common.CTX_KEY_TENENT_ID: actx.TenantId,
+		common.CTX_KEY_IS_ADMIN: strconv.FormatBool(actx.IsAdmin),
+	})
+	backendDetail.TenantId = actx.TenantId
+	backendDetail.UserId = actx.UserId
+	res, err := s.backendClient.CreateBackend(ctx, &backend.CreateBackendRequest{Backend: backendDetail})
 	if err != nil {
 		log.Logf("failed to create backend: %v\n", err)
 		response.WriteError(http.StatusInternalServerError, err)
@@ -216,8 +234,12 @@ func (s *APIService) UpdateBackend(request *restful.Request, response *restful.R
 		return
 	}
 
-	updateBackendRequest.Context = request.Attribute(c.KContext).(*c.Context).ToJson()
-	ctx := context.Background()
+	actx := request.Attribute(c.KContext).(*c.Context)
+	ctx := metadata.NewContext(context.Background(), map[string]string{
+		common.CTX_KEY_USER_ID: actx.UserId,
+		common.CTX_KEY_TENENT_ID: actx.TenantId,
+		common.CTX_KEY_IS_ADMIN: strconv.FormatBool(actx.IsAdmin),
+	})
 	res, err := s.backendClient.UpdateBackend(ctx, &updateBackendRequest)
 	if err != nil {
 		log.Logf("failed to update backend: %v\n", err)
@@ -235,20 +257,25 @@ func (s *APIService) DeleteBackend(request *restful.Request, response *restful.R
 	}
 	id := request.PathParameter("id")
 	log.Logf("Received request for deleting backend: %s\n", id)
-        actx := request.Attribute(c.KContext).(*c.Context)
-	ctx := context.Background()
-	owner := "test"
-	res, err := s.s3Client.ListBuckets(ctx, &s3.BaseRequest{Id: owner})
+
+	actx := request.Attribute(c.KContext).(*c.Context)
+	ctx := metadata.NewContext(context.Background(), map[string]string{
+		common.CTX_KEY_USER_ID: actx.UserId,
+		common.CTX_KEY_TENENT_ID: actx.TenantId,
+		common.CTX_KEY_IS_ADMIN: strconv.FormatBool(actx.IsAdmin),
+	})
+	// TODO: refactor this part
+	res, err := s.s3Client.ListBuckets(ctx, &s3.BaseRequest{})
 	count := 0
 	for _, v := range res.Buckets {
-		res, err := s.backendClient.GetBackend(ctx, &backend.GetBackendRequest{Id: id, Context: actx.ToJson()})
+		res, err := s.backendClient.GetBackend(ctx, &backend.GetBackendRequest{Id: id})
 		if err != nil {
 			log.Logf("failed to get backend details: %v\n", err)
 			response.WriteError(http.StatusInternalServerError, err)
 			return
 		}
 		backendname := res.Backend.Name
-		if backendname == v.Backend {
+		if backendname == v.DefaultLocation {
 			count++
 		}
 	}
@@ -257,7 +284,7 @@ func (s *APIService) DeleteBackend(request *restful.Request, response *restful.R
 		return
 	}
 	if count == 0 {
-		_, err := s.backendClient.DeleteBackend(ctx, &backend.DeleteBackendRequest{Context: actx.ToJson(), Id: id})
+		_, err := s.backendClient.DeleteBackend(ctx, &backend.DeleteBackendRequest{Id: id})
 		if err != nil {
 			log.Logf("failed to delete backend: %v\n", err)
 			response.WriteError(http.StatusInternalServerError, err)
@@ -306,8 +333,6 @@ func (s *APIService) ListType(request *restful.Request, response *restful.Respon
 		return
 	}
 	listTypeRequest.Filter = filter
-
-	listTypeRequest.Context = request.Attribute(c.KContext).(*c.Context).ToJson()
 
 	ctx := context.Background()
 	res, err := s.backendClient.ListType(ctx, listTypeRequest)

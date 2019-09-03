@@ -14,7 +14,7 @@ import (
 	"github.com/opensds/multi-cloud/datamover/pkg/azure/blob"
 	"github.com/opensds/multi-cloud/datamover/pkg/ceph/s3"
 	"github.com/opensds/multi-cloud/datamover/pkg/gcp/s3"
-	"github.com/opensds/multi-cloud/datamover/pkg/hw/obs"
+	"github.com/opensds/multi-cloud/datamover/pkg/huawei/obs"
 	"github.com/opensds/multi-cloud/datamover/pkg/ibm/cos"
 	. "github.com/opensds/multi-cloud/datamover/pkg/utils"
 	pb "github.com/opensds/multi-cloud/datamover/proto"
@@ -153,7 +153,6 @@ func countOsdsS3Objs(ctx context.Context, in *pb.RunJobRequest) (count, size int
 	}
 
 	req := osdss3.ListObjectsRequest{
-		Context: in.Context,
 		Bucket: in.SourceConn.BucketName,
 		Filter: filt,
 	}
@@ -207,7 +206,6 @@ func getOsdsS3Objs(ctx context.Context, in *pb.RunJobRequest, offset, limit int3
 	}
 
 	req := osdss3.ListObjectsRequest{
-		Context: in.Context,
 		Bucket: in.SourceConn.BucketName,
 		Filter: filt,
 		Offset: offset,

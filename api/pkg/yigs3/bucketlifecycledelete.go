@@ -20,7 +20,7 @@ import (
 
 	"github.com/emicklei/go-restful"
 	"github.com/micro/go-log"
-	. "github.com/opensds/multi-cloud/s3/pkg/exception"
+	. "github.com/opensds/multi-cloud/yigs3/pkg/exception"
 	c "github.com/opensds/multi-cloud/api/pkg/context"
 	"github.com/opensds/multi-cloud/yigs3/proto"
 	"golang.org/x/net/context"

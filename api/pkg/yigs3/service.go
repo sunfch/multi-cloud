@@ -23,10 +23,9 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/micro/go-log"
 	"github.com/micro/go-micro/client"
-	c "github.com/opensds/multi-cloud/api/pkg/context"
-	backend "github.com/opensds/multi-cloud/backend/proto"
+	"github.com/opensds/multi-cloud/backend/proto"
 	backendpb "github.com/opensds/multi-cloud/backend/proto"
-	s3 "github.com/opensds/multi-cloud/yigs3/proto"
+	"github.com/opensds/multi-cloud/yigs3/proto"
 	//"net/http"
 )
 
@@ -117,7 +116,6 @@ func (s *APIService) isBackendExist(ctx context.Context, actx, backendName strin
 	flag := false
 
 	backendRep, backendErr := s.backendClient.ListBackend(ctx, &backendpb.ListBackendRequest{
-		Context: actx,
 		Offset:  0,
 		Limit:   math.MaxInt32,
 		Filter:  map[string]string{"name": backendName}})
@@ -156,7 +154,6 @@ func (s *APIService) isBackendExist(ctx context.Context, actx, backendName strin
 func getBucketNameByBackend(s *APIService, backendName string) string {
 	ctx := context.Background()
 	backendRep, backendErr := s.backendClient.ListBackend(ctx, &backendpb.ListBackendRequest{
-	        Context: c.NewAdminContext().ToJson(),
 		Offset: 0,
 		Limit:  math.MaxInt32,
 		Filter: map[string]string{"name": backendName}})

@@ -32,7 +32,6 @@ import (
 	"github.com/opensds/multi-cloud/yigs3/proto"
 	s3utils "github.com/opensds/multi-cloud/yigs3/pkg/utils"
 	"golang.org/x/net/context"
-	c "github.com/opensds/multi-cloud/api/pkg/context"
 )
 
 var topicLifecycle = "lifecycle"
@@ -79,7 +78,7 @@ func ScheduleLifecycle() {
 	}
 
 	// Get bucket list.
-	listReq := s3.BaseRequest{Id: "test"}
+	listReq := s3.BaseRequest{}
 	listRsp, err := s3client.ListBuckets(context.Background(), &listReq)
 	if err != nil {
 		log.Logf("[ScheduleLifecycle]list buckets failed: %v.\n", err)
@@ -214,9 +213,7 @@ func getObjects(r *InternalLifecycleRule, offset, limit int32) ([]*osdss3.Object
 		filt[KStorageTier] = strconv.Itoa(int(r.Tier))
 	}
 
-	actx := c.Context{IsAdmin: true}
 	s3req := osdss3.ListObjectsRequest{
-		Context: actx.ToJson(),
 		Bucket: r.Bucket,
 		Filter: filt,
 		Offset: offset,
@@ -232,6 +229,7 @@ func getObjects(r *InternalLifecycleRule, offset, limit int32) ([]*osdss3.Object
 
 	return s3rsp.ListObjects, nil
 }
+
 /*
 func schedSortedAbortRules(inRules *InterRules) {
 	log.Log("schedSortedAbortRules begin ...")
@@ -258,7 +256,6 @@ func schedSortedAbortRules(inRules *InterRules) {
 						TargetBackend: rc.Backend,
 						Action:        AbortIncompleteMultipartUpload,
 					}
-
 					// If send failed, then ignore it, because it will be re-sent in the next schedule period.
 					sendActionRequest(&req)
 
@@ -277,6 +274,7 @@ func schedSortedAbortRules(inRules *InterRules) {
 	log.Log("schedSortedAbortRules end ...")
 }
 */
+
 func schedSortedActionsRules(inRules *InterRules) {
 	log.Log("schedSortedActionsRules begin ...")
 	dupCheck := map[string]struct{}{}
@@ -332,9 +330,9 @@ func schedSortedActionsRules(inRules *InterRules) {
 					log.Logf("lifecycle action: object=[%s] type=[%d] source-tier=[%d] target-tier=[%d] " +
 						"source-backend=[%s] target-backend=[%s].\n", obj.ObjectKey, r.ActionType, obj.Tier, r.Tier,
 						obj.Location, r.Backend)
-					actx := c.Context{TenantId: obj.TenantId, UserId: obj.UserId}
+					//actx := c.Context{TenantId: obj.TenantId, UserId: obj.UserId}
 					acreq := datamover.LifecycleActionRequest{
-						Actx: actx.ToJson(),
+						//Actx: actx.ToJson(),
 						ObjKey:        obj.ObjectKey,
 						BucketName:    obj.BucketName,
 						Action:        action,

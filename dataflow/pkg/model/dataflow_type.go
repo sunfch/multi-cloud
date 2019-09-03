@@ -16,13 +16,14 @@ package model
 
 import (
 	"errors"
+	"time"
+
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
-	"time"
 )
 
 var (
-	STOR_TYPE_OPENSDS          = "opensds-s3"
+	STOR_TYPE_OPENSDS          = "opensds-obj"
 	STOR_TYPE_AWS_S3           = "aws-s3"
 	STOR_TYPE_AZURE_BLOB       = "azure-blob"
 	STOR_TYPE_HW_OBS           = "hw-obs"
@@ -73,10 +74,11 @@ const (
 
 type Policy struct {
 	Id          bson.ObjectId `json:"-" bson:"_id,omitempty"`
+	TenantId    string        `json:"tenantId" bson:"tenantId"`
+	UserId      string        `json:"userId" bson:"userId"`
 	Name        string        `json:"name" bson:"name"`
 	Description string        `json:"description" bson:"description"`
 	Schedule    Schedule      `json:"schedule" bson:"schedule"`
-	TenantId    string        `json:"tenantId" bson:"tenantId"`
 }
 
 const (
