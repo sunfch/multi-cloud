@@ -6,6 +6,7 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path"
@@ -45,11 +46,12 @@ type YigStorage struct {
 
 func New(cfg *config.Config) (*YigStorage, error) {
 	//yig log
-	logf, err := os.OpenFile(cfg.Log.Path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	filePath := filepath.Join(cfg.Log.Path, "yig.log")
+	logf, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		return nil, err
 	}
-	logger := log.New(logf, "[yig]", log.LstdFlags, cfg.Log.Level)
+	logger := log.New(logf, fmt.Sprintf("[yig-%s]", cfg.Endpoint.Url), log.LstdFlags, cfg.Log.Level)
 	kms := crypto.NewKMS()
 	yig := YigStorage{
 		DataStorage: make(map[string]*CephStorage),
@@ -90,7 +92,7 @@ func New(cfg *config.Config) (*YigStorage, error) {
 	return &yig, nil
 }
 
-func (y *YigStorage) Close(ctx context.Context) error {
+func (y *YigStorage) Close() error {
 	y.Stopping = true
 	helper.Logger.Print(2, "Stopping storage...")
 	y.WaitGroup.Wait()

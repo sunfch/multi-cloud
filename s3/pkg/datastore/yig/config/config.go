@@ -11,7 +11,6 @@ type Config struct {
 	Endpoint   EndpointConfig
 	Log        LogConfig
 	StorageCfg StorageConfig
-	Cache      CacheConfig
 	Database   DatabaseConfig
 }
 
@@ -19,14 +18,27 @@ func (config *Config) Parse() error {
 	endpoint := viper.GetStringMap("endpoint")
 	log := viper.GetStringMap("log")
 	storageCfg := viper.GetStringMap("storage")
-	cache := viper.GetStringMap("cache")
 	db := viper.GetStringMap("database")
 
 	config.Endpoint.Parse(endpoint)
 	config.Log.Parse(log)
 	config.StorageCfg.Parse(storageCfg)
-	config.Cache.Parse(cache)
 	config.Database.Parse(db)
+
+	return nil
+}
+
+type CommonConfig struct {
+	Log   LogConfig
+	Cache CacheConfig
+}
+
+func (cc *CommonConfig) Parse() error {
+	log := viper.GetStringMap("log")
+	cache := viper.GetStringMap("cache")
+
+	cc.Log.Parse(log)
+	cc.Cache.Parse(cache)
 
 	return nil
 }
@@ -73,6 +85,8 @@ type CacheConfig struct {
 	Mode              int
 	Nodes             []string
 	Master            string
+	Address           string
+	Password          string
 	ConnectionTimeout int
 	ReadTimeout       int
 	WriteTimeout      int
@@ -91,6 +105,12 @@ func (cc CacheConfig) Parse(vals map[string]interface{}) error {
 	}
 	if master, ok := vals["redis_master_name"]; ok {
 		cc.Master = master.(string)
+	}
+	if addr, ok := vals["redis_address"]; ok {
+		cc.Address = addr.(string)
+	}
+	if password, ok := vals["redis_password"]; ok {
+		cc.Password = password.(string)
 	}
 	if ct, ok := vals["redis_connect_timeout"]; ok {
 		cc.ConnectionTimeout = ct.(int)

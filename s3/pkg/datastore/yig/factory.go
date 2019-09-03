@@ -4,20 +4,26 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
 	"github.com/opensds/multi-cloud/backend/pkg/utils/constants"
 	backendpb "github.com/opensds/multi-cloud/backend/proto"
-	"github.com/opensds/multi-cloud/s3/pkg/datastore/driver"
-	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/config"
-	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/redis"
-	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/storage"
+	"github.com/opensds/multi-cloud/yigs3/pkg/datastore/driver"
+	"github.com/opensds/multi-cloud/yigs3/pkg/datastore/yig/config"
+	"github.com/opensds/multi-cloud/yigs3/pkg/datastore/yig/helper"
+	"github.com/opensds/multi-cloud/yigs3/pkg/datastore/yig/log"
+	"github.com/opensds/multi-cloud/yigs3/pkg/datastore/yig/redis"
+	"github.com/opensds/multi-cloud/yigs3/pkg/datastore/yig/storage"
 )
 
 type YigDriverFactory struct {
 	Drivers    sync.Map
 	cfgWatcher *config.ConfigWatcher
+	// for common log file.
+	logfile *os.File
 }
 
 func (ydf *YigDriverFactory) CreateDriver(backend *backendpb.BackendDetail) (driver.StorageDriver, error) {
@@ -26,17 +32,31 @@ func (ydf *YigDriverFactory) CreateDriver(backend *backendpb.BackendDetail) (dri
 		return driver.(*storage.YigStorage), nil
 	}
 
-	return nil, errors.New(fmt.Sprintf("no storage driver for yig endpoint: %s", backend.Endpoint))
+	helper.Logger.Printf(2, "no storage driver for yig endpoint %s", detail.Endpoint)
+	return nil, errors.New(fmt.Sprintf("no storage driver for yig endpoint: %s", detail.Endpoint))
 }
 
 func (ydf *YigDriverFactory) Init() error {
+	// read common config settings
+	cc, err := config.ReadCommonConfig("/etc/yig")
+	if err != nil {
+		return err
+	}
+	// init common log file handler.
+	filename := filepath.Join(cc.Log.Path, "common.log")
+	logf, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		return err
+	}
+	helper.Logger = log.New(logf, "[yig]", log.LstdFlags, cc.Log.Level)
 	// create the driver.
 	rand.Seed(time.Now().UnixNano())
-	redis.Initialize()
+	redis.Initialize(cc)
 
 	// init config watcher.
 	watcher, err := config.NewConfigWatcher(ydf.driverInit)
 	if err != nil {
+		helper.Logger.Printf(2, "failed to new config watcher, err: %v", err)
 		return err
 	}
 	ydf.cfgWatcher = watcher
@@ -44,6 +64,7 @@ func (ydf *YigDriverFactory) Init() error {
 	// read the config.
 	err = config.ReadConfigs("/etc/yig", ydf.driverInit)
 	if err != nil {
+		helper.Logger.Printf(2, "failed to read yig configs, err: %v", err)
 		return err
 	}
 
@@ -51,9 +72,20 @@ func (ydf *YigDriverFactory) Init() error {
 	return nil
 }
 
+func (ydf *YigDriverFactory) Close() {
+	ydf.Drivers.Range(func(k, v interface{}) bool {
+		drv := v.(*storage.YigStorage)
+		drv.Close()
+		return true
+	})
+
+	ydf.logfile.Close()
+}
+
 func (ydf *YigDriverFactory) driverInit(cfg *config.Config) error {
 	yigStorage, err := storage.New(cfg)
 	if err != nil {
+		helper.Logger.Printf(2, "failed to create driver for %s, err: %v", cfg.Endpoint.Url, err)
 		return err
 	}
 
@@ -68,5 +100,6 @@ func init() {
 	if err != nil {
 		return
 	}
+	driver.AddCloser(yigDf)
 	driver.RegisterDriverFactory(constants.BackendTypeYIGS3, yigDf)
 }

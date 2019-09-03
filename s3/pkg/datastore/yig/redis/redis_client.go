@@ -5,7 +5,8 @@ import (
 	"time"
 
 	"github.com/go-redis/redis"
-	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/helper"
+	"github.com/opensds/multi-cloud/yigs3/pkg/datastore/yig/config"
+	"github.com/opensds/multi-cloud/yigs3/pkg/datastore/yig/helper"
 )
 
 const (
@@ -29,56 +30,56 @@ func NewRedisCli() *RedisCli {
 	}
 }
 
-func (cli *RedisCli) Init() {
-	switch helper.CONFIG.RedisMode {
+func (cli *RedisCli) Init(cfg *config.CommonConfig) {
+	switch cfg.Cache.Mode {
 	case 1:
 		options := &redis.ClusterOptions{
-			Addrs:        helper.CONFIG.RedisNodes,
-			ReadTimeout:  time.Duration(helper.CONFIG.RedisReadTimeout) * time.Second,
-			DialTimeout:  time.Duration(helper.CONFIG.RedisConnectTimeout) * time.Second,
-			WriteTimeout: time.Duration(helper.CONFIG.RedisWriteTimeout) * time.Second,
-			IdleTimeout:  time.Duration(helper.CONFIG.RedisKeepAlive) * time.Second,
+			Addrs:        cfg.Cache.Nodes,
+			ReadTimeout:  time.Duration(cfg.Cache.ReadTimeout) * time.Second,
+			DialTimeout:  time.Duration(cfg.Cache.ConnectionTimeout) * time.Second,
+			WriteTimeout: time.Duration(cfg.Cache.WriteTimeout) * time.Second,
+			IdleTimeout:  time.Duration(cfg.Cache.KeepAlive) * time.Second,
 		}
-		if helper.CONFIG.RedisConnectionNumber > 0 {
-			options.PoolSize = helper.CONFIG.RedisConnectionNumber
+		if cfg.Cache.PoolMaxIdle > 0 {
+			options.PoolSize = cfg.Cache.PoolMaxIdle
 		}
-		if helper.CONFIG.RedisPassword != "" {
-			options.Password = helper.CONFIG.RedisPassword
+		if cfg.Cache.Password != "" {
+			options.Password = cfg.Cache.Password
 		}
 		cli.redisClusterClient = redis.NewClusterClient(options)
 		cli.clientType = REDIS_CLUSTER_CLIENT
 	case 2:
 		options := &redis.FailoverOptions{
-			MasterName:    helper.CONFIG.RedisSentinelMasterName,
-			SentinelAddrs: helper.CONFIG.RedisNodes,
-			ReadTimeout:   time.Duration(helper.CONFIG.RedisReadTimeout) * time.Second,
-			DialTimeout:   time.Duration(helper.CONFIG.RedisConnectTimeout) * time.Second,
-			WriteTimeout:  time.Duration(helper.CONFIG.RedisWriteTimeout) * time.Second,
-			IdleTimeout:   time.Duration(helper.CONFIG.RedisKeepAlive) * time.Second,
+			MasterName:    cfg.Cache.Master,
+			SentinelAddrs: cfg.Cache.Nodes,
+			ReadTimeout:   time.Duration(cfg.Cache.ReadTimeout) * time.Second,
+			DialTimeout:   time.Duration(cfg.Cache.ConnectionTimeout) * time.Second,
+			WriteTimeout:  time.Duration(cfg.Cache.WriteTimeout) * time.Second,
+			IdleTimeout:   time.Duration(cfg.Cache.KeepAlive) * time.Second,
 		}
-		if helper.CONFIG.RedisConnectionNumber > 0 {
-			options.PoolSize = helper.CONFIG.RedisConnectionNumber
+		if cfg.Cache.PoolMaxIdle > 0 {
+			options.PoolSize = cfg.Cache.PoolMaxIdle
 		}
-		if helper.CONFIG.RedisPassword != "" {
-			options.Password = helper.CONFIG.RedisPassword
+		if cfg.Cache.Password != "" {
+			options.Password = cfg.Cache.Password
 		}
 		cli.redisClient = redis.NewFailoverClient(options)
 		cli.clientType = REDIS_SENTINEL_CLIENT
 	default:
 		options := &redis.Options{
-			Addr:         helper.CONFIG.RedisAddress,
-			ReadTimeout:  time.Duration(helper.CONFIG.RedisReadTimeout) * time.Second,
-			DialTimeout:  time.Duration(helper.CONFIG.RedisConnectTimeout) * time.Second,
-			WriteTimeout: time.Duration(helper.CONFIG.RedisWriteTimeout) * time.Second,
-			IdleTimeout:  time.Duration(helper.CONFIG.RedisKeepAlive) * time.Second,
+			Addr:         cfg.Cache.Address,
+			ReadTimeout:  time.Duration(cfg.Cache.ReadTimeout) * time.Second,
+			DialTimeout:  time.Duration(cfg.Cache.ConnectionTimeout) * time.Second,
+			WriteTimeout: time.Duration(cfg.Cache.WriteTimeout) * time.Second,
+			IdleTimeout:  time.Duration(cfg.Cache.KeepAlive) * time.Second,
 		}
 
-		if helper.CONFIG.RedisConnectionNumber > 0 {
-			options.PoolSize = helper.CONFIG.RedisConnectionNumber
+		if cfg.Cache.PoolMaxIdle > 0 {
+			options.PoolSize = cfg.Cache.PoolMaxIdle
 		}
 
-		if helper.CONFIG.RedisPassword != "" {
-			options.Password = helper.CONFIG.RedisPassword
+		if cfg.Cache.Password != "" {
+			options.Password = cfg.Cache.Password
 		}
 
 		helper.Logger.Println(2, "create redis for options: ", options)

@@ -3,7 +3,8 @@ package redis
 import (
 	"strconv"
 
-	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/helper"
+	"github.com/opensds/multi-cloud/yigs3/pkg/datastore/yig/config"
+	"github.com/opensds/multi-cloud/yigs3/pkg/datastore/yig/helper"
 )
 
 var (
@@ -35,9 +36,9 @@ const (
 var MetadataTables = []RedisDatabase{UserTable, BucketTable, ObjectTable, ClusterTable}
 var DataTables = []RedisDatabase{FileTable}
 
-func Initialize() {
+func Initialize(cfg *config.CommonConfig) {
 	redisClient = NewRedisCli()
-	redisClient.Init()
+	redisClient.Init(cfg)
 }
 
 func Close() {
