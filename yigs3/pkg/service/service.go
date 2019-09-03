@@ -31,9 +31,9 @@ import (
 
 	"github.com/opensds/multi-cloud/api/pkg/utils/obs"
 	s3 "github.com/opensds/multi-cloud/api/pkg/yigs3"
-	"github.com/opensds/multi-cloud/s3/pkg/db"
-	. "github.com/opensds/multi-cloud/s3/pkg/exception"
-	. "github.com/opensds/multi-cloud/s3/pkg/utils"
+	"github.com/opensds/multi-cloud/yigs3/pkg/db"
+	. "github.com/opensds/multi-cloud/yigs3/pkg/exception"
+	. "github.com/opensds/multi-cloud/yigs3/pkg/utils"
 	pb "github.com/opensds/multi-cloud/yigs3/proto"
 )
 

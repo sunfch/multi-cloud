@@ -22,9 +22,9 @@ import (
 	"github.com/micro/go-log"
 	"github.com/opensds/multi-cloud/api/pkg/utils/obs"
 	backendpb "github.com/opensds/multi-cloud/backend/proto"
-	. "github.com/opensds/multi-cloud/s3/pkg/exception"
-	"github.com/opensds/multi-cloud/s3/pkg/model"
-	pb "github.com/opensds/multi-cloud/s3/proto"
+	. "github.com/opensds/multi-cloud/yigs3/pkg/exception"
+	"github.com/opensds/multi-cloud/yigs3/pkg/model"
+	pb "github.com/opensds/multi-cloud/yigs3/proto"
 )
 
 type OBSAdapter struct {
