@@ -4,75 +4,69 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
-	"os"
 	"sync"
 	"time"
 
+	"github.com/opensds/multi-cloud/backend/pkg/utils/constants"
 	backendpb "github.com/opensds/multi-cloud/backend/proto"
 	"github.com/opensds/multi-cloud/yigs3/pkg/datastore/driver"
-	"github.com/opensds/multi-cloud/yigs3/pkg/datastore/yig/helper"
-	"github.com/opensds/multi-cloud/yigs3/pkg/datastore/yig/log"
-	bus "github.com/opensds/multi-cloud/yigs3/pkg/datastore/yig/messagebus"
+	"github.com/opensds/multi-cloud/yigs3/pkg/datastore/yig/config"
 	"github.com/opensds/multi-cloud/yigs3/pkg/datastore/yig/redis"
 	"github.com/opensds/multi-cloud/yigs3/pkg/datastore/yig/storage"
-	"github.com/opensds/multi-cloud/backend/pkg/utils/constants"
 )
 
 type YigDriverFactory struct {
-	Drivers sync.Map
+	Drivers    sync.Map
+	cfgWatcher *config.ConfigWatcher
 }
 
 func (ydf *YigDriverFactory) CreateDriver(detail *backendpb.BackendDetail) (driver.StorageDriver, error) {
 	// if driver already exists, just return it.
-	if driver, ok := ydf.Drivers.Load("default" /*detail.Endpoint*/); ok {
+	if driver, ok := ydf.Drivers.Load(detail.Endpoint); ok {
 		return driver.(*storage.YigStorage), nil
 	}
 
 	return nil, errors.New(fmt.Sprintf("no storage driver for yig endpoint: %s", detail.Endpoint))
 }
 
-func (ydf *YigDriverFactory) init() {
+func (ydf *YigDriverFactory) Init() error {
 	// create the driver.
 	rand.Seed(time.Now().UnixNano())
+	redis.Initialize()
 
-	helper.SetupConfig()
-
-	//yig log
-	f, err := os.OpenFile(helper.CONFIG.LogPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	// init config watcher.
+	watcher, err := config.NewConfigWatcher(ydf.driverInit)
 	if err != nil {
-		panic("Failed to open log file " + helper.CONFIG.LogPath)
+		return err
 	}
-	defer f.Close()
+	ydf.cfgWatcher = watcher
 
-	logger := log.New(f, "[yig]", log.LstdFlags, helper.CONFIG.LogLevel)
-	helper.Logger = logger
-	logger.Printf(20, "YIG conf: %+v \n", helper.CONFIG)
-	logger.Println(5, "YIG instance ID:", helper.CONFIG.InstanceId)
-
-	if helper.CONFIG.MetaCacheType > 0 || helper.CONFIG.EnableDataCache {
-		redis.Initialize()
+	// read the config.
+	err = config.ReadConfigs("/etc/yig", ydf.driverInit)
+	if err != nil {
+		return err
 	}
 
-	yigStorage := storage.New(logger, helper.CONFIG.MetaCacheType, helper.CONFIG.EnableDataCache, helper.CONFIG.CephConfigPattern)
+	ydf.cfgWatcher.Watch("/etc/yig")
+	return nil
+}
 
-	// try to create message bus sender if message bus is enabled.
-	// message bus sender is singleton so create it beforehand.
-	if helper.CONFIG.MsgBus.Enabled {
-		messageBusSender, err := bus.GetMessageSender()
-		if err != nil {
-			helper.Logger.Printf(2, "failed to create message bus sender, err: %v", err)
-			panic("failed to create message bus sender")
-		}
-		if nil == messageBusSender {
-			helper.Logger.Printf(2, "failed to create message bus sender, sender is nil.")
-			panic("failed to create message bus sender, sender is nil.")
-		}
-		helper.Logger.Printf(20, "succeed to create message bus sender.")
+func (ydf *YigDriverFactory) driverInit(cfg *config.Config) error {
+	yigStorage, err := storage.New(cfg)
+	if err != nil {
+		return err
 	}
 
-	ydf.Drivers.Store("default", yigStorage)
+	ydf.Drivers.Store(cfg.Endpoint.Url, yigStorage)
+
+	return nil
 }
 
 func init() {
-	driver.RegisterDriverFactory(constants.BackendTypeYIGS3, &YigDriverFactory{})
+	yigDf := &YigDriverFactory{}
+	err := yigDf.Init()
+	if err != nil {
+		return
+	}
+	driver.RegisterDriverFactory(constants.BackendTypeYIGS3, yigDf)
 }

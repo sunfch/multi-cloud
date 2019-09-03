@@ -5,14 +5,17 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"errors"
 	"io"
+	"os"
 	"path"
 	"path/filepath"
 	"sync"
 
+	. "github.com/opensds/multi-cloud/yigs3/error"
+	"github.com/opensds/multi-cloud/yigs3/pkg/datastore/yig/config"
 	"github.com/opensds/multi-cloud/yigs3/pkg/datastore/yig/crypto"
 	"github.com/opensds/multi-cloud/yigs3/pkg/datastore/yig/datatype"
-	. "github.com/opensds/multi-cloud/yigs3/error"
 	"github.com/opensds/multi-cloud/yigs3/pkg/datastore/yig/helper"
 	"github.com/opensds/multi-cloud/yigs3/pkg/datastore/yig/log"
 	"github.com/opensds/multi-cloud/yigs3/pkg/datastore/yig/meta"
@@ -34,29 +37,40 @@ type YigStorage struct {
 	DataStorage map[string]*CephStorage
 	MetaStorage *meta.Meta
 	KMS         crypto.KMS
+	logfile     *os.File
 	Logger      *log.Logger
 	Stopping    bool
 	WaitGroup   *sync.WaitGroup
 }
 
-func New(logger *log.Logger, metaCacheType int, enableDataCache bool, CephConfigPattern string) *YigStorage {
+func New(cfg *config.Config) (*YigStorage, error) {
+	//yig log
+	logf, err := os.OpenFile(cfg.Log.Path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		return nil, err
+	}
+	logger := log.New(logf, "[yig]", log.LstdFlags, cfg.Log.Level)
 	kms := crypto.NewKMS()
 	yig := YigStorage{
 		DataStorage: make(map[string]*CephStorage),
-		MetaStorage: meta.New(logger, meta.CacheType(metaCacheType)),
+		MetaStorage: meta.New(logger, meta.EnableCache),
 		KMS:         kms,
+		logfile:     logf,
 		Logger:      logger,
 		Stopping:    false,
 		WaitGroup:   new(sync.WaitGroup),
 	}
+	CephConfigPattern := cfg.StorageCfg.CephPath
 	if CephConfigPattern == "" {
 		CephConfigPattern = DEFAULT_CEPHCONFIG_PATTERN
 	}
 
 	cephConfs, err := filepath.Glob(CephConfigPattern)
-	helper.Logger.Printf(5, "Reading Ceph conf files from %+v\n", cephConfs)
+	logger.Printf(5, "Reading Ceph conf files from %+v\n", cephConfs)
 	if err != nil || len(cephConfs) == 0 {
-		helper.Logger.Panic(0, "PANIC: No ceph conf found")
+		logger.Printf(0, "PANIC: No ceph conf found")
+		err = errors.New("no ceph conf found")
+		return nil, err
 	}
 
 	for _, conf := range cephConfs {
@@ -67,20 +81,23 @@ func New(logger *log.Logger, metaCacheType int, enableDataCache bool, CephConfig
 	}
 
 	if len(yig.DataStorage) == 0 {
-		helper.Logger.Panic(0, "PANIC: No data storage can be used!")
+		logger.Printf(0, "PANIC: No data storage can be used!")
+		err = errors.New("no working data storage")
+		return nil, err
 	}
 
 	initializeRecycler(&yig)
-	return &yig
+	return &yig, nil
 }
 
 func (y *YigStorage) Close(ctx context.Context) error {
 	y.Stopping = true
-	helper.Logger.Print(5, "Stopping storage...")
+	helper.Logger.Print(2, "Stopping storage...")
 	y.WaitGroup.Wait()
-	helper.Logger.Println(5, "done")
-	helper.Logger.Print(5, "Stopping MetaStorage...")
+	helper.Logger.Println(2, "done")
+	helper.Logger.Print(2, "Stopping MetaStorage...")
 	y.MetaStorage.Stop()
+	y.logfile.Close()
 
 	return nil
 }
