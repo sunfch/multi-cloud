@@ -20,14 +20,21 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+
 	"github.com/Azure/azure-storage-blob-go/azblob"
 	"github.com/micro/go-log"
+	"github.com/opensds/multi-cloud/yigs3/pkg/helper"
+	"github.com/opensds/multi-cloud/yigs3/pkg/meta"
+	"github.com/opensds/multi-cloud/yigs3/pkg/meta/types"
+	"github.com/opensds/multi-cloud/yigs3/pkg/redis"
+	. "github.com/opensds/multi-cloud/yigs3/pkg/error"
 
 	"github.com/opensds/multi-cloud/api/pkg/utils/obs"
+	s3 "github.com/opensds/multi-cloud/api/pkg/yigs3"
 	"github.com/opensds/multi-cloud/s3/pkg/db"
 	. "github.com/opensds/multi-cloud/s3/pkg/exception"
 	. "github.com/opensds/multi-cloud/s3/pkg/utils"
-	pb "github.com/opensds/multi-cloud/s3/proto"
+	pb "github.com/opensds/multi-cloud/yigs3/proto"
 )
 
 type Int2String map[int32]string
@@ -43,7 +50,9 @@ var Ext2IntTierMap map[string]*String2Int
 var TransitionMap map[int32][]int32
 var SupportedClasses []pb.StorageClass
 
-type s3Service struct{}
+type s3Service struct{
+	MetaStorage *meta.Meta
+}
 
 func NewS3Service() pb.S3Handler {
 	host := os.Getenv("DB_HOST")
@@ -52,7 +61,7 @@ func NewS3Service() pb.S3Handler {
 
 	initStorageClass()
 
-	return &s3Service{}
+	return &s3Service{MetaStorage: meta.New(nil, meta.CacheType(helper.CONFIG.MetaCacheType)),}
 }
 
 func getNameFromTier(tier int32) (string, error) {
@@ -145,7 +154,7 @@ func loadGCPDefault(i2e *map[string]*Int2String, e2i *map[string]*String2Int) {
 func loadCephDefault(i2e *map[string]*Int2String, e2i *map[string]*String2Int) {
 	t2n := make(Int2String)
 	t2n[Tier1] = CEPH_STANDARD
-	(*i2e)[OSTYPE_CEPTH] = &t2n
+	//(*i2e)[OSTYPE_CEPTH] = &t2n
 
 	n2t := make(String2Int)
 	n2t[CEPH_STANDARD] = Tier1
@@ -296,11 +305,47 @@ func (b *s3Service) ListBuckets(ctx context.Context, in *pb.BaseRequest, out *pb
 func (b *s3Service) CreateBucket(ctx context.Context, in *pb.Bucket, out *pb.BaseResponse) error {
 	log.Log("CreateBucket is called in s3 service.")
 
-	return nil
+	bucketName := in.Name
+	if err := s3.CheckValidBucketName(bucketName); err != nil {
+		return err
+	}
+
+	credential := ctx.Value(s3.RequestContextKey).(s3.RequestContext).Credential
+	processed, err := b.MetaStorage.Client.CheckAndPutBucket(&types.Bucket{Bucket: in})
+	if err != nil {
+		//yig.Logger.Println(5, "Error making checkandput: ", err)
+		return err
+	}
+	if !processed { // bucket already exists, return accurate message
+		bucket, err := b.MetaStorage.GetBucket(bucketName, false)
+		if err != nil {
+			//yig.Logger.Println(5, "Error get bucket: ", bucketName, ", with error", err)
+			return ErrBucketAlreadyExists
+		}
+		if bucket.OwnerId == credential.UserId {
+			return ErrBucketAlreadyOwnedByYou
+		} else {
+			return ErrBucketAlreadyExists
+		}
+	}
+	err = b.MetaStorage.AddBucketForUser(bucketName, in.OwnerId)
+	if err != nil { // roll back bucket table, i.e. remove inserted bucket
+		//yig.Logger.Println(5, "Error AddBucketForUser: ", err)
+		err = b.MetaStorage.Client.DeleteBucket(&types.Bucket{Bucket: in})
+		if err != nil {
+			//yig.Logger.Println(5, "Error deleting: ", err)
+			//yig.Logger.Println(5, "Leaving junk bucket unremoved: ", bucketName)
+			return err
+		}
+	}
+	if err == nil {
+		b.MetaStorage.Cache.Remove(redis.UserTable, meta.BUCKET_CACHE_PREFIX, credential.UserId)
+	}
+	return err
 }
 
-func (b *s3Service) GetBucket(ctx context.Context, in *pb.Bucket, out *pb.Bucket) error {
-	log.Logf("GetBucket %s is called in s3 service.", in.Name)
+func (b *s3Service) GetBucket(ctx context.Context, in *pb.BaseRequest, out *pb.Bucket) error {
+	log.Logf("GetBucket %s is called in s3 service.")
 
 	return nil
 }
@@ -324,6 +369,12 @@ func (b *s3Service) CreateObject(ctx context.Context, in *pb.Object, out *pb.Bas
 }
 
 func (b *s3Service) UpdateObject(ctx context.Context, in *pb.Object, out *pb.BaseResponse) error {
+	log.Log("PutObject is called in s3 service.")
+
+	return nil
+}
+
+func (b *s3Service) PutObject(ctx context.Context, in *pb.PutObjectRequest, out *pb.BaseResponse) error {
 	log.Log("PutObject is called in s3 service.")
 
 	return nil
@@ -353,7 +404,155 @@ func (b *s3Service) UpdateBucket(ctx context.Context, in *pb.Bucket, out *pb.Bas
 	return nil
 }
 
+func (b *s3Service) ListBucketUploadRecords(ctx context.Context, in *pb.ListBucketPartsRequest, out *pb.ListBucketPartsResponse) error {
+	log.Log("UpdateBucket is called in s3 service.")
 
+	return nil
+}
+
+func (b *s3Service) InitMultipartUpload(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
+	log.Log("UpdateBucket is called in s3 service.")
+
+	return nil
+}
+
+func (b *s3Service) AbortMultipartUpload(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
+	log.Log("UpdateBucket is called in s3 service.")
+
+	return nil
+}
+
+func (b *s3Service) CompleteMultipartUpload(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
+	log.Log("UpdateBucket is called in s3 service.")
+
+	return nil
+}
+
+func (b *s3Service) UploadPart(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
+	log.Log("UpdateBucket is called in s3 service.")
+
+	return nil
+}
+
+func (b *s3Service) ListObjectParts(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
+	log.Log("UpdateBucket is called in s3 service.")
+
+	return nil
+}
+
+func (b *s3Service) AppendObject(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
+	log.Log("UpdateBucket is called in s3 service.")
+
+	return nil
+}
+
+func (b *s3Service) PostObject(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
+	log.Log("UpdateBucket is called in s3 service.")
+
+	return nil
+}
+
+func (b *s3Service) HeadObject(ctx context.Context, in *pb.BaseObjRequest, out *pb.Object) error {
+	log.Log("UpdateBucket is called in s3 service.")
+
+	return nil
+}
+
+func (b *s3Service) CopyObject(ctx context.Context, in *pb.CopyObjectRequest, out *pb.BaseResponse) error {
+	log.Log("UpdateBucket is called in s3 service.")
+
+	return nil
+}
+
+func (b *s3Service) CopyObjPart(ctx context.Context, in *pb.CopyObjPartRequest, out *pb.CopyObjPartResponse) error {
+	log.Log("UpdateBucket is called in s3 service.")
+
+	return nil
+}
+
+func (b *s3Service) PutObjACL(ctx context.Context, in *pb.PutObjACLRequest, out *pb.BaseResponse) error {
+	log.Log("UpdateBucket is called in s3 service.")
+
+	return nil
+}
+
+func (b *s3Service) GetObjACL(ctx context.Context, in *pb.BaseObjRequest, out *pb.ObjACL) error {
+	log.Log("UpdateBucket is called in s3 service.")
+
+	return nil
+}
+
+func (b *s3Service) GetBucketLocation(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
+	log.Log("UpdateBucket is called in s3 service.")
+
+	return nil
+}
+
+func (b *s3Service) GetBucketVersioning(ctx context.Context, in *pb.BaseBucketRequest, out *pb.BucketVersioning) error {
+	log.Log("UpdateBucket is called in s3 service.")
+
+	return nil
+}
+
+func (b *s3Service) PutBucketVersioning(ctx context.Context, in *pb.PutBucketVersioningRequest, out *pb.BaseResponse) error {
+	log.Log("UpdateBucket is called in s3 service.")
+
+	return nil
+}
+
+func (b *s3Service) PutBucketACL(ctx context.Context, in *pb.PutBucketACLRequest, out *pb.BaseResponse) error {
+	log.Log("UpdateBucket is called in s3 service.")
+
+	return nil
+}
+
+func (b *s3Service) GetBucketACL(ctx context.Context, in *pb.BaseBucketRequest, out *pb.BucketACL) error {
+	log.Log("UpdateBucket is called in s3 service.")
+
+	return nil
+}
+
+func (b *s3Service) PutBucketCORS(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
+	log.Log("UpdateBucket is called in s3 service.")
+
+	return nil
+}
+
+func (b *s3Service) GetBucketCORS(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
+	log.Log("UpdateBucket is called in s3 service.")
+
+	return nil
+}
+
+func (b *s3Service) DeleteBucketCORS(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
+	log.Log("UpdateBucket is called in s3 service.")
+
+	return nil
+}
+
+func (b *s3Service) PutBucketPolicy(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
+	log.Log("UpdateBucket is called in s3 service.")
+
+	return nil
+}
+
+func (b *s3Service) GetBucketPolicy(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
+	log.Log("UpdateBucket is called in s3 service.")
+
+	return nil
+}
+
+func (b *s3Service) DeleteBucketPolicy(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
+	log.Log("UpdateBucket is called in s3 service.")
+
+	return nil
+}
+
+func (b *s3Service) HeadBucket(ctx context.Context, in *pb.BaseRequest, out *pb.Bucket) error {
+	log.Log("UpdateBucket is called in s3 service.")
+
+	return nil
+}
 
 
 func (b *s3Service) UpdateObjMeta(ctx context.Context, in *pb.UpdateObjMetaRequest, out *pb.BaseResponse) error {
@@ -436,20 +635,20 @@ func (b *s3Service) DeleteUploadRecord(ctx context.Context, record *pb.Multipart
 	return nil
 }
 
-func (b *s3Service) ListUploadRecord(ctx context.Context, in *pb.ListMultipartUploadRequest, out *pb.ListMultipartUploadResponse) error {
+/*func (b *s3Service) ListUploadRecord(ctx context.Context, in *pb.ListMultipartUploadRequest, out *pb.ListMultipartUploadResponse) error {
 	log.Logf("list multipart upload records")
 
 	return nil
-}
+}*/
 
 func (b *s3Service) CountObjects(ctx context.Context, in *pb.ListObjectsRequest, out *pb.CountObjectsResponse) error {
 	log.Log("Count objects is called in s3 service.")
 
 	countInfo := ObjsCountInfo{}
-	err := db.DbAdapter.CountObjects(in, &countInfo)
+	/*err := db.DbAdapter.CountObjects(in, &countInfo)
 	if err.Code != ERR_OK {
 		return err.Error()
-	}
+	}*/
 	out.Count = countInfo.Count
 	out.Size = countInfo.Size
 

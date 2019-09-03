@@ -26,7 +26,7 @@ import (
 	//	_ "github.com/micro/go-plugins/client/grpc"
 	"github.com/opensds/multi-cloud/api/pkg/filters/auth"
 	"github.com/opensds/multi-cloud/api/pkg/filters/logging"
-	"github.com/opensds/multi-cloud/api/pkg/yigs3"
+	s3 "github.com/opensds/multi-cloud/api/pkg/yigs3"
 )
 
 const (
