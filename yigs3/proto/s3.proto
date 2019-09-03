@@ -288,7 +288,7 @@ message Object {
 	int32 tier = 9;
 	string storageClass = 10;
 	// For backend of YIG ceph, objectId is random string, for other backends, is the key in the backend related bucket.
-	string objectId = 11;
+	string objectId = 11;  // id used in backend
 	string etag = 12;
 	string contentType = 13;
 	string acl = 14;
@@ -310,8 +310,7 @@ message BaseResponse {
 }
 
 message BaseRequest {
-	string context = 1;
-	string id = 2;
+	string id = 1;
 }
 
 /*message CommonRequest {
@@ -320,13 +319,12 @@ message BaseRequest {
 }*/
 
 message ListObjectsRequest {
-	string context = 1;
     // Bucket is a required field
-    string bucket = 2;
-    string delimiter = 3;
-	map<string, string> filter = 4;
-	int32  offset = 5;
-	int32  limit = 6;
+    string bucket = 1;
+    string delimiter = 2;
+	map<string, string> filter = 3;
+	int32  offset = 4;
+	int32  limit = 5;
 }
 
 message ListObjectResponse {
@@ -339,34 +337,31 @@ message CountObjectsResponse {
 }
 
 message DeleteObjectInput {
-	string context = 1;
-    string bucket = 2;
-    string key = 3;
-    string versioId = 4;
+    string bucket = 1;
+    string key = 2;
+    string versioId = 3;
     //int64  lastModified = 5;
 }
 
 message GetObjectInput {
-	string context = 1;
-    string bucket = 2;
-    string key = 3;
-    string versionId = 4;
+    string bucket = 1;
+    string key = 2;
+    string versionId = 3;
 }
 
 message MultipartUpload {
-	string context = 1;
-    string bucket = 2;
-    string key = 3;
-    string uploadId = 4;
+    string bucket = 1;
+    string key = 2;
+    string uploadId = 3;
+	string objectId = 4;  // id used in backend
 }
 
 message ListParts {
-	string context = 1;
-    string bucket = 2;
-    string key = 3;
-    string uploadId = 4;
-    int64  maxParts = 5;
-    int64  partNumberMarker = 6;
+    string bucket = 1;
+    string key = 2;
+    string uploadId = 3;
+    int64  maxParts = 4;
+    int64  partNumberMarker = 5;
 }
 
 message TList {
@@ -399,8 +394,7 @@ message GetStorageClassesResponse {
 }
 
 message GetBackendTypeByTierRequest {
-	string context = 1;
-	int32 tier = 2;
+	int32 tier = 1;
 }
 
 message GetBackendTypeByTierResponse {
@@ -408,9 +402,8 @@ message GetBackendTypeByTierResponse {
 }
 
 message DeleteLifecycleInput {
-	string context = 1;
-	string bucket = 2;
-	string ruleID = 3;
+	string bucket = 1;
+	string ruleID = 2;
 }
 
 // TODO: Define parameter refer to data body
@@ -423,12 +416,11 @@ message MultipartUploadRecord {
 }
 
 message ListBucketPartsRequest {
-	string context = 1;
-	string bucket = 2;
-	string prefix = 3;
-	int32  days = 4;
-	int32  limit = 5;
-	int32  offset = 6;
+	string bucket = 1;
+	string prefix = 2;
+	int32  days = 3;
+	int32  limit = 4;
+	int32  offset = 5;
 }
 
 message ListBucketPartsResponse {

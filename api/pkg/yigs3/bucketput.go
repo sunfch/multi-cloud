@@ -50,8 +50,7 @@ func (s *APIService) BucketPut(request *restful.Request, response *restful.Respo
 			if backendName != "" {
 				log.Logf("backendName is %v\n", backendName)
 				bucket.DefaultLocation = backendName
-				actx := request.Attribute(c.KContext).(*c.Context).ToJson()
-				flag := s.isBackendExist(context.Background(), actx, backendName)
+				flag := s.isBackendExist(context.Background(), backendName)
 				if flag == false {
 					response.WriteError(http.StatusBadRequest, NoSuchBackend.Error())
 					return

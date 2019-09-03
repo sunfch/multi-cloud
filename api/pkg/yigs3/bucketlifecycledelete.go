@@ -21,7 +21,6 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/micro/go-log"
 	. "github.com/opensds/multi-cloud/yigs3/pkg/exception"
-	c "github.com/opensds/multi-cloud/api/pkg/context"
 	"github.com/opensds/multi-cloud/yigs3/proto"
 	"golang.org/x/net/context"
 	"encoding/json"
@@ -41,9 +40,8 @@ func (s *APIService) BucketLifecycleDelete(request *restful.Request, response *r
 	FoundIDArray := []string{}
 	NonFoundIDArray := []string{}
 	ctx := context.Background()
-	actx := request.Attribute(c.KContext).(*c.Context)
 
-	bucket, err := s.s3Client.GetBucket(ctx, &s3.BaseRequest{Context: actx.ToJson(), Id: bucketName})
+	bucket, err := s.s3Client.GetBucket(ctx, &s3.BaseRequest{Id: bucketName})
 	if err != nil {
 		log.Logf("get bucket[name=%s] failed, err=%v.\n", bucketName, err)
 		response.WriteError(http.StatusInternalServerError, NoSuchBucket.Error())
@@ -75,12 +73,8 @@ func (s *APIService) BucketLifecycleDelete(request *restful.Request, response *r
 	}
 
 	for _, id := range FoundIDArray {
-		deleteInput := s3.DeleteLifecycleInput{
-			Context: actx.ToJson(),
-			Bucket: bucketName,
-			RuleID: id,
-		}
-		res, err := s.s3Client.DeleteBucketLifecycle(ctx, &deleteInput)
+			deleteInput := s3.DeleteLifecycleInput{Bucket: bucketName, RuleID: id}
+			res, err := s.s3Client.DeleteBucketLifecycle(ctx, &deleteInput)
 		if err != nil {
 			log.Logf("delete lifecycle[id=%s] of bucket[name=%s] failed, err=%v.\n", id, bucketName, err)
 			response.WriteError(http.StatusBadRequest, err)

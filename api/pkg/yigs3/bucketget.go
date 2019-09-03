@@ -25,7 +25,6 @@ import (
 
 	"github.com/emicklei/go-restful"
 	"github.com/micro/go-log"
-	c "github.com/opensds/multi-cloud/api/pkg/context"
 	"github.com/opensds/multi-cloud/api/pkg/common"
 	"github.com/opensds/multi-cloud/yigs3/proto"
 )
@@ -121,9 +120,7 @@ func (s *APIService) BucketGet(request *restful.Request, response *restful.Respo
 		}
 	}
 
-	actx := request.Attribute(c.KContext).(*c.Context)
 	req := s3.ListObjectsRequest{
-		Context: actx.ToJson(),
 		Bucket: bucketName,
 		Filter: filter,
 		Offset: offset,

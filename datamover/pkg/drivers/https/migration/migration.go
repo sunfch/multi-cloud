@@ -52,7 +52,7 @@ var bkendclient backend.BackendService
 var logger = log.New(os.Stdout, "", log.LstdFlags)
 
 type MoveReqStaticInfo struct {
-	actx string
+	//actx string
 	remainSource bool
 	srcLoc *LocationInfo
 	dstLoc *LocationInfo
@@ -435,10 +435,10 @@ func move(ctx context.Context, info *MoveReqStaticInfo, obj *osdss3.Object, capa
 
 	var err error
 	if info.srcLoc.StorType == flowtype.STOR_TYPE_OPENSDS && info.dstLoc.StorType == flowtype.STOR_TYPE_OPENSDS {
-		err = mvtool.OsdsS3CopyObj(ctx, s3client, obj, info.actx, info.dstLoc.BucketName)
+		err = mvtool.OsdsS3CopyObj(ctx, s3client, obj, info.dstLoc.BucketName)
 		logger.Printf("remainSource for object[%s] is:%v.", obj.ObjectKey, info.remainSource)
 		if err != nil && !info.remainSource {
-			mvtool.OsdsS3DeleteObj(ctx, s3client, obj, info.actx)
+			mvtool.OsdsS3DeleteObj(ctx, s3client, obj)
 			//TODO: what if delete failed
 		}
 	} else {

@@ -20,13 +20,13 @@ type YigDriverFactory struct {
 	cfgWatcher *config.ConfigWatcher
 }
 
-func (ydf *YigDriverFactory) CreateDriver(detail *backendpb.BackendDetail) (driver.StorageDriver, error) {
+func (ydf *YigDriverFactory) CreateDriver(backend *backendpb.BackendDetail) (driver.StorageDriver, error) {
 	// if driver already exists, just return it.
-	if driver, ok := ydf.Drivers.Load(detail.Endpoint); ok {
+	if driver, ok := ydf.Drivers.Load(backend.Endpoint); ok {
 		return driver.(*storage.YigStorage), nil
 	}
 
-	return nil, errors.New(fmt.Sprintf("no storage driver for yig endpoint: %s", detail.Endpoint))
+	return nil, errors.New(fmt.Sprintf("no storage driver for yig endpoint: %s", backend.Endpoint))
 }
 
 func (ydf *YigDriverFactory) Init() error {

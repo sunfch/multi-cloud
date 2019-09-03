@@ -12,11 +12,11 @@ import (
 type AwsS3DriverFactory struct {
 }
 
-func (as3 *AwsS3DriverFactory) CreateDriver(detail *backendpb.BackendDetail) (driver.StorageDriver, error) {
-	endpoint := detail.Endpoint
-	AccessKeyID := detail.Access
-	AccessKeySecret := detail.Security
-	region := detail.Region
+func (factory *AwsS3DriverFactory) CreateDriver(backend *backendpb.BackendDetail) (driver.StorageDriver, error) {
+	endpoint := backend.Endpoint
+	AccessKeyID := backend.Access
+	AccessKeySecret := backend.Security
+	region := backend.Region
 
 	s3aksk := s3Cred{ak: AccessKeyID, sk: AccessKeySecret}
 	creds := credentials.NewCredentials(&s3aksk)
@@ -32,7 +32,7 @@ func (as3 *AwsS3DriverFactory) CreateDriver(detail *backendpb.BackendDetail) (dr
 		return nil, err
 	}
 
-	adap := &AwsAdapter{backend: detail, session: sess}
+	adap := &AwsAdapter{backend: backend, session: sess}
 
 	return adap, nil
 }

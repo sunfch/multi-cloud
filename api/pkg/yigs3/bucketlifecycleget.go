@@ -21,7 +21,6 @@ import (
 
 	"github.com/emicklei/go-restful"
 	"github.com/micro/go-log"
-	c "github.com/opensds/multi-cloud/api/pkg/context"
 	. "github.com/opensds/multi-cloud/api/pkg/utils/constants"
 	. "github.com/opensds/multi-cloud/yigs3/pkg/exception"
 	"github.com/opensds/multi-cloud/yigs3/pkg/model"
@@ -61,8 +60,7 @@ func (s *APIService) BucketLifecycleGet(request *restful.Request, response *rest
 	log.Logf("received request for getting lifecycle of bucket[name=%s].\n", bucketName)
 
 	ctx := context.Background()
-	actx := request.Attribute(c.KContext).(*c.Context)
-	bucket, err := s.s3Client.GetBucket(ctx, &s3.BaseRequest{Context: actx.ToJson(), Id: bucketName})
+	bucket, err := s.s3Client.GetBucket(ctx, &s3.BaseRequest{Id: bucketName})
 	if err != nil {
 		log.Logf("get bucket[name=%s] failed, err=%v.\n", bucketName, err)
 		response.WriteError(http.StatusInternalServerError, NoSuchBucket.Error())

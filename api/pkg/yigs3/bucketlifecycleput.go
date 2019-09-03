@@ -25,7 +25,6 @@ import (
 	"encoding/json"
 	"github.com/emicklei/go-restful"
 	"github.com/micro/go-log"
-	c "github.com/opensds/multi-cloud/api/pkg/context"
 	. "github.com/opensds/multi-cloud/api/pkg/utils/constants"
 	. "github.com/opensds/multi-cloud/yigs3/pkg/exception"
 	"github.com/opensds/multi-cloud/yigs3/pkg/model"
@@ -119,8 +118,7 @@ func (s *APIService) BucketLifecyclePut(request *restful.Request, response *rest
 	log.Logf("received request for create bucket lifecycle: %s", bucketName)
 
 	ctx := context.Background()
-	actx := request.Attribute(c.KContext).(*c.Context)
-	bucket, _ := s.s3Client.GetBucket(ctx, &s3.BaseRequest{Context: actx.ToJson(), Id: bucketName})
+	bucket, _ := s.s3Client.GetBucket(ctx, &s3.BaseRequest{Id: bucketName})
 	body := ReadBody(request)
 	log.Logf("MD5 sum for body is %x", md5.Sum(body))
 

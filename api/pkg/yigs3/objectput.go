@@ -22,7 +22,6 @@ import (
 
 	"github.com/emicklei/go-restful"
 	"github.com/micro/go-log"
-	c "github.com/opensds/multi-cloud/api/pkg/context"
 	"github.com/opensds/multi-cloud/api/pkg/utils/constants"
 	. "github.com/opensds/multi-cloud/yigs3/pkg/exception"
 	"github.com/opensds/multi-cloud/yigs3/pkg/utils"
@@ -46,10 +45,9 @@ func (s *APIService) ObjectPut(request *restful.Request, response *restful.Respo
 	log.Logf("contentLenght=%s, backendName is :%v\n", contentLenght, backendName)
 
 	ctx := context.WithValue(request.Request.Context(), "operation", "upload")
-	actx := request.Attribute(c.KContext).(*c.Context)
 
 	// check if bucket exist
-	bucketMeta := s.getBucketMeta(ctx, actx.ToJson(), bucketName)
+	bucketMeta := s.getBucketMeta(ctx, bucketName)
 	if bucketMeta == nil {
 		response.WriteError(http.StatusBadRequest, NoSuchBucket.Error())
 		return
@@ -70,7 +68,7 @@ func (s *APIService) ObjectPut(request *restful.Request, response *restful.Respo
 
 	if backendName != "" {
 		// check if backend exist
-		if s.isBackendExist(ctx, actx.ToJson(), backendName) == false {
+		if s.isBackendExist(ctx, backendName) == false {
 			response.WriteError(http.StatusBadRequest, NoSuchBackend.Error())
 		}
 		object.Location = backendName

@@ -6,9 +6,8 @@ import (
 	osdss3 "github.com/opensds/multi-cloud/yigs3/proto"
 )
 
-func OsdsS3CopyObj(ctx context.Context, s3client osdss3.S3Service, obj *osdss3.Object, actx, dstBucket string) error {
+func OsdsS3CopyObj(ctx context.Context, s3client osdss3.S3Service, obj *osdss3.Object, dstBucket string) error {
 	req := osdss3.CopyObjectRequest{
-		Context: actx,
 		SrcBucket: obj.BucketName,
 		ObjKey: obj.ObjectKey,
 		TargetBucket: dstBucket,
@@ -22,9 +21,8 @@ func OsdsS3CopyObj(ctx context.Context, s3client osdss3.S3Service, obj *osdss3.O
 	return err
 }
 
-func OsdsS3DeleteObj(ctx context.Context, s3client osdss3.S3Service, obj *osdss3.Object, actx string) error {
+func OsdsS3DeleteObj(ctx context.Context, s3client osdss3.S3Service, obj *osdss3.Object) error {
 	req := osdss3.DeleteObjectInput{
-		Context: actx,
 		Key: obj.ObjectKey,
 		Bucket: obj.BucketName,
 	}
@@ -33,5 +31,6 @@ func OsdsS3DeleteObj(ctx context.Context, s3client osdss3.S3Service, obj *osdss3
 	if err != nil {
 		log.Logf("delete object based on osds s3 failed, obj=%s, err:%v\n", obj.ObjectKey, err)
 	}
+
 	return nil
 }

@@ -21,10 +21,9 @@ import (
 
 	"github.com/emicklei/go-restful"
 	"github.com/micro/go-log"
-	c "github.com/opensds/multi-cloud/api/pkg/context"
 	"github.com/opensds/multi-cloud/api/pkg/policy"
 	"github.com/opensds/multi-cloud/yigs3/pkg/model"
-	s3 "github.com/opensds/multi-cloud/yigs3/proto"
+	"github.com/opensds/multi-cloud/yigs3/proto"
 	"golang.org/x/net/context"
 )
 
@@ -61,8 +60,7 @@ func (s *APIService) ListBuckets(request *restful.Request, response *restful.Res
 
 	log.Log("Received request for all buckets.")
 	ctx := context.Background()
-	actx := request.Attribute(c.KContext).(*c.Context)
-	res, err := s.s3Client.ListBuckets(ctx, &s3.BaseRequest{Context: actx.ToJson()})
+	res, err := s.s3Client.ListBuckets(ctx, &s3.BaseRequest{})
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, err)
 		return
