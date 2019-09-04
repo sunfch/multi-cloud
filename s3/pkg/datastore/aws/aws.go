@@ -320,7 +320,7 @@ func (ad *AwsAdapter) AbortMultipartUpload(ctx context.Context, multipartUpload 
 	return nil
 }
 
-func (ad *AwsAdapter) Close(ctx context.Context) error {
+func (ad *AwsAdapter) Close() error {
 	// TODO:
 	return nil
 }

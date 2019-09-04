@@ -32,8 +32,8 @@ func (ydf *YigDriverFactory) CreateDriver(backend *backendpb.BackendDetail) (dri
 		return driver.(*storage.YigStorage), nil
 	}
 
-	helper.Logger.Printf(2, "no storage driver for yig endpoint %s", detail.Endpoint)
-	return nil, errors.New(fmt.Sprintf("no storage driver for yig endpoint: %s", detail.Endpoint))
+	helper.Logger.Printf(2, "no storage driver for yig endpoint %s", backend.Endpoint)
+	return nil, errors.New(fmt.Sprintf("no storage driver for yig endpoint: %s", backend.Endpoint))
 }
 
 func (ydf *YigDriverFactory) Init() error {
