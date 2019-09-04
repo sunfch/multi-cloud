@@ -73,11 +73,19 @@ func (ydf *YigDriverFactory) Init() error {
 }
 
 func (ydf *YigDriverFactory) Close() {
+	var keys []interface{}
+	// close the drivers
 	ydf.Drivers.Range(func(k, v interface{}) bool {
 		drv := v.(*storage.YigStorage)
 		drv.Close()
+		keys = append(keys, k)
 		return true
 	})
+
+	// remove the drivers
+	for _, k := range keys {
+		ydf.Drivers.Delete(k)
+	}
 
 	ydf.logfile.Close()
 }

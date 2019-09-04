@@ -65,7 +65,7 @@ func (lc LogConfig) Parse(vals map[string]interface{}) error {
 		lc.Path = p.(string)
 	}
 	if l, ok := vals["log_level"]; ok {
-		lc.Level = l.(int)
+		lc.Level = int(l.(int64))
 	}
 	return nil
 }
@@ -97,7 +97,7 @@ type CacheConfig struct {
 
 func (cc CacheConfig) Parse(vals map[string]interface{}) error {
 	if m, ok := vals["redis_mode"]; ok {
-		cc.Mode = m.(int)
+		cc.Mode = int(m.(int64))
 	}
 	if n, ok := vals["redis_nodes"]; ok {
 		nodes := n.(string)
@@ -113,22 +113,22 @@ func (cc CacheConfig) Parse(vals map[string]interface{}) error {
 		cc.Password = password.(string)
 	}
 	if ct, ok := vals["redis_connect_timeout"]; ok {
-		cc.ConnectionTimeout = ct.(int)
+		cc.ConnectionTimeout = int(ct.(int64))
 	}
 	if rt, ok := vals["redis_read_timeout"]; ok {
-		cc.ReadTimeout = rt.(int)
+		cc.ReadTimeout = int(rt.(int64))
 	}
 	if wt, ok := vals["redis_write_timeout"]; ok {
-		cc.WriteTimeout = wt.(int)
+		cc.WriteTimeout = int(wt.(int64))
 	}
 	if ka, ok := vals["redis_keepalive"]; ok {
-		cc.KeepAlive = ka.(int)
+		cc.KeepAlive = int(ka.(int64))
 	}
 	if pa, ok := vals["redis_pool_max_idle"]; ok {
-		cc.PoolMaxIdle = pa.(int)
+		cc.PoolMaxIdle = int(pa.(int64))
 	}
 	if pt, ok := vals["redis_pool_idle_timeout"]; ok {
-		cc.PoolIdleTimeout = pt.(int)
+		cc.PoolIdleTimeout = int(pt.(int64))
 	}
 
 	return nil

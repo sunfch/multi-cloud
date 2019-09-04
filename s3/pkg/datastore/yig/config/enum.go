@@ -11,7 +11,7 @@ type FuncConfigParse func(config *Config) error
 
 func ReadCommonConfig(dir string) (*CommonConfig, error) {
 	viper.AddConfigPath(dir)
-	viper.SetConfigName("common.toml")
+	viper.SetConfigName("common")
 	err := viper.ReadInConfig()
 	if err != nil {
 		return nil, err
@@ -33,8 +33,11 @@ func ReadConfigs(dir string, funcConfigParse FuncConfigParse) error {
 			return nil
 		}
 
-		viper.AddConfigPath(path)
-		viper.SetConfigName(info.Name())
+		if info.Name() == "common.toml" {
+			return nil
+		}
+
+		viper.SetConfigFile(path)
 		err = viper.ReadInConfig()
 		if err != nil {
 			return err
