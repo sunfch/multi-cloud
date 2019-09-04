@@ -17,20 +17,33 @@ package s3
 import (
 	"encoding/xml"
 	"net/http"
+	"strings"
 	"time"
 
 	c "github.com/opensds/multi-cloud/api/pkg/context"
 	"github.com/emicklei/go-restful"
 	"github.com/micro/go-log"
 	. "github.com/opensds/multi-cloud/yigs3/pkg/exception"
+	"github.com/opensds/multi-cloud/yigs3/pkg/iam/common"
 	"github.com/opensds/multi-cloud/yigs3/pkg/model"
 	"github.com/opensds/multi-cloud/yigs3/proto"
 	"golang.org/x/net/context"
+	//"github.com/opensds/multi-cloud/yigs3/pkg/error"
 )
 
 func (s *APIService) BucketPut(request *restful.Request, response *restful.Response) {
-	bucketName := request.PathParameter("bucketName")
+	bucketName := strings.ToLower(request.PathParameter("bucketName"))
+	if !isValidBucketName(bucketName) {
+		//WriteErrorResponse(response, request, error.ErrInvalidBucketName)
+		return
+	}
 	log.Logf("received request: PUT bucket[name=%s]\n", bucketName)
+
+	if len(request.Request.Header.Get("Content-Length")) == 0 {
+		log.Logf("Content Length is null!")
+		//WriteErrorResponse(response, request, error.ErrInvalidHeader)
+		return
+	}
 
 	actx := request.Attribute(c.KContext).(*c.Context)
 	bucket := s3.Bucket{Name: bucketName}
@@ -64,6 +77,8 @@ func (s *APIService) BucketPut(request *restful.Request, response *restful.Respo
 	}
 
 	ctx := context.Background()
+	credential := common.Credential{UserId:bucket.OwnerId}
+	ctx = context.WithValue(ctx, RequestContextKey, RequestContext{Credential: &credential})
 	res, err := s.s3Client.CreateBucket(ctx, &bucket)
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, err)
