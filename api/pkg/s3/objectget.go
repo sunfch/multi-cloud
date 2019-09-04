@@ -15,19 +15,13 @@
 package s3
 
 import (
-	"bytes"
-	"net/http"
-	"strconv"
-	"strings"
-
-	"github.com/opensds/multi-cloud/api/pkg/s3/datastore"
-
 	"github.com/emicklei/go-restful"
 	"github.com/micro/go-log"
-
+	/*c "github.com/opensds/multi-cloud/api/pkg/context"
 	. "github.com/opensds/multi-cloud/s3/pkg/exception"
 	s3 "github.com/opensds/multi-cloud/s3/proto"
 	"golang.org/x/net/context"
+	*/
 )
 
 //ObjectGet -
@@ -36,7 +30,9 @@ func (s *APIService) ObjectGet(request *restful.Request, response *restful.Respo
 	objectKey := request.PathParameter("objectKey")
 	rangestr := request.HeaderParameter("Range")
 	log.Logf("%v\n", rangestr)
+/*
 	ctx := context.WithValue(request.Request.Context(), "operation", "download")
+	actx := request.Attribute(c.KContext).(*c.Context)
 	start := 0
 	end := 0
 	if rangestr != "" {
@@ -48,7 +44,7 @@ func (s *APIService) ObjectGet(request *restful.Request, response *restful.Respo
 	}
 	log.Logf("Received request for create bucket: %s", bucketName)
 	object := s3.Object{}
-	objectInput := s3.GetObjectInput{Bucket: bucketName, Key: objectKey}
+	objectInput := s3.GetObjectInput{Context: actx.ToJson(), Bucket: bucketName, Key: objectKey}
 	log.Logf("enter the s3Client download method")
 	objectMD, _ := s.s3Client.GetObject(ctx, &objectInput)
 	log.Logf("out the s3Client download method")
@@ -84,4 +80,6 @@ func (s *APIService) ObjectGet(request *restful.Request, response *restful.Respo
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(body)
 	response.Write(buf.Bytes())
+	*/
+	log.Logf("Init multipart upload[bucketName=%s, objectKey=%s] successfully.\n", bucketName, objectKey)
 }

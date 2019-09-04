@@ -23,6 +23,7 @@ func (s *APIService) RouteBucketPut(request *restful.Request, response *restful.
 	if !policy.Authorize(request, response, "bucket:put") {
 		return
 	}
+
 	if IsQuery(request, "acl") {
 		//TODO
 	} else if IsQuery(request, "versioning") {
@@ -37,7 +38,6 @@ func (s *APIService) RouteBucketPut(request *restful.Request, response *restful.
 
 	} else if IsQuery(request, "lifecycle") {
 		s.BucketLifecyclePut(request, response)
-
 	} else {
 		s.BucketPut(request, response)
 	}

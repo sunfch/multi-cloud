@@ -22,7 +22,7 @@ import (
 	"github.com/micro/go-log"
 	"github.com/opensds/multi-cloud/api/pkg/policy"
 	"github.com/opensds/multi-cloud/s3/pkg/model"
-	s3 "github.com/opensds/multi-cloud/s3/proto"
+	"github.com/opensds/multi-cloud/s3/proto"
 	"golang.org/x/net/context"
 )
 
@@ -31,11 +31,9 @@ func (s *APIService) GetStorageClasses(request *restful.Request, response *restf
 		return
 	}
 
-	ctx := context.Background()
-	//TODO owner
-	owner := "test"
 	log.Log("Received request for storage classes.")
-	res, err := s.s3Client.GetStorageClasses(ctx, &s3.BaseRequest{Id: owner})
+	ctx := context.Background()
+	res, err := s.s3Client.GetStorageClasses(ctx, &s3.BaseRequest{})
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, err)
 		return

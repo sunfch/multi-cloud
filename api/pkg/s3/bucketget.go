@@ -68,15 +68,15 @@ func checkObjKeyFilter(val string) (string, error) {
 }
 
 func (s *APIService) BucketGet(request *restful.Request, response *restful.Response) {
+	bucketName := request.PathParameter("bucketName")
+	log.Logf("Received request for bucket details: %s\n", bucketName)
+
 	limit, offset, err := common.GetPaginationParam(request)
 	if err != nil {
 		log.Logf("get pagination parameters failed: %v\n", err)
 		response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
-
-	bucketName := request.PathParameter("bucketName")
-	log.Logf("Received request for bucket details: %s\n", bucketName)
 
 	filterOpts := []string{common.KObjKey, common.KLastModified}
 	filter, err := common.GetFilter(request, filterOpts)
@@ -90,12 +90,12 @@ func (s *APIService) BucketGet(request *restful.Request, response *restful.Respo
 	}
 
 	if filter[common.KObjKey] != "" {
-		//filter[common.KObjKey] should be like: like:parttern
+		// filter[common.KObjKey] should be like: like:parttern
 		ret, err := checkObjKeyFilter(filter[common.KObjKey])
 		if err != nil {
-			log.Logf("invalid objkey:%s\v", filter[common.KObjKey])
+			log.Logf("invalid objkey filter:%s\v", filter[common.KObjKey])
 			response.WriteError(http.StatusBadRequest,
-				fmt.Errorf("invalid objkey, it should be like objkey=like:parttern"))
+				fmt.Errorf("invalid objkey filter, it should be like objkey=like:parttern"))
 			return
 		}
 		filter[common.KObjKey] = ret

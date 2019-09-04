@@ -1,18 +1,14 @@
 package s3
 
 import (
-	"context"
-	"encoding/xml"
-	"net/http"
 	"strconv"
-	"time"
-
-	"github.com/opensds/multi-cloud/api/pkg/s3/datastore"
 
 	"github.com/emicklei/go-restful"
 	"github.com/micro/go-log"
+	/*c "github.com/opensds/multi-cloud/api/pkg/context"
 	. "github.com/opensds/multi-cloud/s3/pkg/exception"
 	s3 "github.com/opensds/multi-cloud/s3/proto"
+	*/
 )
 
 func (s *APIService) UploadPart(request *restful.Request, response *restful.Response) {
@@ -20,12 +16,13 @@ func (s *APIService) UploadPart(request *restful.Request, response *restful.Resp
 	objectKey := request.PathParameter("objectKey")
 	contentLenght := request.HeaderParameter("content-length")
 	size, _ := strconv.ParseInt(contentLenght, 10, 64)
-
 	uploadId := request.QueryParameter("uploadId")
 	partNumber := request.QueryParameter("partNumber")
 	partNumberInt, _ := strconv.ParseInt(partNumber, 10, 64)
-	ctx := context.WithValue(request.Request.Context(), "operation", "multipartupload")
-	objectInput := s3.GetObjectInput{Bucket: bucketName, Key: objectKey}
+
+/*	ctx := context.WithValue(request.Request.Context(), "operation", "multipartupload")
+	actx := request.Attribute(c.KContext).(*c.Context)
+	objectInput := s3.GetObjectInput{Context:actx.ToJson(), Bucket: bucketName, Key: objectKey}
 	objectMD, _ := s.s3Client.GetObject(ctx, &objectInput)
 	lastModified := time.Now().Unix()
 	object := s3.Object{}
@@ -89,6 +86,7 @@ func (s *APIService) UploadPart(request *restful.Request, response *restful.Resp
 	xmlstring = []byte(xml.Header + string(xmlstring))
 	log.Logf("resp:\n%s", xmlstring)
 	response.Write(xmlstring)
-
-	log.Log("Uploadpart successfully.")
+*/
+	log.Logf("Init multipart upload[bucketName=%s, objectKey=%s, uploadId=%s, size=%d, partNumber=%s] successfully.\n",
+		bucketName, objectKey, uploadId, size, partNumberInt)
 }

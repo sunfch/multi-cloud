@@ -21,7 +21,7 @@ import (
 
 	"github.com/micro/go-log"
 	"github.com/opensds/multi-cloud/datamover/proto"
-	osdss3 "github.com/opensds/multi-cloud/yigs3/proto"
+	osdss3 "github.com/opensds/multi-cloud/s3/proto"
 	. "github.com/opensds/multi-cloud/datamover/pkg/utils"
 )
 

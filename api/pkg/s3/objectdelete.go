@@ -15,29 +15,22 @@
 package s3
 
 import (
-	"net/http"
-	"strings"
-
 	"github.com/emicklei/go-restful"
 	"github.com/micro/go-log"
-	. "github.com/opensds/multi-cloud/s3/pkg/exception"
-	"github.com/opensds/multi-cloud/s3/proto"
-	"golang.org/x/net/context"
-
-
 )
 
 func (s *APIService) ObjectDelete(request *restful.Request, response *restful.Response) {
-	url := request.Request.URL
-	log.Logf("URL is %v", request.Request.URL.String())
-	bucketName := request.PathParameter("bucketName")
+	//url := request.Request.URL
+	log.Logf("DELETE object, URL is %v", request.Request.URL.String())
+	/*bucketName := request.PathParameter("bucketName")
 	objectKey := request.PathParameter("objectKey")
 	if strings.HasSuffix(url.String(), "/") {
 		objectKey = objectKey + "/"
 	}
 	deleteInput := s3.DeleteObjectInput{Key: objectKey, Bucket: bucketName}
 	ctx := context.Background()
-	objectInput := s3.GetObjectInput{Bucket: bucketName, Key: objectKey}
+	actx := request.Attribute(c.KContext).(*c.Context)
+	objectInput := s3.GetObjectInput{Context: actx.ToJson(), Bucket: bucketName, Key: objectKey}
 	objectMD, _ := s.s3Client.GetObject(ctx, &objectInput)
 	if objectMD != nil {
 		client := getBackendByName(s, objectMD.Backend)
@@ -57,5 +50,7 @@ func (s *APIService) ObjectDelete(request *restful.Request, response *restful.Re
 	} else {
 		log.Logf("No such object")
 		return
-	}
+	}*/
+
+
 }

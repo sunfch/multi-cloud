@@ -23,11 +23,10 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/micro/go-log"
 	"github.com/micro/go-micro/client"
-	c "github.com/opensds/multi-cloud/api/pkg/context"
-	"github.com/opensds/multi-cloud/api/pkg/s3/datastore"
-	backend "github.com/opensds/multi-cloud/backend/proto"
+	"github.com/opensds/multi-cloud/backend/proto"
 	backendpb "github.com/opensds/multi-cloud/backend/proto"
-	s3 "github.com/opensds/multi-cloud/s3/proto"
+	"github.com/opensds/multi-cloud/s3/proto"
+	//"net/http"
 )
 
 const (
@@ -74,10 +73,13 @@ func ReadBody(r *restful.Request) []byte {
 	return b
 }
 
-func getBackendClient(s *APIService, bucketName string) datastore.DataStoreAdapter {
-	ctx := context.Background()
+/*func getBackendClient(s *APIService, bucketName string) datastore.DataStoreAdapter {
 	log.Logf("bucketName is %v:\n", bucketName)
-	bucket, err := s.s3Client.GetBucket(ctx, &s3.Bucket{Name: bucketName})
+
+	ctx := context.Background()
+	bucket, err := s.s3Client.GetBucket(ctx, &s3.CommonRequest{
+		Context: c.NewAdminContext().ToJson(),
+		Id: bucketName})
 	if err != nil {
 		return nil
 	}
@@ -98,11 +100,42 @@ func getBackendClient(s *APIService, bucketName string) datastore.DataStoreAdapt
 	client, _ := datastore.Init(backend)
 	return client
 }
+*/
 
-func getBackendByName(s *APIService, backendName string) datastore.DataStoreAdapter {
+func (s *APIService) getBucketMeta(ctx context.Context, bucketName string) *s3.Bucket {
+	bucket, err := s.s3Client.HeadBucket(ctx, &s3.BaseRequest{Id: bucketName})
+	if err != nil {
+		log.Logf("get bucket[name=%s] failed, err=%v.\n", bucketName, err)
+		return nil
+	}
+
+	return bucket
+}
+
+func (s *APIService) isBackendExist(ctx context.Context, backendName string) bool {
+	flag := false
+
+	backendRep, backendErr := s.backendClient.ListBackend(ctx, &backendpb.ListBackendRequest{
+		Offset:  0,
+		Limit:   math.MaxInt32,
+		Filter:  map[string]string{"name": backendName}})
+	log.Logf("backendErr is %v:", backendErr)
+	if backendErr != nil {
+		log.Logf("Get backend[name=%s] failed.", backendName)
+	} else {
+		if len(backendRep.Backends) > 0 {
+			log.Logf("backend[name=%s] exist.", backendName)
+			flag = true
+		}
+	}
+
+	return flag
+}
+
+/*func getBackendByName(s *APIService, backendName, actx string) datastore.DataStoreAdapter {
 	ctx := context.Background()
 	backendRep, backendErr := s.backendClient.ListBackend(ctx, &backendpb.ListBackendRequest{
-		Context: c.NewAdminContext().ToJson(),
+		Context: actx,
 		Offset:  0,
 		Limit:   math.MaxInt32,
 		Filter:  map[string]string{"name": backendName}})
@@ -116,11 +149,11 @@ func getBackendByName(s *APIService, backendName string) datastore.DataStoreAdap
 	client, _ := datastore.Init(backend)
 	return client
 }
+*/
 
 func getBucketNameByBackend(s *APIService, backendName string) string {
 	ctx := context.Background()
 	backendRep, backendErr := s.backendClient.ListBackend(ctx, &backendpb.ListBackendRequest{
-	        Context: c.NewAdminContext().ToJson(),
 		Offset: 0,
 		Limit:  math.MaxInt32,
 		Filter: map[string]string{"name": backendName}})

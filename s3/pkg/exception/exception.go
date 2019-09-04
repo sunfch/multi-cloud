@@ -24,7 +24,7 @@ type S3Error struct {
 	Description string
 }
 
-func (err S3Error) Error() error {
+func (err *S3Error) Error() error {
 	s := fmt.Sprintf("{\"code\":\"%d\",\"message\":\"%s\"}", err.Code, err.Description)
 	return errors.New(s)
 }
@@ -39,9 +39,9 @@ var BucketAlreadyExists = S3Error{Code: 409, Description: "The requested bucket 
 
 var NoSuchBackend = S3Error{Code: 404, Description: "The specified backend does not exists."}
 var NoSuchType = S3Error{Code: 404, Description: "The specified backend type does not exists."}
-var BucketDeleteError = S3Error{Code: 500, Description: "The bucket can not be deleted. please delete object first"}
+var BucketDeleteError = S3Error{Code: 500, Description: "The bucket with objects can not be deleted, please delete objects first."}
 var BackendDeleteError = S3Error{Code: 500, Description: "The backend can not be deleted. please delete bucket first"}
 
-var InvalidQueryParameter = S3Error{Code: 400, Description: "invalid query parameter"}
+var InvalidQueryParameter = S3Error{Code:400, Description:"invalid query parameter"}
 var InvalidStorageClass = S3Error{Code: 400, Description: "the storage class you specified is not valid"}
-var BadRequest = S3Error{Code: 400, Description: "request is invalid"}
+var BadRequest = S3Error{Code:400, Description:"request is invalid"}

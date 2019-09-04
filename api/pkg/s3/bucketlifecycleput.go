@@ -19,16 +19,14 @@ import (
 	"encoding/xml"
 	"fmt"
 	"net/http"
-
-	//"sort"
 	"strings"
 	"sync"
 
-	. "github.com/opensds/multi-cloud/api/pkg/utils/constants"
-
+	"encoding/json"
 	"github.com/emicklei/go-restful"
 	"github.com/micro/go-log"
-
+	. "github.com/opensds/multi-cloud/api/pkg/utils/constants"
+	. "github.com/opensds/multi-cloud/s3/pkg/exception"
 	"github.com/opensds/multi-cloud/s3/pkg/model"
 	"github.com/opensds/multi-cloud/s3/proto"
 	"golang.org/x/net/context"
@@ -118,8 +116,9 @@ func checkValidationOfActions(actions []*s3.Action) error {
 func (s *APIService) BucketLifecyclePut(request *restful.Request, response *restful.Response) {
 	bucketName := request.PathParameter("bucketName")
 	log.Logf("received request for create bucket lifecycle: %s", bucketName)
+
 	ctx := context.Background()
-	bucket, _ := s.s3Client.GetBucket(ctx, &s3.Bucket{Name: bucketName})
+	bucket, _ := s.s3Client.GetBucket(ctx, &s3.BaseRequest{Id: bucketName})
 	body := ReadBody(request)
 	log.Logf("MD5 sum for body is %x", md5.Sum(body))
 
@@ -131,7 +130,7 @@ func (s *APIService) BucketLifecyclePut(request *restful.Request, response *rest
 			return
 		} else {
 			dupIdCheck := make(map[string]interface{})
-			s3RulePtrArr := make([]*s3.LifecycleRule, 0)
+			s3RuleArr := make([]s3.LifecycleRule, 0)
 			for _, rule := range createLifecycleConf.Rule {
 				s3Rule := s3.LifecycleRule{}
 
@@ -200,14 +199,20 @@ func (s *APIService) BucketLifecyclePut(request *restful.Request, response *rest
 				s3Rule.AbortIncompleteMultipartUpload = convertRuleUploadToS3Upload(rule.AbortIncompleteMultipartUpload)
 
 				// add to the s3 array
-				s3RulePtrArr = append(s3RulePtrArr, &s3Rule)
+				s3RuleArr = append(s3RuleArr, s3Rule)
 			}
 			// assign lifecycle rules to s3 bucket
-			bucket.LifecycleConfiguration = s3RulePtrArr
+			lifecycldStr, err := json.Marshal(s3RuleArr)
+			if err != nil {
+				log.Logf("marshal s3RuleArr[%v] failed, err=%v\n", s3RuleArr, err)
+				response.WriteError(http.StatusInternalServerError, err)
+			} else {
+				bucket.LifeCycle = string(lifecycldStr)
+			}
 		}
 	} else {
 		log.Log("no request body provided for creating lifecycle configuration")
-		response.WriteError(http.StatusBadRequest, fmt.Errorf(NoRequestBodyLifecycle))
+		response.WriteError(http.StatusInternalServerError, InternalError.Error())
 		return
 	}
 

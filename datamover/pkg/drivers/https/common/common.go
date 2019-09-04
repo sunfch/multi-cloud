@@ -3,7 +3,7 @@ package common
 import (
 	"context"
 	"github.com/micro/go-log"
-	osdss3 "github.com/opensds/multi-cloud/yigs3/proto"
+	osdss3 "github.com/opensds/multi-cloud/s3/proto"
 )
 
 func OsdsS3CopyObj(ctx context.Context, s3client osdss3.S3Service, obj *osdss3.Object, dstBucket string) error {

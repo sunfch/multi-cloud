@@ -22,19 +22,21 @@ import (
 	. "github.com/opensds/multi-cloud/s3/pkg/exception"
 	"github.com/opensds/multi-cloud/s3/proto"
 	"golang.org/x/net/context"
-	//	"github.com/micro/go-micro/errors"
 )
 
 func (s *APIService) BucketDelete(request *restful.Request, response *restful.Response) {
 	bucketName := request.PathParameter("bucketName")
-	ctx := context.Background()
-	log.Logf("Received request for bucket details: %s", bucketName)
-	res, err := s.s3Client.ListObjects(ctx, &s3.ListObjectsRequest{Bucket: bucketName})
+	log.Logf("Received request for deleting bucket[name=%s].\n", bucketName)
 
+	ctx := context.Background()
+	// Check if objects exist in the bucket, if yes then bucket cannot be deleted.
+	res, err := s.s3Client.ListObjects(ctx, &s3.ListObjectsRequest{Bucket: bucketName})
 	if err != nil {
+		log.Logf("list objects of bucket[name=%s] before deleting it failed, err=%v\n", bucketName, err)
 		response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
+
 	if len(res.ListObjects) == 0 {
 		res1, err1 := s.s3Client.DeleteBucket(ctx, &s3.Bucket{Name: bucketName})
 		if err1 != nil {
@@ -44,8 +46,7 @@ func (s *APIService) BucketDelete(request *restful.Request, response *restful.Re
 		log.Log("Delete bucket successfully.")
 		response.WriteEntity(res1)
 	} else {
-		log.Log("The bucket can not be deleted. please delete objects first.\n")
+		log.Log("The bucket can not be deleted, please delete objects first.\n")
 		response.WriteError(http.StatusInternalServerError, BucketDeleteError.Error())
 	}
-
 }

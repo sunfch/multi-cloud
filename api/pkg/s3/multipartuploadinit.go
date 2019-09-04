@@ -15,32 +15,30 @@
 package s3
 
 import (
-	"net/http"
-	"time"
-
-	"encoding/xml"
-
 	"github.com/emicklei/go-restful"
 	"github.com/micro/go-log"
-	"github.com/opensds/multi-cloud/api/pkg/s3/datastore"
+
+/*	c "github.com/opensds/multi-cloud/api/pkg/context"
 	. "github.com/opensds/multi-cloud/s3/pkg/exception"
 	"github.com/opensds/multi-cloud/s3/pkg/model"
 	"github.com/opensds/multi-cloud/s3/pkg/utils"
 	s3 "github.com/opensds/multi-cloud/s3/proto"
 	"golang.org/x/net/context"
 	"github.com/opensds/multi-cloud/api/pkg/utils/constants"
+*/
 )
 
 //ObjectPut -
 func (s *APIService) MultiPartUploadInit(request *restful.Request, response *restful.Response) {
 	bucketName := request.PathParameter("bucketName")
 	objectKey := request.PathParameter("objectKey")
-	//assign backend
+/*	//assign backend
 	backendName := request.HeaderParameter("x-amz-storage-class")
-	log.Logf("backendName is %v\n", backendName)
-	ctx := context.WithValue(request.Request.Context(), "operation", "multipartupload")
+	log.Logf("Received request for create bucket: name=%s, backend=%s", bucketName, backendName)
 
-	log.Logf("Received request for create bucket: %s", bucketName)
+	ctx := context.WithValue(request.Request.Context(), "operation", "multipartupload")
+	actx := request.Attribute(c.KContext).(*c.Context)
+
 	size := 0
 	object := s3.Object{}
 	object.ObjectKey = objectKey
@@ -54,7 +52,7 @@ func (s *APIService) MultiPartUploadInit(request *restful.Request, response *res
 		object.Backend = backendName
 		client = getBackendByName(s, backendName)
 	} else {
-		bucket, _ := s.s3Client.GetBucket(ctx, &s3.Bucket{Name: bucketName})
+		bucket, _ := s.s3Client.GetBucket(ctx, &s3.CommonRequest{Context: actx.ToJson(), Id: bucketName})
 		object.Backend = bucket.Backend
 		client = getBackendClient(s, bucketName)
 	}
@@ -134,5 +132,7 @@ func (s *APIService) MultiPartUploadInit(request *restful.Request, response *res
 	xmlstring = []byte(xml.Header + string(xmlstring))
 	log.Logf("resp:\n%s", xmlstring)
 	response.Write(xmlstring)
-	log.Log("Uploadpart successfully.")
+*/
+	log.Logf("Init multipart upload[bucketName=%s, objectKey=%s] successfully.\n",
+		bucketName, objectKey)
 }

@@ -1,13 +1,15 @@
 syntax = "proto3";
 
 service S3 {
+	// TODO: Redefine parameters
 	rpc ListBuckets(BaseRequest) returns (ListBucketsResponse) {}
 	rpc CreateBucket(Bucket) returns (BaseResponse) {}
 	rpc DeleteBucket(Bucket) returns (BaseResponse) {}
-	rpc GetBucket(Bucket) returns (Bucket) {}
+	rpc GetBucket(BaseRequest) returns (Bucket) {}
 	rpc ListObjects(ListObjectsRequest) returns (ListObjectResponse) {}
 	rpc CountObjects(ListObjectsRequest) returns (CountObjectsResponse) {}
-	rpc CreateObject(Object) returns (BaseResponse) {}
+	//rpc CreateObject(Object) returns (BaseResponse) {}
+	rpc PutObject(PutObjectRequest) returns (BaseResponse) {}
 	rpc UpdateObject(Object) returns (BaseResponse) {}
 	rpc GetObject(GetObjectInput) returns (Object) {}
 	rpc DeleteObject(DeleteObjectInput) returns (BaseResponse) {}
@@ -17,9 +19,111 @@ service S3 {
 	rpc GetBackendTypeByTier(GetBackendTypeByTierRequest) returns (GetBackendTypeByTierResponse) {}
 	rpc DeleteBucketLifecycle(DeleteLifecycleInput) returns (BaseResponse) {}
 	rpc UpdateBucket(Bucket) returns (BaseResponse) {}
+	rpc ListBucketUploadRecords(ListBucketPartsRequest) returns (ListBucketPartsResponse) {}
+
+	rpc InitMultipartUpload(BaseRequest) returns (BaseResponse) {}
+	rpc AbortMultipartUpload(BaseRequest) returns (BaseResponse) {}
+	rpc CompleteMultipartUpload(BaseRequest) returns (BaseResponse) {}
+	rpc UploadPart(BaseRequest) returns (BaseResponse) {}
+	rpc ListObjectParts(BaseRequest) returns (BaseResponse) {}
+	rpc AppendObject(BaseRequest) returns (BaseResponse) {}
+	rpc PostObject(BaseRequest) returns (BaseResponse) {}
+
+	// For lifecycle, may need some change.
 	rpc AddUploadRecord(MultipartUploadRecord) returns (BaseResponse) {}
 	rpc DeleteUploadRecord(MultipartUploadRecord) returns (BaseResponse) {}
-	rpc ListUploadRecord(ListMultipartUploadRequest) returns (ListMultipartUploadResponse) {}
+
+	rpc HeadObject(BaseObjRequest) returns (Object) {}
+	rpc CopyObject(CopyObjectRequest) returns (BaseResponse) {}
+	rpc CopyObjPart(CopyObjPartRequest) returns (CopyObjPartResponse) {}
+	rpc PutObjACL(PutObjACLRequest) returns (BaseResponse) {}
+	rpc GetObjACL(BaseObjRequest) returns (ObjACL) {}
+	rpc GetBucketLocation(BaseRequest) returns (BaseResponse) {}
+	rpc GetBucketVersioning(BaseBucketRequest) returns (BucketVersioning) {}
+	rpc PutBucketVersioning(PutBucketVersioningRequest) returns (BaseResponse) {}
+	rpc PutBucketACL(PutBucketACLRequest) returns (BaseResponse) {}
+	rpc GetBucketACL(BaseBucketRequest) returns (BucketACL) {}
+	rpc PutBucketCORS(BaseRequest) returns (BaseResponse) {}
+	rpc GetBucketCORS(BaseRequest) returns (BaseResponse) {}
+	rpc DeleteBucketCORS(BaseRequest) returns (BaseResponse) {}
+	rpc PutBucketPolicy(BaseRequest) returns (BaseResponse) {}
+	rpc GetBucketPolicy(BaseRequest) returns (BaseResponse) {}
+	rpc DeleteBucketPolicy(BaseRequest) returns (BaseResponse) {}
+	rpc HeadBucket(BaseRequest) returns (Bucket) {}
+}
+
+message CopyObjectRequest {
+	string Context = 1; // if no context provided, then owner of the target object will keep the same as source object
+	string objKey = 2;
+	string srcBucket = 3;
+	string targetBucket = 4;
+	string targetBackend = 5;
+	int32  targetTier = 6;
+}
+
+message PutObjectRequest {
+	Object meta = 1;
+	bytes data = 2; // TODO: ???????
+}
+
+message PutBucketVersioningRequest {
+	string Context = 1;
+	string Status = 2;
+}
+
+message PutBucketACLRequest {
+	string Context = 1;
+	BucketACL ACLConfig = 2;
+}
+
+message BucketACL {
+	string BucketName = 1;
+	string ACL = 2;
+	// TODO: Redefine parameters if required.
+}
+
+message BucketVersioning {
+	string Status = 1;
+}
+
+message BaseBucketRequest {
+	string Context = 1;
+	string BucketName = 2;
+}
+
+message BaseObjRequest {
+	string Context = 1;
+	string BucketName = 2;
+	string ObjectKey = 3;
+}
+
+message PutObjACLRequest {
+	string Context = 1;
+	ObjACL ACLConfig = 2;
+}
+
+message ObjACL {
+	string BucketName = 1;
+	string ObjectKey = 2;
+	string ACL = 3;
+	// TODO: Redfine parameters if required.
+}
+
+message CopyObjPartRequest {
+	string Context = 1;
+	string SourceBucket = 2;
+	string SourceObj = 3;
+	string TargetBucket = 4;
+	string TargetObject = 5;
+	string UploadID = 6;
+	string PartID = 7;
+	// TODO: Add more parameters
+}
+
+message CopyObjPartResponse {
+	string Context = 1;
+	string LastModified = 2;
+	string Etag = 3;
 }
 
 message ServerSideEncryption {
@@ -136,26 +240,28 @@ message ReplicationInfo {
 }
 
 message Bucket {
-	string name = 1;
-	string ownerID = 2;
-	string ownerDisplayName = 3;
-	string acl = 4;
-    int64 creationDate = 5;
-	bool transient = 6;
-	bool deleted = 7;
-	ServerSideEncryption serverSideEncryption = 8;
-	VersioningConfiguration versioningConfiguration = 9;
-	string backend = 10;
-	WebsiteConfiguration websiteConfiguration = 11;
-	CORSConfiguration cors = 12;
-	ReplicationConfiguration replicationConfiguration = 13;
-	repeated LifecycleRule lifecycleConfiguration = 14;
-	string bucketPolicy = 15;
+	string id = 1;
+	string name = 2;
+	string ownerId = 3;
+	string ownerDisplayName = 4;
+	string cors = 5;
+	string lifeCycle = 6;
+	string acl = 7;
+	string policy = 8;
+	int64 createTime = 9;
+	int64 usages = 10;
+	int32 tier = 11;
+	string versioning = 12;  // Enable, suspend, disable
+	string defaultLocation = 13; // Means backend
+	string replicationConf = 14;
+	string sseConf = 15;
+	string websiteConf = 16;
+	bool deleted = 17;
 }
 
 message Partion {
 	string key = 1;
-	string partNumber = 2;
+	int64 partNumber = 2;
 	int64 size = 3;
 	string etag = 4;
 	int64 lastModified = 5;
@@ -172,31 +278,25 @@ message Version {
 message Object {
 	string objectKey = 1;
 	string bucketName = 2;
-	string owner = 3;
-	string ownerDisplayName = 4;
-	string cacheControl = 5;
-	string contentDisposition = 6;
-	string contentEncoding = 7;
-	string expires = 8;
-	string contentLength = 9;
-	string contentType = 10;
-	string contentMd5 = 11;
-	repeated Version versions = 12;
-	string storageClass = 13;
-	ServerSideEncryption serverSideEncryption = 14;
-	string websiteRedirectLocation = 15;
-	string acl = 16;
-	string backend = 17;
-	string isNull = 18;
-	string isDeleteMarker = 19;
-	repeated ReplicationInfo replicationInfo = 20;
-	int64 size = 21;
-	repeated Partion partions = 22;
-	repeated Tag tags = 23;
-	int64 lastModified = 24;
-	string initFlag = 25;
-	string ETag = 26;
-	int32 tier = 27;
+	string tenantId = 3;
+	string userId = 4;
+	string location = 5;
+	string versionId = 6;
+	int64 size = 7;
+	int64 lastModifiedTime = 8;
+	int32 tier = 9;
+	string storageClass = 10;
+	// For backend of YIG ceph, objectId is random string, for other backends, is the key in the backend related bucket.
+	string objectId = 11;  // id used in backend
+	string etag = 12;
+	string contentType = 13;
+	string acl = 14;
+	bool nullVersion = 15;
+	bool deleteMarker = 16;
+	string sseType = 17;
+	bytes encryptionKey = 18;  // TODO: How to define blob data of TiDB in protobuf??
+	bytes initilizationVector = 19;
+	string customeAttributes = 20;
 }
 
 message ListBucketsResponse {
@@ -209,59 +309,62 @@ message BaseResponse {
 }
 
 message BaseRequest {
-	string Context = 1;
-	string id = 2;
+	string id = 1;
 }
+
+/*message CommonRequest {
+	string context = 1;
+	string id = 2;
+}*/
 
 message ListObjectsRequest {
     // Bucket is a required field
-	string Context = 1;
-    string Bucket = 2;
-    string Delimiter = 3;
-    string Owner = 4;
-	map<string, string> Filter = 5;
-	int32  offset = 6;
-	int32  limit = 7;
+    string bucket = 1;
+    string delimiter = 2;
+	map<string, string> filter = 3;
+	int32  offset = 4;
+	int32  limit = 5;
 }
 
 message ListObjectResponse {
-	repeated Object ListObjects = 1;
+	repeated Object listObjects = 1;
 }
 
 message CountObjectsResponse {
-	int64 Count = 1;
-	int64 Size = 2;
+	int64 count = 1;
+	int64 size = 2;
 }
 
 message DeleteObjectInput {
-    string Bucket = 1;
-    string Key = 2;
-    string Versionid = 3;
-    int64  Lastmodified = 4;
+    string bucket = 1;
+    string key = 2;
+    string versioId = 3;
+    //int64  lastModified = 5;
 }
 
 message GetObjectInput {
-    string Bucket = 1;
-    string Key = 2;
-    string Versionid = 3;
+    string bucket = 1;
+    string key = 2;
+    string versionId = 3;
 }
 
 message MultipartUpload {
-    string Bucket = 1;
-    string Key = 2;
+    string bucket = 1;
+    string key = 2;
     string uploadId = 3;
+	string objectId = 4;  // id used in backend
 }
 
 message ListParts {
-    string Bucket = 1;
-    string Key = 2;
+    string bucket = 1;
+    string key = 2;
     string uploadId = 3;
-    int64	MaxParts = 4;
-    int64	PartNumberMarker = 5;
+    int64  maxParts = 4;
+    int64  partNumberMarker = 5;
 }
 
 message TList {
-	repeated int32 Tier = 1;
+	repeated int32 tier = 1;
 }
 
 message Tier2ClassName {
@@ -269,20 +372,20 @@ message Tier2ClassName {
 }
 
 message GetTierMapResponse {
-	repeated string Transition = 1;  // format:[from:to from:to ....]
-	map<string, Tier2ClassName> Tier2Name = 2;
+	repeated string transition = 1;  // format:[from:to from:to ....]
+	map<string, Tier2ClassName> tier2Name = 2;
 }
 
 message UpdateObjMetaRequest {
-	string ObjKey = 1;
-	string BucketName = 2;
-	int64 LastModified = 3;
-	map<string, string> Setting = 4;
+	string objKey = 1;
+	string bucketName = 2;
+	int64 lastModified = 3;
+	map<string, string> setting = 4;
 }
 
 message StorageClass {
-    string Name = 1;
-    int32  Tier = 2;
+    string name = 1;
+    int32  tier = 2;
 }
 
 message GetStorageClassesResponse {
@@ -290,12 +393,11 @@ message GetStorageClassesResponse {
 }
 
 message GetBackendTypeByTierRequest {
-	string context = 1;
-	int32 Tier = 2;
+	int32 tier = 1;
 }
 
 message GetBackendTypeByTierResponse {
-	repeated string Types = 1;
+	repeated string types = 1;
 }
 
 message DeleteLifecycleInput {
@@ -303,23 +405,23 @@ message DeleteLifecycleInput {
 	string ruleID = 2;
 }
 
+// TODO: Define parameter refer to data body
 message MultipartUploadRecord {
-	string ObjectKey = 1;
-	string Bucket	= 2;
-	string Backend	= 3;
-	string UploadId	= 4;
-	int64 InitTime	= 5;
+	string objectKey = 1;
+	string bucket	= 2;
+	string backend	= 3;
+	string uploadId	= 4;
+	int64 initTime	= 5;
 }
 
-message ListMultipartUploadRequest {
-	string Context = 1;
-	string Bucket = 2;
-	string Prefix = 3;
-	int32  Days = 4;
-	int32  limit = 5;
-	int32  offset = 6;
+message ListBucketPartsRequest {
+	string bucket = 1;
+	string prefix = 2;
+	int32  days = 3;
+	int32  limit = 4;
+	int32  offset = 5;
 }
 
-message ListMultipartUploadResponse {
+message ListBucketPartsResponse {
 	repeated MultipartUploadRecord records = 1;
 }
