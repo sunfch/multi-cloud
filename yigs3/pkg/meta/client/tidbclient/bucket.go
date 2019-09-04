@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	_ "github.com/go-sql-driver/mysql"
-	. "github.com/opensds/multi-cloud/yigs3/pkg/error"
+	. "github.com/opensds/multi-cloud/yigs3/error"
 	"github.com/opensds/multi-cloud/yigs3/pkg/helper"
 	. "github.com/opensds/multi-cloud/yigs3/pkg/meta/types"
 	"strconv"

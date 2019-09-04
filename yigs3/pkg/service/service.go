@@ -27,12 +27,12 @@ import (
 	"github.com/opensds/multi-cloud/yigs3/pkg/meta"
 	"github.com/opensds/multi-cloud/yigs3/pkg/meta/types"
 	"github.com/opensds/multi-cloud/yigs3/pkg/redis"
-	. "github.com/opensds/multi-cloud/yigs3/pkg/error"
+	. "github.com/opensds/multi-cloud/yigs3/error"
 
 	"github.com/opensds/multi-cloud/api/pkg/utils/obs"
 	s3 "github.com/opensds/multi-cloud/api/pkg/yigs3"
 	"github.com/opensds/multi-cloud/yigs3/pkg/db"
-	. "github.com/opensds/multi-cloud/yigs3/pkg/exception"
+	//. "github.com/opensds/multi-cloud/yigs3/pkg/exception"
 	. "github.com/opensds/multi-cloud/yigs3/pkg/utils"
 	pb "github.com/opensds/multi-cloud/yigs3/proto"
 )
@@ -154,11 +154,11 @@ func loadGCPDefault(i2e *map[string]*Int2String, e2i *map[string]*String2Int) {
 func loadCephDefault(i2e *map[string]*Int2String, e2i *map[string]*String2Int) {
 	t2n := make(Int2String)
 	t2n[Tier1] = CEPH_STANDARD
-	//(*i2e)[OSTYPE_CEPTH] = &t2n
+	(*i2e)[OSTYPE_CEPH] = &t2n
 
 	n2t := make(String2Int)
 	n2t[CEPH_STANDARD] = Tier1
-	(*e2i)[OSTYPE_OBS] = &n2t
+	(*e2i)[OSTYPE_CEPH] = &n2t
 }
 
 func loadFusionStroageDefault(i2e *map[string]*Int2String, e2i *map[string]*String2Int) {
@@ -250,7 +250,7 @@ func initStorageClass() {
 		err1 = loadDefaultStorageClass()
 		err2 = loadDefaultTransition()
 	} else {
-		err1 = loadDefaultTransition()
+		err1 = loadUserDefinedStorageClass()
 		err2 = loadUserDefinedTransition()
 	}
 	// Exit if init failed.
@@ -345,7 +345,7 @@ func (b *s3Service) CreateBucket(ctx context.Context, in *pb.Bucket, out *pb.Bas
 }
 
 func (b *s3Service) GetBucket(ctx context.Context, in *pb.BaseRequest, out *pb.Bucket) error {
-	log.Logf("GetBucket %s is called in s3 service.")
+	log.Logf("GetBucket %s is called in s3 service.", in.Id)
 
 	return nil
 }
@@ -557,7 +557,7 @@ func (b *s3Service) HeadBucket(ctx context.Context, in *pb.BaseRequest, out *pb.
 
 func (b *s3Service) UpdateObjMeta(ctx context.Context, in *pb.UpdateObjMetaRequest, out *pb.BaseResponse) error {
 	log.Logf("Update meatadata, objkey:%s, lastmodified:%d, setting:%v\n", in.ObjKey, in.LastModified, in.Setting)
-	valid := make(map[string]struct{})
+	/*valid := make(map[string]struct{})
 	valid["tier"] = struct{}{}
 	valid["backend"] = struct{}{}
 	set, err := CheckReqObjMeta(in.Setting, valid)
@@ -575,11 +575,12 @@ func (b *s3Service) UpdateObjMeta(ctx context.Context, in *pb.UpdateObjMetaReque
 	}
 
 	out.Msg = "update object meta data successfully."
+*/
 	return nil
 }
 
-func CheckReqObjMeta(req map[string]string, valid map[string]struct{}) (map[string]interface{}, S3Error) {
-	ret := make(map[string]interface{})
+func CheckReqObjMeta(req map[string]string, valid map[string]struct{}) (map[string]interface{}, error) {
+/*	ret := make(map[string]interface{})
 	for k, v := range req {
 		if _, ok := valid[k]; !ok {
 			log.Logf("s3 service check object metadata failed, invalid key: %s.\n", k)
@@ -607,6 +608,8 @@ func CheckReqObjMeta(req map[string]string, valid map[string]struct{}) (map[stri
 	}
 
 	return ret, NoError
+*/
+        return nil, nil
 }
 
 func (b *s3Service) GetBackendTypeByTier(ctx context.Context, in *pb.GetBackendTypeByTierRequest, out *pb.GetBackendTypeByTierResponse) error {
@@ -634,12 +637,6 @@ func (b *s3Service) DeleteUploadRecord(ctx context.Context, record *pb.Multipart
 
 	return nil
 }
-
-/*func (b *s3Service) ListUploadRecord(ctx context.Context, in *pb.ListMultipartUploadRequest, out *pb.ListMultipartUploadResponse) error {
-	log.Logf("list multipart upload records")
-
-	return nil
-}*/
 
 func (b *s3Service) CountObjects(ctx context.Context, in *pb.ListObjectsRequest, out *pb.CountObjectsResponse) error {
 	log.Log("Count objects is called in s3 service.")

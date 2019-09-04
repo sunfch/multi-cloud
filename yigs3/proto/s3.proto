@@ -2,7 +2,6 @@ syntax = "proto3";
 
 service S3 {
 	// TODO: Redefine parameters
-
 	rpc ListBuckets(BaseRequest) returns (ListBucketsResponse) {}
 	rpc CreateBucket(Bucket) returns (BaseResponse) {}
 	rpc DeleteBucket(Bucket) returns (BaseResponse) {}

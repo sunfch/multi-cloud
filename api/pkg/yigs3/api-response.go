@@ -23,7 +23,7 @@ import (
 	"time"
 
 	. "github.com/opensds/multi-cloud/api/pkg/yigs3/datatype"
-	. "github.com/opensds/multi-cloud/yigs3/pkg/error"
+	. "github.com/opensds/multi-cloud/yigs3/error"
 	"github.com/opensds/multi-cloud/yigs3/pkg/helper"
 	"github.com/opensds/multi-cloud/yigs3/pkg/iam/common"
 	meta "github.com/opensds/multi-cloud/yigs3/pkg/meta/types"
@@ -234,9 +234,9 @@ func WriteErrorResponseWithResource(w http.ResponseWriter, r *http.Request, err 
 
 func WriteErrorResponseHeaders(w http.ResponseWriter, err error) {
 	var status int
-	apiErrorCode, ok := err.(ApiError)
+	s3ErrorCode, ok := err.(S3Error)
 	if ok {
-		status = apiErrorCode.HttpStatusCode()
+		status = s3ErrorCode.HttpStatusCode()
 	} else {
 		status = http.StatusInternalServerError
 	}
@@ -256,10 +256,10 @@ func WriteErrorResponseNoHeader(w http.ResponseWriter, req *http.Request, err er
 
 	// Generate error response.
 	errorResponse := ApiErrorResponse{}
-	apiErrorCode, ok := err.(ApiError)
+	s3ErrorCode, ok := err.(S3Error)
 	if ok {
-		errorResponse.AwsErrorCode = apiErrorCode.AwsErrorCode()
-		errorResponse.Message = apiErrorCode.Description()
+		errorResponse.AwsErrorCode = s3ErrorCode.AwsErrorCode()
+		errorResponse.Message = s3ErrorCode.Description()
 	} else {
 		errorResponse.AwsErrorCode = "InternalError"
 		errorResponse.Message = "We encountered an internal error, please try again."

@@ -1,7 +1,7 @@
 package datatype
 
 import (
-	. "github.com/opensds/multi-cloud/yigs3/pkg/error"
+	. "github.com/opensds/multi-cloud/yigs3/error"
 	"time"
 )
 

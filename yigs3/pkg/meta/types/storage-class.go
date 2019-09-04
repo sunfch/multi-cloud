@@ -1,7 +1,7 @@
 package types
 
 
-import . "github.com/opensds/multi-cloud/yigs3/pkg/error"
+import . "github.com/opensds/multi-cloud/yigs3/error"
 
 
 type StorageClass uint8

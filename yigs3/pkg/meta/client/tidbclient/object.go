@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
-	. "github.com/opensds/multi-cloud/yigs3/pkg/error"
+	. "github.com/opensds/multi-cloud/yigs3/error"
 	. "github.com/opensds/multi-cloud/yigs3/pkg/meta/types"
 	"github.com/xxtea/xxtea-go/xxtea"
 	"math"

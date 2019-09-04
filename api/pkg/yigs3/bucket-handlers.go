@@ -26,7 +26,7 @@ import (
 
 	"github.com/gorilla/mux"
 	. "github.com/opensds/multi-cloud/api/pkg/yigs3/datatype"
-	. "github.com/opensds/multi-cloud/yigs3/pkg/error"
+	. "github.com/opensds/multi-cloud/yigs3/error"
 	"github.com/opensds/multi-cloud/yigs3/pkg/helper"
 	"github.com/opensds/multi-cloud/yigs3/pkg/iam/common"
 	"github.com/opensds/multi-cloud/yigs3/pkg/signature"
@@ -305,11 +305,11 @@ func (api ObjectAPIHandlers) DeleteMultipleObjectsHandler(w http.ResponseWriter,
 			})
 		} else {
 			helper.ErrorIf(err, "Unable to delete object.")
-			apiErrorCode, ok := err.(ApiErrorCode)
+			s3ErrorCode, ok := err.(S3ErrorCode)
 			if ok {
 				deleteErrors = append(deleteErrors, DeleteError{
-					Code:      ErrorCodeResponse[apiErrorCode].AwsErrorCode,
-					Message:   ErrorCodeResponse[apiErrorCode].Description,
+					Code:      ErrorCodeResponse[s3ErrorCode].AwsErrorCode,
+					Message:   ErrorCodeResponse[s3ErrorCode].Description,
 					Key:       object.ObjectName,
 					VersionId: object.VersionId,
 				})

@@ -28,7 +28,7 @@ import (
 	"github.com/opensds/multi-cloud/yigs3/pkg/model"
 	"github.com/opensds/multi-cloud/yigs3/proto"
 	"golang.org/x/net/context"
-	//"github.com/opensds/multi-cloud/yigs3/pkg/error"
+	//"github.com/opensds/multi-cloud/yigs3/error"
 )
 
 func (s *APIService) BucketPut(request *restful.Request, response *restful.Response) {

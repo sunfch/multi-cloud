@@ -95,6 +95,7 @@ var _ server.Option
 // Client API for S3 service
 
 type S3Service interface {
+	// TODO: Redefine parameters
 	ListBuckets(ctx context.Context, in *BaseRequest, opts ...client.CallOption) (*ListBucketsResponse, error)
 	CreateBucket(ctx context.Context, in *Bucket, opts ...client.CallOption) (*BaseResponse, error)
 	DeleteBucket(ctx context.Context, in *Bucket, opts ...client.CallOption) (*BaseResponse, error)
@@ -593,6 +594,7 @@ func (c *s3Service) HeadBucket(ctx context.Context, in *BaseRequest, opts ...cli
 // Server API for S3 service
 
 type S3Handler interface {
+	// TODO: Redefine parameters
 	ListBuckets(context.Context, *BaseRequest, *ListBucketsResponse) error
 	CreateBucket(context.Context, *Bucket, *BaseResponse) error
 	DeleteBucket(context.Context, *Bucket, *BaseResponse) error

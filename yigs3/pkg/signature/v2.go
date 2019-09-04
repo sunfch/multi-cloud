@@ -11,7 +11,7 @@ import (
 
 	"errors"
 	"github.com/opensds/multi-cloud/api/pkg/yigs3/datatype"
-	. "github.com/opensds/multi-cloud/yigs3/pkg/error"
+	. "github.com/opensds/multi-cloud/yigs3/error"
 	"github.com/opensds/multi-cloud/yigs3/pkg/helper"
 	"github.com/opensds/multi-cloud/yigs3/pkg/iam"
 	"github.com/opensds/multi-cloud/yigs3/pkg/iam/common"

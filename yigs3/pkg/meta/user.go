@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	. "github.com/opensds/multi-cloud/yigs3/pkg/error"
+	. "github.com/opensds/multi-cloud/yigs3/error"
 	"github.com/opensds/multi-cloud/yigs3/pkg/helper"
 	"github.com/opensds/multi-cloud/yigs3/pkg/meta/types"
 	"github.com/opensds/multi-cloud/yigs3/pkg/redis"

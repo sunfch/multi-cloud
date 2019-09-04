@@ -21,7 +21,7 @@ import (
 	"strconv"
 
 	. "github.com/opensds/multi-cloud/api/pkg/yigs3/datatype"
-	. "github.com/opensds/multi-cloud/yigs3/pkg/error"
+	. "github.com/opensds/multi-cloud/yigs3/error"
 	"github.com/opensds/multi-cloud/yigs3/pkg/helper"
 	"unicode/utf8"
 )

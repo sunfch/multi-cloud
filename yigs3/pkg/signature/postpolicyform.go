@@ -24,7 +24,7 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/opensds/multi-cloud/yigs3/pkg/error"
+	. "github.com/opensds/multi-cloud/yigs3/error"
 	"github.com/opensds/multi-cloud/yigs3/pkg/helper"
 	"net/http"
 	"regexp"
