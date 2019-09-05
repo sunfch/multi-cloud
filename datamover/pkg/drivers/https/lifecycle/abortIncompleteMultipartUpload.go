@@ -12,7 +12,7 @@ import (
 	ibmcosmover "github.com/opensds/multi-cloud/datamover/pkg/ibm/cos"
 	. "github.com/opensds/multi-cloud/datamover/pkg/utils"
 	datamover "github.com/opensds/multi-cloud/datamover/proto"
-	osdss3 "github.com/opensds/multi-cloud/yigs3/proto"
+	osdss3 "github.com/opensds/multi-cloud/s3/proto"
 )
 
 func clearFromBackend(objKey, uploadId string, loca *LocationInfo) error {

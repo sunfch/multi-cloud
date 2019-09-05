@@ -37,6 +37,7 @@ func (s *APIService) RouteBucketDelete(request *restful.Request, response *restf
 
 	} else if IsQuery(request, "lifecycle") {
 		s.BucketLifecycleDelete(request, response)
+
 	} else {
 		s.BucketDelete(request, response)
 	}

@@ -16,20 +16,56 @@ package main
 
 import (
 	"fmt"
+	"os"
 
-	"github.com/micro/go-micro"
-	handler "github.com/opensds/multi-cloud/s3/pkg"
+	micro "github.com/micro/go-micro"
+	_ "github.com/opensds/multi-cloud/s3/pkg/datastore"
+	"github.com/opensds/multi-cloud/s3/pkg/datastore/driver"
+	"github.com/opensds/multi-cloud/s3/pkg/helper"
+	"github.com/opensds/multi-cloud/s3/pkg/redis"
+	"github.com/opensds/multi-cloud/s3/pkg/log"
+	handler "github.com/opensds/multi-cloud/s3/pkg/service"
 	pb "github.com/opensds/multi-cloud/s3/proto"
 )
+
+var logger *log.Logger
 
 func main() {
 	service := micro.NewService(
 		micro.Name("s3"),
 	)
 
-	micro.NewService()
+	service.Init(micro.AfterStop(func() error {
+		driver.FreeCloser()
+		return nil
+	}))
 
-	service.Init()
+	helper.SetupConfig()
+
+	//yig log
+	f, err := os.OpenFile(helper.CONFIG.LogPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		panic("Failed to open log file " + helper.CONFIG.LogPath)
+	}
+	defer f.Close()
+
+	logger = log.New(f, "[yig]", log.LstdFlags, helper.CONFIG.LogLevel)
+	helper.Logger = logger
+	logger.Printf(20, "YIG conf: %+v \n", helper.CONFIG)
+	logger.Println(5, "YIG instance ID:", helper.CONFIG.InstanceId)
+
+	//access log
+	a, err := os.OpenFile(helper.CONFIG.AccessLogPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		panic("Failed to open access log file " + helper.CONFIG.AccessLogPath)
+	}
+	defer a.Close()
+	accessLogger := log.New(a, "", 0, helper.CONFIG.LogLevel)
+	helper.AccessLogger = accessLogger
+
+	if helper.CONFIG.MetaCacheType > 0 || helper.CONFIG.EnableDataCache {
+		redis.Initialize()
+	}
 
 	pb.RegisterS3Handler(service.Server(), handler.NewS3Service())
 	if err := service.Run(); err != nil {

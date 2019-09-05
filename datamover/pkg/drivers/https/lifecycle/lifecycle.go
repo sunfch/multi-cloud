@@ -26,7 +26,7 @@ import (
 	"github.com/opensds/multi-cloud/datamover/pkg/db"
 	. "github.com/opensds/multi-cloud/datamover/pkg/utils"
 	"github.com/opensds/multi-cloud/datamover/proto"
-	osdss3 "github.com/opensds/multi-cloud/yigs3/proto"
+	osdss3 "github.com/opensds/multi-cloud/s3/proto"
 )
 
 var bkendInfo map[string]*BackendInfo

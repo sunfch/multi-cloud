@@ -17,9 +17,9 @@ package s3
 import (
 	"encoding/xml"
 	"net/http"
+	"strings"
 	"time"
 
-	c "github.com/opensds/multi-cloud/api/pkg/context"
 	"github.com/emicklei/go-restful"
 	"github.com/micro/go-log"
 	. "github.com/opensds/multi-cloud/s3/pkg/exception"
@@ -29,17 +29,29 @@ import (
 )
 
 func (s *APIService) BucketPut(request *restful.Request, response *restful.Response) {
-	bucketName := request.PathParameter("bucketName")
-	log.Logf("Received request for create bucket: %s", bucketName)
-	ctx := context.Background()
-	bucket := s3.Bucket{Name: bucketName}
-	body := ReadBody(request)
-	actx := request.Attribute(c.KContext).(*c.Context)
-	bucket.OwnerID = actx.TenantId
-	bucket.Deleted = false
-	bucket.CreationDate = time.Now().Unix()
+	bucketName := strings.ToLower(request.PathParameter("bucketName"))
+	if !isValidBucketName(bucketName) {
+		//WriteErrorResponse(response, request, error.ErrInvalidBucketName)
+		return
+	}
+	log.Logf("received request: PUT bucket[name=%s]\n", bucketName)
 
-	if body != nil {
+	if len(request.Request.Header.Get("Content-Length")) == 0 {
+		log.Logf("Content Length is null!")
+		//WriteErrorResponse(response, request, error.ErrInvalidHeader)
+		return
+	}
+
+	//actx := request.Attribute(c.KContext).(*c.Context)
+	bucket := s3.Bucket{Name: bucketName}
+	//bucket.OwnerId = actx.TenantId
+	bucket.OwnerId = "hehehehe"
+	bucket.Deleted = false
+	bucket.CreateTime = time.Now().Unix()
+
+	body := ReadBody(request)
+	if body != nil && len(body) != 0{
+		log.Logf("request body is not empty")
 		createBucketConf := model.CreateBucketConfiguration{}
 		err := xml.Unmarshal(body, &createBucketConf)
 		if err != nil {
@@ -49,12 +61,13 @@ func (s *APIService) BucketPut(request *restful.Request, response *restful.Respo
 			backendName := createBucketConf.LocationConstraint
 			if backendName != "" {
 				log.Logf("backendName is %v\n", backendName)
-				bucket.Backend = backendName
-				client := getBackendByName(s, backendName)
-				if client == nil {
-					response.WriteError(http.StatusInternalServerError, NoSuchType.Error())
+				bucket.DefaultLocation = backendName
+				/*actx := request.Attribute(c.KContext).(*c.Context).ToJson()
+				flag := s.isBackendExist(context.Background(), actx, backendName)
+				if flag == false {
+					response.WriteError(http.StatusBadRequest, NoSuchBackend.Error())
 					return
-				}
+				}*/
 			} else {
 				log.Log("default backend is not provided.")
 				response.WriteError(http.StatusBadRequest, NoSuchBackend.Error())
@@ -63,11 +76,14 @@ func (s *APIService) BucketPut(request *restful.Request, response *restful.Respo
 		}
 	}
 
+	ctx := context.Background()
+	//credential := common.Credential{UserId:bucket.OwnerId}
 	res, err := s.s3Client.CreateBucket(ctx, &bucket)
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
+	log.Log("errcode:", res.ErrorCode, " msg:", res.String())
 	log.Log("Create bucket successfully.")
 	response.WriteEntity(res)
 }

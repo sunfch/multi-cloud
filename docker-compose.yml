@@ -54,7 +54,7 @@ services:
       - "6379:6379"
 
   s3:
-    image: opensdsio/multi-cloud-yigs3
+    image: opensdsio/multi-cloud-s3
     environment:
       - MICRO_REGISTRY=mdns
       #- DB_HOST=datastore:27017
@@ -113,7 +113,7 @@ services:
       - "4000:4000"
       - "10080:10080"
     volumes:
-      - ./yigs3/tidbconf/tidb.toml:/tidb.toml:ro
+      - ./s3/tidbconf/tidb.toml:/tidb.toml:ro
     command:
       - --store=mocktikv
       - --config=/tidb.toml

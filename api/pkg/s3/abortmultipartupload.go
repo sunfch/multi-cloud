@@ -1,25 +1,24 @@
 package s3
 
 import (
-	"context"
-	"net/http"
+	//"context"
+	//"net/http"
 
 	"github.com/emicklei/go-restful"
 	"github.com/micro/go-log"
-	"github.com/opensds/multi-cloud/api/pkg/s3/datastore"
-
-	//	"github.com/micro/go-micro/errors"
-
-	. "github.com/opensds/multi-cloud/s3/pkg/exception"
-	s3 "github.com/opensds/multi-cloud/s3/proto"
+	//c "github.com/opensds/multi-cloud/api/pkg/context"
+	//. "github.com/opensds/multi-cloud/s3/pkg/exception"
+	//s3 "github.com/opensds/multi-cloud/s3/proto"
 )
 
 func (s *APIService) AbortMultipartUpload(request *restful.Request, response *restful.Response) {
 	bucketName := request.PathParameter("bucketName")
 	objectKey := request.PathParameter("objectKey")
 	uploadId := request.QueryParameter("uploadId")
-	ctx := context.WithValue(request.Request.Context(), "operation", "multipartupload")
-	objectInput := s3.GetObjectInput{Bucket: bucketName, Key: objectKey}
+
+	/*ctx := context.WithValue(request.Request.Context(), "operation", "multipartupload")
+	actx := request.Attribute(c.KContext).(*c.Context)
+	objectInput := s3.GetObjectInput{Context:actx.ToJson(), Bucket: bucketName, Key: objectKey}
 	objectMD, _ := s.s3Client.GetObject(ctx, &objectInput)
 	multipartUpload := s3.MultipartUpload{}
 	multipartUpload.Key = objectKey
@@ -53,6 +52,8 @@ func (s *APIService) AbortMultipartUpload(request *restful.Request, response *re
 		response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
-	log.Logf("Delete object %s successfully.", objectKey)
-	response.WriteEntity(res)
+	*/
+	log.Logf("Abort multipart upload[bucketName=%s, objectKey=%s, uploadId=%s] successfully.\n",
+		bucketName, objectKey, uploadId)
+	//response.WriteEntity(res)
 }

@@ -18,7 +18,7 @@ import (
 	"github.com/opensds/multi-cloud/datamover/pkg/ibm/cos"
 	. "github.com/opensds/multi-cloud/datamover/pkg/utils"
 	pb "github.com/opensds/multi-cloud/datamover/proto"
-	osdss3 "github.com/opensds/multi-cloud/yigs3/proto"
+	osdss3 "github.com/opensds/multi-cloud/s3/proto"
 	"log"
 )
 

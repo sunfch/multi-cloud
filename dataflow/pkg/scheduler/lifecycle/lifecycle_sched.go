@@ -28,9 +28,9 @@ import (
 	. "github.com/opensds/multi-cloud/dataflow/pkg/model"
 	. "github.com/opensds/multi-cloud/dataflow/pkg/utils"
 	"github.com/opensds/multi-cloud/datamover/proto"
-	osdss3 "github.com/opensds/multi-cloud/yigs3/proto"
-	"github.com/opensds/multi-cloud/yigs3/proto"
-	s3utils "github.com/opensds/multi-cloud/yigs3/pkg/utils"
+	osdss3 "github.com/opensds/multi-cloud/s3/proto"
+	"github.com/opensds/multi-cloud/s3/proto"
+	s3utils "github.com/opensds/multi-cloud/s3/pkg/utils"
 	"golang.org/x/net/context"
 )
 

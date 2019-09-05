@@ -18,7 +18,7 @@ import (
 	"context"
 	"github.com/micro/go-log"
 	"github.com/opensds/multi-cloud/datamover/proto"
-	osdss3 "github.com/opensds/multi-cloud/yigs3/proto"
+	osdss3 "github.com/opensds/multi-cloud/s3/proto"
 )
 
 func doInCloudTransition(acReq *datamover.LifecycleActionRequest) error {

@@ -20,11 +20,11 @@ VERSION ?= $(shell git describe --exact-match 2> /dev/null || \
              --always --dirty --abbrev=8)
 BUILD_TGT := opensds-multicloud-$(VERSION)-linux-amd64
 
-.PHONY: all build prebuild api backend s3 dataflow yigs3 docker clean
+.PHONY: all build prebuild api backend s3 dataflow docker clean
 
 all: build
 
-build: api backend s3 dataflow datamover yigs3
+build: api backend s3 dataflow datamover
 
 prebuild:
 	mkdir -p  $(BUILD_DIR)
@@ -36,7 +36,7 @@ backend: prebuild
 	CGO_ENABLED=0 GOOS=linux go build -ldflags '-w -s -extldflags "-static"' -o $(BUILD_DIR)/backend github.com/opensds/multi-cloud/backend/cmd
 
 s3: prebuild
-	CGO_ENABLED=0 GOOS=linux go build -ldflags '-w -s -extldflags "-static"' -o $(BUILD_DIR)/s3 github.com/opensds/multi-cloud/s3/cmd
+	CGO_ENABLED=1 GOOS=linux go build -ldflags '-w -s -extldflags "-dynamic"' -o $(BUILD_DIR)/s3 github.com/opensds/multi-cloud/s3/cmd
 
 dataflow: prebuild
 	CGO_ENABLED=0 GOOS=linux go build -ldflags '-w -s -extldflags "-static"' -o $(BUILD_DIR)/dataflow github.com/opensds/multi-cloud/dataflow/cmd
@@ -44,10 +44,6 @@ dataflow: prebuild
 datamover: prebuild
 	CGO_ENABLED=0 GOOS=linux go build -ldflags '-w -s -extldflags "-static"' -o $(BUILD_DIR)/datamover github.com/opensds/multi-cloud/datamover/cmd
 
-yigs3: prebuild
-	#CGO_ENABLED=1 GOOS=linux go build -o $(BUILD_DIR)/yigs3 github.com/opensds/multi-cloud/yigs3/cmd
-	CGO_ENABLED=1 GOOS=linux go build -ldflags '-w -s -extldflags "-dynamic"' -o $(BUILD_DIR)/yigs3 github.com/opensds/multi-cloud/yigs3/cmd
-	#CGO_ENABLED=0 GOOS=linux go build -ldflags '-w -s -extldflags "-static"' -o $(BUILD_DIR)/yigs3 github.com/opensds/multi-cloud/yigs3/cmd
 
 docker: build
 
@@ -71,15 +67,12 @@ docker: build
 	chmod 755 datamover/datamover
 	docker build datamover -t opensdsio/multi-cloud-datamover:latest
 
-	cp $(BUILD_DIR)/yigs3 yigs3
-	chmod 755 yigs3/yigs3
-	docker build yigs3 -t opensdsio/multi-cloud-yigs3:latest
 
 goimports:
 	goimports -w $(shell go list -f {{.Dir}} ./... |grep -v /vendor/)
 
 clean:
-	rm -rf $(BUILD_DIR) api/api backend/backend dataflow/dataflow datamover/datamover s3/s3 yigs3/yigs3
+	rm -rf $(BUILD_DIR) api/api backend/backend dataflow/dataflow datamover/datamover s3/s3
 
 version:
 	@echo ${VERSION}
@@ -90,7 +83,7 @@ dist: build
 	cd $(DIST_DIR) && \
 	cp ../api $(BUILD_TGT)/bin/ && \
 	cp ../backend $(BUILD_TGT)/bin/ && \
-	cp ../yigs3 $(BUILD_TGT)/bin/ && \
+	cp ../s3 $(BUILD_TGT)/bin/ && \
 	cp ../dataflow $(BUILD_TGT)/bin/ && \
 	cp ../datamover $(BUILD_TGT)/bin/ && \
 	cp $(BASE_DIR)/LICENSE $(BUILD_TGT) && \

@@ -22,7 +22,6 @@ import (
 
 	"github.com/emicklei/go-restful"
 	"github.com/micro/go-log"
-	"github.com/opensds/multi-cloud/api/pkg/s3/datastore"
 	"github.com/opensds/multi-cloud/api/pkg/utils/constants"
 	. "github.com/opensds/multi-cloud/s3/pkg/exception"
 	"github.com/opensds/multi-cloud/s3/pkg/utils"
@@ -32,71 +31,71 @@ import (
 
 //ObjectPut -
 func (s *APIService) ObjectPut(request *restful.Request, response *restful.Response) {
-	url := request.Request.URL
-	log.Logf("URL is %v", request.Request.URL.String())
-	log.Logf("request  is %v\n", request)
 	bucketName := request.PathParameter("bucketName")
-	log.Logf("bucketName is %v\n:", bucketName)
 	objectKey := request.PathParameter("objectKey")
+
+	url := request.Request.URL
 	if strings.HasSuffix(url.String(), "/") {
 		objectKey = objectKey + "/"
 	}
-	log.Logf("objectKey is %v:\n", objectKey)
+	log.Logf("received request: PUT object, objectkey=%s, bucketName=%s\n:", objectKey, bucketName)
+
 	contentLenght := request.HeaderParameter("content-length")
 	backendName := request.HeaderParameter("x-amz-storage-class")
-	log.Logf("backendName is :%v\n", backendName)
+	log.Logf("contentLenght=%s, backendName is :%v\n", contentLenght, backendName)
 
-	// Currently, only support tier1 as default
-	tier := int32(utils.Tier1)
+	ctx := context.WithValue(request.Request.Context(), "operation", "upload")
+
+	// check if bucket exist
+	bucketMeta := s.getBucketMeta(ctx, bucketName)
+	if bucketMeta == nil {
+		response.WriteError(http.StatusBadRequest, NoSuchBucket.Error())
+		return
+	}
 
 	object := s3.Object{}
+	object.ObjectKey = objectKey
 	object.BucketName = bucketName
 	size, _ := strconv.ParseInt(contentLenght, 10, 64)
 	log.Logf("object.size is %v\n", size)
 	object.Size = size
-	object.IsDeleteMarker = ""
-	object.InitFlag = ""
-	object.LastModified = time.Now().Unix()
-	object.Tier = tier
+	object.DeleteMarker = false
+	object.LastModifiedTime = time.Now().Unix()
+	// Currently, only support tier1 as default
+	object.Tier = int32(utils.Tier1)
 	// standard as default
 	object.StorageClass = constants.StorageClassOpenSDSStandard
 
-	ctx := context.WithValue(request.Request.Context(), "operation", "upload")
-
-	log.Logf("Received request for create bucket: %s", bucketName)
-
-	log.Logf("objectKey is %v:\n", objectKey)
-	object.ObjectKey = objectKey
-	var client datastore.DataStoreAdapter
 	if backendName != "" {
-		object.Backend = backendName
-		client = getBackendByName(s, backendName)
+		// check if backend exist
+		if s.isBackendExist(ctx, backendName) == false {
+			response.WriteError(http.StatusBadRequest, NoSuchBackend.Error())
+		}
+		object.Location = backendName
 	} else {
-		bucket, _ := s.s3Client.GetBucket(ctx, &s3.Bucket{Name: bucketName})
-		object.Backend = bucket.Backend
-		client = getBackendClient(s, bucketName)
+		object.Location = bucketMeta.DefaultLocation
 	}
 
-	if client == nil {
-		response.WriteError(http.StatusInternalServerError, NoSuchBackend.Error())
-		return
-	}
-	log.Logf("enter the PUT method")
-	s3err := client.PUT(request.Request.Body, &object, ctx)
-	log.Logf("LastModified is %v\n", object.LastModified)
+	// TODO: check size, cause there is a limitation of transfer size for protobuf ...
+	// Limit the reader to its provided size if specified.
+	/*var limitedDataReader io.Reader
+	if size > 0 { // request.ContentLength is -1 if length is unknown
+		limitedDataReader = io.LimitReader(request.Request.Body, size)
+	} else {
+		limitedDataReader = request.Request.Body
+	}*/
 
-	if s3err != NoError {
-		response.WriteError(http.StatusInternalServerError, s3err.Error())
-		return
-	}
-
-	res, err := s.s3Client.CreateObject(ctx, &object)
+	res, err := s.s3Client.PutObject(ctx, &s3.PutObjectRequest{
+		Meta: &object,
+		// TODO: fill data
+		//data:
+	})
 	if err != nil {
-		log.Logf("err is %v\n", err)
+		log.Logf("failed to PUT object, err is %v\n", err)
 		response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
-	log.Logf("object.size2  = %v \n", object.Size)
-	log.Log("Upload object successfully.")
+
+	log.Log("PUT object successfully.")
 	response.WriteEntity(res)
 }

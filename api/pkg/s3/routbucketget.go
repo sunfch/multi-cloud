@@ -20,9 +20,10 @@ import (
 )
 
 func (s *APIService) RouteBucketGet(request *restful.Request, response *restful.Response) {
-	if !policy.Authorize(request, response, "routbucket:get") {
+	if !policy.Authorize(request, response, "bucket:get") {
 		return
 	}
+
 	if IsQuery(request, "acl") {
 		//TODO
 	} else if IsQuery(request, "versioning") {
@@ -37,7 +38,6 @@ func (s *APIService) RouteBucketGet(request *restful.Request, response *restful.
 
 	} else if IsQuery(request, "lifecycle") {
 		s.BucketLifecycleGet(request, response)
-
 	} else {
 		s.BucketGet(request, response)
 	}

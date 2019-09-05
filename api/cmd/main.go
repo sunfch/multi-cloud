@@ -23,7 +23,7 @@ import (
 	"github.com/opensds/multi-cloud/api/pkg/filters/auth"
 	"github.com/opensds/multi-cloud/api/pkg/filters/context"
 	"github.com/opensds/multi-cloud/api/pkg/filters/logging"
-	s3 "github.com/opensds/multi-cloud/api/pkg/yigs3"
+	s3 "github.com/opensds/multi-cloud/api/pkg/s3"
 )
 
 const (
@@ -56,9 +56,9 @@ func main() {
 	s3ws.Doc("OpenSDS Multi-Cloud API")
 	//s3ws.Consumes(restful.MIME_XML)
 	s3ws.Produces(restful.MIME_XML)
-	sdfsd
-	//s3ws.Filter(logging.FilterFactory())
-	//s3ws.Filter(context.FilterFactory())
+
+	s3ws.Filter(logging.FilterFactory())
+	s3ws.Filter(context.FilterFactory())
 	//s3ws.Filter(signer.FilterFactory())
 	s3.RegisterRouter(s3ws)
 

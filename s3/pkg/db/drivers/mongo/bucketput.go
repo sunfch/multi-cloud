@@ -39,6 +39,7 @@ func (ad *adapter) CreateBucket(in *pb.Bucket) S3Error {
 		return BucketAlreadyExists
 	}
 
+	log.Log("Add bucket[%s] to database successfully.\n", in.Name)
 	return NoError
 }
 
