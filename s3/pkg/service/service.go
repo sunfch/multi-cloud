@@ -25,12 +25,10 @@ import (
 	"github.com/micro/go-log"
 	"github.com/opensds/multi-cloud/s3/pkg/helper"
 	"github.com/opensds/multi-cloud/s3/pkg/meta"
-	"github.com/opensds/multi-cloud/s3/pkg/meta/types"
-	"github.com/opensds/multi-cloud/s3/pkg/redis"
 	. "github.com/opensds/multi-cloud/s3/error"
 
 	"github.com/opensds/multi-cloud/api/pkg/utils/obs"
-	s3 "github.com/opensds/multi-cloud/api/pkg/s3"
+	"github.com/opensds/multi-cloud/api/pkg/s3"
 	"github.com/opensds/multi-cloud/s3/pkg/db"
 	//. "github.com/opensds/multi-cloud/s3/pkg/exception"
 	. "github.com/opensds/multi-cloud/s3/pkg/utils"
@@ -309,7 +307,7 @@ func (b *s3Service) CreateBucket(ctx context.Context, in *pb.Bucket, out *pb.Bas
 	if err := s3.CheckValidBucketName(bucketName); err != nil {
 		return err
 	}
-
+/*
 	credential := ctx.Value(s3.RequestContextKey).(s3.RequestContext).Credential
 	processed, err := b.MetaStorage.Client.CheckAndPutBucket(&types.Bucket{Bucket: in})
 	if err != nil {
@@ -341,7 +339,9 @@ func (b *s3Service) CreateBucket(ctx context.Context, in *pb.Bucket, out *pb.Bas
 	if err == nil {
 		b.MetaStorage.Cache.Remove(redis.UserTable, meta.BUCKET_CACHE_PREFIX, credential.UserId)
 	}
-	return err
+*/
+
+	return ErrInternalError
 }
 
 func (b *s3Service) GetBucket(ctx context.Context, in *pb.BaseRequest, out *pb.Bucket) error {

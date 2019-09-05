@@ -41,10 +41,12 @@ func (m *Meta) GetBucket(bucketName string, willNeed bool) (bucket *Bucket, err 
 	return bucket, nil
 }
 
+/*
 func (m *Meta) GetBuckets() (buckets []*Bucket, err error) {
 	buckets, err = m.Client.GetBuckets()
 	return
 }
+*/
 
 func (m *Meta) UpdateUsage(bucketName string, size int64) error {
 	usage, err := m.Cache.HIncrBy(redis.BucketTable, BUCKET_CACHE_PREFIX, bucketName, FIELD_NAME_USAGE, size)
@@ -77,6 +79,7 @@ func (m *Meta) GetBucketInfo(bucketName string) (*Bucket, error) {
 	return bucket, nil
 }
 
+/*
 func (m *Meta) GetUserInfo(uid string) ([]string, error) {
 	m.Cache.Remove(redis.UserTable, USER_CACHE_PREFIX, uid)
 	buckets, err := m.GetUserBuckets(uid, true)
@@ -85,6 +88,7 @@ func (m *Meta) GetUserInfo(uid string) ([]string, error) {
 	}
 	return buckets, nil
 }
+*/
 
 /*
 * init bucket usage cache when meta is newed.

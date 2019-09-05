@@ -24,11 +24,13 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/micro/go-log"
 	. "github.com/opensds/multi-cloud/s3/pkg/exception"
-	"github.com/opensds/multi-cloud/s3/pkg/iam/common"
+	"github.com/micro/go-micro/metadata"
 	"github.com/opensds/multi-cloud/s3/pkg/model"
 	"github.com/opensds/multi-cloud/s3/proto"
 	"golang.org/x/net/context"
 	//"github.com/opensds/multi-cloud/s3/error"
+	"strconv"
+	"github.com/opensds/multi-cloud/api/pkg/common"
 )
 
 func (s *APIService) BucketPut(request *restful.Request, response *restful.Response) {
@@ -76,9 +78,15 @@ func (s *APIService) BucketPut(request *restful.Request, response *restful.Respo
 		}
 	}
 
-	ctx := context.Background()
-	credential := common.Credential{UserId:bucket.OwnerId}
-	ctx = context.WithValue(ctx, RequestContextKey, RequestContext{Credential: &credential})
+	ctx := metadata.NewContext(context.Background(), map[string]string{
+		common.CTX_KEY_USER_ID: actx.UserId,
+		common.CTX_KEY_TENENT_ID: actx.TenantId,
+		common.CTX_KEY_IS_ADMIN: strconv.FormatBool(actx.IsAdmin),
+	})
+
+	//ctx := context.Background()
+	//credential := common.Credential{UserId:bucket.OwnerId}
+	//ctx = context.WithValue(ctx, RequestContextKey, RequestContext{Credential: &credential})
 	res, err := s.s3Client.CreateBucket(ctx, &bucket)
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, err)

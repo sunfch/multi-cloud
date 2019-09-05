@@ -7,8 +7,6 @@ import (
 	. "github.com/opensds/multi-cloud/s3/error"
 	"github.com/opensds/multi-cloud/s3/pkg/helper"
 	. "github.com/opensds/multi-cloud/s3/pkg/meta/types"
-	"strconv"
-	"strings"
 )
 
 func (t *TidbClient) GetBucket(bucketName string) (bucket *Bucket, err error) {
@@ -130,7 +128,7 @@ func (t *TidbClient) CheckAndPutBucket(bucket *Bucket) (bool, error) {
 	//_, err = t.Client.Exec(sql, args...)
 	return processed, err
 }
-
+/*
 func (t *TidbClient) ListObjects(bucketName, marker, verIdMarker, prefix, delimiter string, versioned bool, maxKeys int) (retObjects []*Object, prefixes []string, truncated bool, nextMarker, nextVerIdMarker string, err error) {
 	if versioned {
 		return
@@ -250,7 +248,7 @@ func (t *TidbClient) ListObjects(bucketName, marker, verIdMarker, prefix, delimi
 	prefixes = helper.Keys(commonPrefixes)
 	return
 }
-
+*/
 func (t *TidbClient) DeleteBucket(bucket *Bucket) error {
 	sqltext := "delete from buckets where bucketname=?;"
 	_, err := t.Client.Exec(sqltext, bucket.Name)

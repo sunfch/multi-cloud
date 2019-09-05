@@ -18,15 +18,15 @@ import (
 	"fmt"
 
 	micro "github.com/micro/go-micro"
-	_ "github.com/opensds/multi-cloud/yigs3/pkg/datastore"
-	"github.com/opensds/multi-cloud/yigs3/pkg/datastore/driver"
-	handler "github.com/opensds/multi-cloud/yigs3/pkg/service"
-	pb "github.com/opensds/multi-cloud/yigs3/proto"
+	_ "github.com/opensds/multi-cloud/s3/pkg/datastore"
+	"github.com/opensds/multi-cloud/s3/pkg/datastore/driver"
+	handler "github.com/opensds/multi-cloud/s3/pkg/service"
+	pb "github.com/opensds/multi-cloud/s3/proto"
 )
 
 func main() {
 	service := micro.NewService(
-		micro.Name("yigs3"),
+		micro.Name("s3"),
 	)
 
 	service.Init(micro.AfterStop(func() error {

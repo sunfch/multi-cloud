@@ -17,7 +17,6 @@
 package s3
 
 import (
-	"context"
 	"encoding/base64"
 	"encoding/xml"
 	"errors"
@@ -25,8 +24,6 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
-
-	"github.com/opensds/multi-cloud/s3/pkg/crypto"
 )
 
 // xmlDecoder provide decoded value in xml.
@@ -74,12 +71,13 @@ func contains(stringList []string, element string) bool {
 	return false
 }
 
+/*
 func requestIdFromContext(ctx context.Context) string {
 	if result, ok := ctx.Value(RequestContextKey).(RequestContext); ok {
 		return result.RequestId
 	}
 	return ""
-}
+}*/
 
 // We support '.' with bucket names but we fallback to using path
 // style requests instead for such buckets.
@@ -140,6 +138,6 @@ func setXmlHeader(w http.ResponseWriter, body []byte) {
 
 // hasServerSideEncryptionHeader returns true if the given HTTP header
 // contains server-side-encryption.
-func hasServerSideEncryptionHeader(header http.Header) bool {
+/*func hasServerSideEncryptionHeader(header http.Header) bool {
 	return crypto.S3.IsRequested(header) || crypto.SSEC.IsRequested(header)
-}
+}*/
