@@ -19,11 +19,11 @@ func (ys *YigSuite) SetUpSuite(c *C) {
 }
 
 func (ys *YigSuite) TearDownSuite(c *C) {
+	driver.FreeCloser()
 }
 
 func (ys *YigSuite) SetUpTest(c *C) {
 }
 
 func (ys *YigSuite) TearDownTest(c *C) {
-	driver.FreeCloser()
 }

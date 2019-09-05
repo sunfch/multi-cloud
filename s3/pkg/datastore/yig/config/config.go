@@ -20,10 +20,10 @@ func (config *Config) Parse() error {
 	storageCfg := viper.GetStringMap("storage")
 	db := viper.GetStringMap("database")
 
-	config.Endpoint.Parse(endpoint)
-	config.Log.Parse(log)
-	config.StorageCfg.Parse(storageCfg)
-	config.Database.Parse(db)
+	(&config.Endpoint).Parse(endpoint)
+	(&config.Log).Parse(log)
+	(&config.StorageCfg).Parse(storageCfg)
+	(&config.Database).Parse(db)
 
 	return nil
 }
@@ -47,7 +47,7 @@ type EndpointConfig struct {
 	Url string
 }
 
-func (ec EndpointConfig) Parse(vals map[string]interface{}) error {
+func (ec *EndpointConfig) Parse(vals map[string]interface{}) error {
 	if url, ok := vals["url"]; ok {
 		ec.Url = url.(string)
 		return nil
@@ -60,7 +60,7 @@ type LogConfig struct {
 	Level int
 }
 
-func (lc LogConfig) Parse(vals map[string]interface{}) error {
+func (lc *LogConfig) Parse(vals map[string]interface{}) error {
 	if p, ok := vals["log_path"]; ok {
 		lc.Path = p.(string)
 	}
@@ -74,7 +74,7 @@ type StorageConfig struct {
 	CephPath string
 }
 
-func (sc StorageConfig) Parse(vals map[string]interface{}) error {
+func (sc *StorageConfig) Parse(vals map[string]interface{}) error {
 	if p, ok := vals["ceph_dir"]; ok {
 		sc.CephPath = p.(string)
 	}
@@ -95,7 +95,7 @@ type CacheConfig struct {
 	PoolIdleTimeout   int
 }
 
-func (cc CacheConfig) Parse(vals map[string]interface{}) error {
+func (cc *CacheConfig) Parse(vals map[string]interface{}) error {
 	if m, ok := vals["redis_mode"]; ok {
 		cc.Mode = int(m.(int64))
 	}
@@ -140,7 +140,7 @@ type DatabaseConfig struct {
 	DbPassword string
 }
 
-func (dc DatabaseConfig) Parse(vals map[string]interface{}) error {
+func (dc *DatabaseConfig) Parse(vals map[string]interface{}) error {
 	if dt, ok := vals["db_type"]; ok {
 		dc.DbType = dt.(int)
 	}
