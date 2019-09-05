@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/go-redis/redis"
-	"github.com/opensds/multi-cloud/yigs3/pkg/datastore/yig/config"
-	"github.com/opensds/multi-cloud/yigs3/pkg/datastore/yig/helper"
+	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/config"
+	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/helper"
 )
 
 const (
