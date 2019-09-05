@@ -73,7 +73,7 @@ docker: build
 
 	cp $(BUILD_DIR)/yigs3 yigs3
 	chmod 755 yigs3/yigs3
-	docker build s3 -t opensdsio/multi-cloud-yigs3:latest
+	docker build yigs3 -t opensdsio/multi-cloud-yigs3:latest
 
 goimports:
 	goimports -w $(shell go list -f {{.Dir}} ./... |grep -v /vendor/)
@@ -90,7 +90,7 @@ dist: build
 	cd $(DIST_DIR) && \
 	cp ../api $(BUILD_TGT)/bin/ && \
 	cp ../backend $(BUILD_TGT)/bin/ && \
-	cp ../s3 $(BUILD_TGT)/bin/ && \
+	cp ../yigs3 $(BUILD_TGT)/bin/ && \
 	cp ../dataflow $(BUILD_TGT)/bin/ && \
 	cp ../datamover $(BUILD_TGT)/bin/ && \
 	cp $(BASE_DIR)/LICENSE $(BUILD_TGT) && \

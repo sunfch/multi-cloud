@@ -24,6 +24,7 @@ import (
 	"github.com/Azure/azure-storage-blob-go/azblob"
 	"github.com/micro/go-log"
 	"github.com/opensds/multi-cloud/yigs3/pkg/helper"
+	"github.com/opensds/multi-cloud/yigs3/pkg/iam/common"
 	"github.com/opensds/multi-cloud/yigs3/pkg/meta"
 	"github.com/opensds/multi-cloud/yigs3/pkg/meta/types"
 	"github.com/opensds/multi-cloud/yigs3/pkg/redis"
@@ -310,16 +311,16 @@ func (b *s3Service) CreateBucket(ctx context.Context, in *pb.Bucket, out *pb.Bas
 		return err
 	}
 
-	credential := ctx.Value(s3.RequestContextKey).(s3.RequestContext).Credential
+	credential := common.Credential{UserId: in.OwnerId}
 	processed, err := b.MetaStorage.Client.CheckAndPutBucket(&types.Bucket{Bucket: in})
 	if err != nil {
-		//yig.Logger.Println(5, "Error making checkandput: ", err)
+		helper.Logger.Println(5, "Error making checkandput: ", err)
 		return err
 	}
 	if !processed { // bucket already exists, return accurate message
 		bucket, err := b.MetaStorage.GetBucket(bucketName, false)
 		if err != nil {
-			//yig.Logger.Println(5, "Error get bucket: ", bucketName, ", with error", err)
+			helper.Logger.Println(5, "Error get bucket: ", bucketName, ", with error", err)
 			return ErrBucketAlreadyExists
 		}
 		if bucket.OwnerId == credential.UserId {
@@ -330,11 +331,11 @@ func (b *s3Service) CreateBucket(ctx context.Context, in *pb.Bucket, out *pb.Bas
 	}
 	err = b.MetaStorage.AddBucketForUser(bucketName, in.OwnerId)
 	if err != nil { // roll back bucket table, i.e. remove inserted bucket
-		//yig.Logger.Println(5, "Error AddBucketForUser: ", err)
+		helper.Logger.Println(5, "Error AddBucketForUser: ", err)
 		err = b.MetaStorage.Client.DeleteBucket(&types.Bucket{Bucket: in})
 		if err != nil {
-			//yig.Logger.Println(5, "Error deleting: ", err)
-			//yig.Logger.Println(5, "Leaving junk bucket unremoved: ", bucketName)
+			helper.Logger.Println(5, "Error deleting: ", err)
+			helper.Logger.Println(5, "Leaving junk bucket unremoved: ", bucketName)
 			return err
 		}
 	}

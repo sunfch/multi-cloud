@@ -9,13 +9,14 @@ import (
 	. "github.com/opensds/multi-cloud/yigs3/pkg/meta/types"
 	"strconv"
 	"strings"
+	pb "github.com/opensds/multi-cloud/yigs3/proto"
 )
 
 func (t *TidbClient) GetBucket(bucketName string) (bucket *Bucket, err error) {
 	var acl, cors, lc, policy string
 	var updateTime sql.NullString
 	sqltext := "select bucketname,acl,cors,lc,uid,policy,createtime,usages,versioning,update_time from buckets where bucketname=?;"
-	tmp := &Bucket{}
+	tmp := &Bucket{Bucket:&pb.Bucket{}}
 	err = t.Client.QueryRow(sqltext, bucketName).Scan(
 		&tmp.Name,
 		&acl,
@@ -126,8 +127,8 @@ func (t *TidbClient) CheckAndPutBucket(bucket *Bucket) (bool, error) {
 	} else {
 		processed = true
 	}
-	//sql, args := bucket.GetCreateSql()
-	//_, err = t.Client.Exec(sql, args...)
+	sql, args := bucket.GetCreateSql()
+	_, err = t.Client.Exec(sql, args...)
 	return processed, err
 }
 

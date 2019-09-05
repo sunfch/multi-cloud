@@ -111,7 +111,7 @@ func (b Bucket) GetCreateSql() (string, []interface{}) {
 	createTime := time.Unix(b.CreateTime, 0).Format(TIME_LAYOUT_TIDB)
 
 	sql := "insert into buckets(bucketname,acl,cors,lc,uid,policy,createtime,usages,versioning) " +
-		"values(?,?,?,?,?,?,?,?,?,?);"
+		"values(?,?,?,?,?,?,?,?,?);"
 	args := []interface{}{b.Name, acl, cors, lc, b.OwnerId, bucket_policy, createTime, b.Usages, b.Versioning}
 	return sql, args
 }

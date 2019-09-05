@@ -20,11 +20,10 @@ import (
 	"strings"
 	"time"
 
-	c "github.com/opensds/multi-cloud/api/pkg/context"
 	"github.com/emicklei/go-restful"
 	"github.com/micro/go-log"
+	c "github.com/opensds/multi-cloud/api/pkg/context"
 	. "github.com/opensds/multi-cloud/yigs3/pkg/exception"
-	"github.com/opensds/multi-cloud/yigs3/pkg/iam/common"
 	"github.com/opensds/multi-cloud/yigs3/pkg/model"
 	"github.com/opensds/multi-cloud/yigs3/proto"
 	"golang.org/x/net/context"
@@ -45,14 +44,16 @@ func (s *APIService) BucketPut(request *restful.Request, response *restful.Respo
 		return
 	}
 
-	actx := request.Attribute(c.KContext).(*c.Context)
+	//actx := request.Attribute(c.KContext).(*c.Context)
 	bucket := s3.Bucket{Name: bucketName}
-	bucket.OwnerId = actx.TenantId
+	//bucket.OwnerId = actx.TenantId
+	bucket.OwnerId = "hehehehe"
 	bucket.Deleted = false
 	bucket.CreateTime = time.Now().Unix()
 
 	body := ReadBody(request)
-	if body != nil {
+	if body != nil && len(body) != 0{
+		log.Logf("request body is not empty")
 		createBucketConf := model.CreateBucketConfiguration{}
 		err := xml.Unmarshal(body, &createBucketConf)
 		if err != nil {
@@ -78,13 +79,14 @@ func (s *APIService) BucketPut(request *restful.Request, response *restful.Respo
 	}
 
 	ctx := context.Background()
-	credential := common.Credential{UserId:bucket.OwnerId}
-	ctx = context.WithValue(ctx, RequestContextKey, RequestContext{Credential: &credential})
+	//credential := common.Credential{UserId:bucket.OwnerId}
 	res, err := s.s3Client.CreateBucket(ctx, &bucket)
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
+	log.Log("errcode:", res.ErrorCode, " msg:", res.String())
 	log.Log("Create bucket successfully.")
 	response.WriteEntity(res)
+	//response.WriteHeader(http.StatusOK)
 }

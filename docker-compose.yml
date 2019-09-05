@@ -31,7 +31,7 @@ services:
     environment:
       - MICRO_SERVER_ADDRESS=:8089
       - MICRO_REGISTRY=mdns
-      - OS_AUTH_AUTHSTRATEGY=keystone
+      - OS_AUTH_AUTHSTRATEGY=noauth
       - OS_AUTH_URL=http://10.10.3.151/identity
       - OS_USER_DOMIN_ID=Default
       - OS_USERNAME=multicloud
@@ -46,6 +46,13 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime
 
+  redis:
+    image: redis
+    container_name: redis
+    command: redis-server --requirepass hehehehe
+    ports:
+      - "6379:6379"
+
   s3:
     image: opensdsio/multi-cloud-yigs3
     environment:
@@ -56,6 +63,12 @@ services:
       - USE_DEFAULT_STORAGE_CLASS=1
     volumes:
       - /etc/localtime:/etc/localtime
+      - .:/etc/yig
+      - .:/var/log/yig
+      - .:/etc/ceph
+    depends_on:
+      - redis
+      - tidb
 
   dataflow:
     image: opensdsio/multi-cloud-dataflow
@@ -95,6 +108,7 @@ services:
 
   tidb:
     image: pingcap/tidb:v2.1.16
+    container_name: tidb
     ports:
       - "4000:4000"
       - "10080:10080"
