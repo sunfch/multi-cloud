@@ -47,7 +47,7 @@ type MultipartMetadata struct {
 	ContentType   string
 	Location      string
 	Pool          string
-	Acl           datatype.Acl
+	//Acl           datatype.Acl
 	SseRequest    datatype.SseRequest
 	EncryptionKey []byte
 	CipherKey     []byte
@@ -145,6 +145,7 @@ func valuesForParts(parts map[int]*Part) (values map[string][]byte, err error) {
 	return
 }
 
+/*
 func (p *Part) GetCreateSql(bucketname, objectname, version string) (string, []interface{}) {
 	sql := "insert into objectpart(partnumber,size,objectid,offset,etag,lastmodified,initializationvector,bucketname,objectname,version) " +
 		"values(?,?,?,?,?,?,?,?,?,?)"
@@ -157,4 +158,4 @@ func (p *Part) GetCreateGcSql(bucketname, objectname string, version uint64) (st
 		"values(?,?,?,?,?,?,?,?,?,?)"
 	args := []interface{}{p.PartNumber, p.Size, p.ObjectId, p.Offset, p.Etag, p.LastModified, p.InitializationVector, bucketname, objectname, version}
 	return sql, args
-}
+}*/

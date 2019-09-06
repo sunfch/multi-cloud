@@ -15,7 +15,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/opensds/multi-cloud/api/pkg/s3/datatype"
 	"github.com/opensds/multi-cloud/s3/pkg/helper"
 	"github.com/opensds/multi-cloud/s3/pkg/meta/util"
 	"github.com/xxtea/xxtea-go/xxtea"
@@ -34,9 +33,9 @@ type Object struct {
 	Etag             string
 	ContentType      string
 	CustomAttributes map[string]string
-	Parts            map[int]*Part
+	//Parts            map[int]*Part
 	PartsIndex       *SimpleIndex
-	ACL              datatype.Acl
+	//ACL              datatype.Acl
 	NullVersion      bool   // if this entry has `null` version
 	DeleteMarker     bool   // if this entry is a delete marker
 	VersionId        string // version cache
@@ -105,9 +104,9 @@ func (o *Object) String() (s string) {
 	s += "Version: " + o.VersionId + "\n"
 	s += "Type: " + o.ObjectTypeToString() + "\n"
 	s += "StorageClass: " + o.StorageClass.ToString() + "\n"
-	for n, part := range o.Parts {
+	/*for n, part := range o.Parts {
 		s += fmt.Sprintln("Part", n, "Object ID:", part.ObjectId)
-	}
+	}*/
 	return s
 }
 
@@ -180,7 +179,7 @@ func (o *Object) GetValues() (values map[string]map[string][]byte, err error) {
 			"etag":          []byte(o.Etag),
 			"content-type":  []byte(o.ContentType),
 			"attributes":    attrsData, // TODO
-			"ACL":           []byte(o.ACL.CannedAcl),
+			//"ACL":           []byte(o.ACL.CannedAcl),
 			"nullVersion":   []byte(helper.Ternary(o.NullVersion, "true", "false").(string)),
 			"deleteMarker":  []byte(helper.Ternary(o.DeleteMarker, "true", "false").(string)),
 			"sseType":       []byte(o.SseType),
@@ -189,12 +188,12 @@ func (o *Object) GetValues() (values map[string]map[string][]byte, err error) {
 			"type":          []byte(o.ObjectTypeToString()),
 		},
 	}
-	if len(o.Parts) != 0 {
+	/*if len(o.Parts) != 0 {
 		values[OBJECT_PART_COLUMN_FAMILY], err = valuesForParts(o.Parts)
 		if err != nil {
 			return
 		}
-	}
+	}*/
 	return
 }
 
@@ -248,7 +247,7 @@ func (o *Object) GetVersionId() string {
 }
 
 //Tidb related function
-
+/*
 func (o *Object) GetCreateSql() (string, []interface{}) {
 	version := math.MaxUint64 - uint64(o.LastModifiedTime.UnixNano())
 	customAttributes, _ := json.Marshal(o.CustomAttributes)
@@ -297,3 +296,4 @@ func (o *Object) GetSubUsageSql() (string, []interface{}) {
 	args := []interface{}{-o.Size, o.BucketName}
 	return sql, args
 }
+*/

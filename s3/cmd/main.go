@@ -21,10 +21,10 @@ import (
 	micro "github.com/micro/go-micro"
 	_ "github.com/opensds/multi-cloud/s3/pkg/datastore"
 	"github.com/opensds/multi-cloud/s3/pkg/datastore/driver"
-	"github.com/opensds/multi-cloud/s3/pkg/helper"
-	"github.com/opensds/multi-cloud/s3/pkg/redis"
-	"github.com/opensds/multi-cloud/s3/pkg/log"
 	handler "github.com/opensds/multi-cloud/s3/pkg/service"
+	"github.com/opensds/multi-cloud/s3/pkg/helper"
+	"github.com/opensds/multi-cloud/s3/pkg/log"
+	"github.com/opensds/multi-cloud/s3/pkg/redis"
 	pb "github.com/opensds/multi-cloud/s3/proto"
 )
 

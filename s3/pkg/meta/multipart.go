@@ -1,9 +1,7 @@
 package meta
 
-import (
-	. "github.com/opensds/multi-cloud/s3/pkg/meta/types"
-)
 
+/*
 func (m *Meta) GetMultipart(bucketName, objectName, uploadId string) (multipart Multipart, err error) {
 	return m.Client.GetMultipart(bucketName, objectName, uploadId)
 }
@@ -53,3 +51,4 @@ func (m *Meta) PutObjectPart(multipart Multipart, part Part) (err error) {
 	err = m.Client.CommitTrans(tx)
 	return
 }
+*/

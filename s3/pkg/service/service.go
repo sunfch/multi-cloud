@@ -25,12 +25,12 @@ import (
 	"github.com/micro/go-log"
 	"github.com/opensds/multi-cloud/s3/pkg/helper"
 	"github.com/opensds/multi-cloud/s3/pkg/meta"
-	"github.com/opensds/multi-cloud/s3/pkg/meta/types"
-	"github.com/opensds/multi-cloud/s3/pkg/redis"
 	. "github.com/opensds/multi-cloud/s3/error"
+	"github.com/opensds/multi-cloud/s3/pkg/meta/types"
 
 	"github.com/opensds/multi-cloud/api/pkg/utils/obs"
-	s3 "github.com/opensds/multi-cloud/api/pkg/s3"
+	"github.com/opensds/multi-cloud/api/pkg/s3"
+	"github.com/opensds/multi-cloud/s3/pkg/redis"
 	"github.com/opensds/multi-cloud/s3/pkg/db"
 	//. "github.com/opensds/multi-cloud/s3/pkg/exception"
 	. "github.com/opensds/multi-cloud/s3/pkg/utils"
@@ -310,7 +310,7 @@ func (b *s3Service) CreateBucket(ctx context.Context, in *pb.Bucket, out *pb.Bas
 		return err
 	}
 
-	//credential := common.Credential{UserId: in.OwnerId}
+	//credential := ctx.Value(s3.RequestContextKey).(s3.RequestContext).Credential
 	processed, err := b.MetaStorage.Client.CheckAndPutBucket(&types.Bucket{Bucket: in})
 	if err != nil {
 		helper.Logger.Println(5, "Error making checkandput: ", err)
@@ -328,7 +328,7 @@ func (b *s3Service) CreateBucket(ctx context.Context, in *pb.Bucket, out *pb.Bas
 			return ErrBucketAlreadyExists
 		}*/
 	}
-	err = b.MetaStorage.AddBucketForUser(bucketName, in.OwnerId)
+	err = b.MetaStorage.Client.AddBucketForUser(bucketName, in.OwnerId)
 	if err != nil { // roll back bucket table, i.e. remove inserted bucket
 		helper.Logger.Println(5, "Error AddBucketForUser: ", err)
 		err = b.MetaStorage.Client.DeleteBucket(&types.Bucket{Bucket: in})
@@ -342,6 +342,8 @@ func (b *s3Service) CreateBucket(ctx context.Context, in *pb.Bucket, out *pb.Bas
 	if err == nil {
 		b.MetaStorage.Cache.Remove(redis.UserTable, meta.BUCKET_CACHE_PREFIX, in.OwnerId)
 	}
+
+
 	return err
 }
 

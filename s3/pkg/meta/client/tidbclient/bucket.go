@@ -3,17 +3,17 @@ package tidbclient
 import (
 	"database/sql"
 	"encoding/json"
+	"time"
+
 	_ "github.com/go-sql-driver/mysql"
 	. "github.com/opensds/multi-cloud/s3/error"
 	"github.com/opensds/multi-cloud/s3/pkg/helper"
 	. "github.com/opensds/multi-cloud/s3/pkg/meta/types"
-	"strconv"
-	"strings"
 	pb "github.com/opensds/multi-cloud/s3/proto"
 )
 
 func (t *TidbClient) GetBucket(bucketName string) (bucket *Bucket, err error) {
-	var acl, cors, lc, policy string
+	var acl, cors, lc, policy, createTime string
 	var updateTime sql.NullString
 	sqltext := "select bucketname,acl,cors,lc,uid,policy,createtime,usages,versioning,update_time from buckets where bucketname=?;"
 	tmp := &Bucket{Bucket:&pb.Bucket{}}
@@ -24,7 +24,7 @@ func (t *TidbClient) GetBucket(bucketName string) (bucket *Bucket, err error) {
 		&lc,
 		&tmp.OwnerId,
 		&policy,
-		&tmp.CreateTime,
+		&createTime,
 		&tmp.Usages,
 		&tmp.Versioning,
 		&updateTime,
@@ -35,6 +35,12 @@ func (t *TidbClient) GetBucket(bucketName string) (bucket *Bucket, err error) {
 	} else if err != nil {
 		return
 	}
+	ct, err := time.Parse(TIME_LAYOUT_TIDB, createTime)
+	if err != nil {
+		return
+	}
+	tmp.CreateTime = ct.Unix()
+
 	err = json.Unmarshal([]byte(acl), &tmp.Acl)
 	if err != nil {
 		return
@@ -67,7 +73,7 @@ func (t *TidbClient) GetBuckets() (buckets []*Bucket, err error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		var tmp Bucket
+		tmp := Bucket{Bucket:&pb.Bucket{}}
 		var acl, cors, lc, policy string
 		var updateTime sql.NullString
 		err = rows.Scan(
@@ -131,7 +137,7 @@ func (t *TidbClient) CheckAndPutBucket(bucket *Bucket) (bool, error) {
 	_, err = t.Client.Exec(sql, args...)
 	return processed, err
 }
-
+/*
 func (t *TidbClient) ListObjects(bucketName, marker, verIdMarker, prefix, delimiter string, versioned bool, maxKeys int) (retObjects []*Object, prefixes []string, truncated bool, nextMarker, nextVerIdMarker string, err error) {
 	if versioned {
 		return
@@ -251,7 +257,7 @@ func (t *TidbClient) ListObjects(bucketName, marker, verIdMarker, prefix, delimi
 	prefixes = helper.Keys(commonPrefixes)
 	return
 }
-
+*/
 func (t *TidbClient) DeleteBucket(bucket *Bucket) error {
 	sqltext := "delete from buckets where bucketname=?;"
 	_, err := t.Client.Exec(sqltext, bucket.Name)

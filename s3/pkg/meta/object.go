@@ -44,6 +44,7 @@ func (m *Meta) GetObject(bucketName string, objectName string, willNeed bool) (o
 	return object, nil
 }
 
+/*
 func (m *Meta) GetAllObject(bucketName string, objectName string) (object []*Object, err error) {
 	return m.Client.GetAllObject(bucketName, objectName, "")
 }
@@ -83,6 +84,7 @@ func (m *Meta) GetObjectVersion(bucketName, objectName, version string, willNeed
 	}
 	return object, nil
 }
+*/
 
 func (m *Meta) PutObject(object *Object, multipart *Multipart, objMap *ObjMap, updateUsage bool) error {
 	tx, err := m.Client.NewTrans()
@@ -97,7 +99,7 @@ func (m *Meta) PutObject(object *Object, multipart *Multipart, objMap *ObjMap, u
 		return err
 	}
 
-	if objMap != nil {
+	/*if objMap != nil {
 		err = m.Client.PutObjectMap(objMap, tx)
 		if err != nil {
 			return err
@@ -109,7 +111,7 @@ func (m *Meta) PutObject(object *Object, multipart *Multipart, objMap *ObjMap, u
 		if err != nil {
 			return err
 		}
-	}
+	}*/
 
 	if updateUsage {
 		err = m.UpdateUsage(object.BucketName, object.Size)
@@ -126,6 +128,7 @@ func (m *Meta) PutObjectEntry(object *Object) error {
 	return err
 }
 
+/*
 func (m *Meta) UpdateObjectAcl(object *Object) error {
 	err := m.Client.UpdateObjectAcl(object)
 	return err
@@ -185,6 +188,7 @@ func (m *Meta) AppendObject(object *Object, isExist bool) error {
 	}
 	return m.Client.UpdateAppendObject(object)
 }
+*/
 
 //func (m *Meta) DeleteObjectEntry(object *Object) error {
 //	err := m.Client.DeleteObject(object, nil)

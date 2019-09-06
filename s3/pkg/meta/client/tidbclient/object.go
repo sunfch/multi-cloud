@@ -2,14 +2,13 @@ package tidbclient
 
 import (
 	"database/sql"
-	"encoding/hex"
-	"encoding/json"
-	. "github.com/opensds/multi-cloud/s3/error"
 	. "github.com/opensds/multi-cloud/s3/pkg/meta/types"
-	"github.com/xxtea/xxtea-go/xxtea"
 	"math"
 	"strconv"
 	"time"
+	"encoding/hex"
+	"github.com/xxtea/xxtea-go/xxtea"
+	. "github.com/opensds/multi-cloud/s3/error"
 )
 
 func (t *TidbClient) GetObject(bucketName, objectName, version string) (object *Object, err error) {
@@ -59,7 +58,8 @@ func (t *TidbClient) GetObject(bucketName, objectName, version string) (object *
 	object.GetRowkey()
 	object.Name = objectName
 	object.BucketName = bucketName
-	err = json.Unmarshal([]byte(acl), &object.ACL)
+
+	/*err = json.Unmarshal([]byte(acl), &object.ACL)
 	if err != nil {
 		return
 	}
@@ -75,7 +75,8 @@ func (t *TidbClient) GetObject(bucketName, objectName, version string) (object *
 			sortedPartNum[k-1] = v.Offset
 		}
 		object.PartsIndex = &SimpleIndex{Index: sortedPartNum}
-	}
+	}*/
+
 	var reversedTime uint64
 	timestamp := math.MaxUint64 - reversedTime
 	timeData := []byte(strconv.FormatUint(timestamp, 10))
@@ -83,6 +84,7 @@ func (t *TidbClient) GetObject(bucketName, objectName, version string) (object *
 	return
 }
 
+/*
 func (t *TidbClient) GetAllObject(bucketName, objectName, version string) (object []*Object, err error) {
 	sqltext := "select version from objects where bucketname=? and name=?;"
 	var versions []string
@@ -127,6 +129,7 @@ func (t *TidbClient) UpdateAppendObject(o *Object) (err error) {
 	_, err = t.Client.Exec(sql, args...)
 	return err
 }
+*/
 
 func (t *TidbClient) PutObject(object *Object, tx interface{}) (err error) {
 	var sqlTx *sql.Tx
@@ -141,7 +144,7 @@ func (t *TidbClient) PutObject(object *Object, tx interface{}) (err error) {
 			}
 		}()
 	}
-	sqlTx, _ = tx.(*sql.Tx)
+	/*sqlTx, _ = tx.(*sql.Tx)
 	sql, args := object.GetCreateSql()
 	_, err = sqlTx.Exec(sql, args...)
 	if object.Parts != nil {
@@ -154,7 +157,7 @@ func (t *TidbClient) PutObject(object *Object, tx interface{}) (err error) {
 				return err
 			}
 		}
-	}
+	}*/
 	return err
 }
 
@@ -189,7 +192,7 @@ func (t *TidbClient) DeleteObject(object *Object, tx interface{}) (err error) {
 }
 
 //util function
-func getParts(bucketName, objectName string, version uint64, cli *sql.DB) (parts map[int]*Part, err error) {
+/*func getParts(bucketName, objectName string, version uint64, cli *sql.DB) (parts map[int]*Part, err error) {
 	parts = make(map[int]*Part)
 	sqltext := "select partnumber,size,objectid,offset,etag,lastmodified,initializationvector from objectpart where bucketname=? and objectname=? and version=?;"
 	rows, err := cli.Query(sqltext, bucketName, objectName, version)
@@ -211,4 +214,4 @@ func getParts(bucketName, objectName string, version uint64, cli *sql.DB) (parts
 		parts[p.PartNumber] = p
 	}
 	return
-}
+}*/
