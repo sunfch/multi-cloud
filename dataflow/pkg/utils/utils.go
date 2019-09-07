@@ -74,7 +74,7 @@ func GetTenantId(ctx context.Context) (string, error) {
 		return "", errors.New("get context failed")
 	}
 
-	tenantId, ok := md[common.CTX_KEY_TENENT_ID]
+	tenantId, ok := md[common.CTX_KEY_TENANT_ID]
 	if !ok {
 		log.Log("get tenantid failed")
 		return "", errors.New("get tenantid failed")

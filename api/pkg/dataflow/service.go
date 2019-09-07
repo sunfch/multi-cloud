@@ -62,7 +62,7 @@ func (s *APIService) ListPolicy(request *restful.Request, response *restful.Resp
 	actx := request.Attribute(c.KContext).(*c.Context)
 	ctx := metadata.NewContext(context.Background(), map[string]string{
 		common.CTX_KEY_USER_ID:   actx.UserId,
-		common.CTX_KEY_TENENT_ID: actx.TenantId,
+		common.CTX_KEY_TENANT_ID: actx.TenantId,
 		common.CTX_KEY_IS_ADMIN:  strconv.FormatBool(actx.IsAdmin),
 	})
 
@@ -96,7 +96,7 @@ func (s *APIService) GetPolicy(request *restful.Request, response *restful.Respo
 	actx := request.Attribute(c.KContext).(*c.Context)
 	ctx := metadata.NewContext(context.Background(), map[string]string{
 		common.CTX_KEY_USER_ID:   actx.UserId,
-		common.CTX_KEY_TENENT_ID: actx.TenantId,
+		common.CTX_KEY_TENANT_ID: actx.TenantId,
 		common.CTX_KEY_IS_ADMIN:  strconv.FormatBool(actx.IsAdmin),
 	})
 
@@ -146,7 +146,7 @@ func (s *APIService) CreatePolicy(request *restful.Request, response *restful.Re
 	actx := request.Attribute(c.KContext).(*c.Context)
 	ctx := metadata.NewContext(context.Background(), map[string]string{
 		common.CTX_KEY_USER_ID:   actx.UserId,
-		common.CTX_KEY_TENENT_ID: actx.TenantId,
+		common.CTX_KEY_TENANT_ID: actx.TenantId,
 		common.CTX_KEY_IS_ADMIN:  strconv.FormatBool(actx.IsAdmin),
 	})
 	pol.TenantId = actx.TenantId
@@ -179,7 +179,7 @@ func (s *APIService) UpdatePolicy(request *restful.Request, response *restful.Re
 	actx := request.Attribute(c.KContext).(*c.Context)
 	ctx := metadata.NewContext(context.Background(), map[string]string{
 		common.CTX_KEY_USER_ID:   actx.UserId,
-		common.CTX_KEY_TENENT_ID: actx.TenantId,
+		common.CTX_KEY_TENANT_ID: actx.TenantId,
 		common.CTX_KEY_IS_ADMIN:  strconv.FormatBool(actx.IsAdmin),
 	})
 
@@ -214,7 +214,7 @@ func (s *APIService) DeletePolicy(request *restful.Request, response *restful.Re
 	actx := request.Attribute(c.KContext).(*c.Context)
 	ctx := metadata.NewContext(context.Background(), map[string]string{
 		common.CTX_KEY_USER_ID:   actx.UserId,
-		common.CTX_KEY_TENENT_ID: actx.TenantId,
+		common.CTX_KEY_TENANT_ID: actx.TenantId,
 		common.CTX_KEY_IS_ADMIN:  strconv.FormatBool(actx.IsAdmin),
 	})
 
@@ -267,7 +267,7 @@ func (s *APIService) ListPlan(request *restful.Request, response *restful.Respon
 	actx := request.Attribute(c.KContext).(*c.Context)
 	ctx := metadata.NewContext(context.Background(), map[string]string{
 		common.CTX_KEY_USER_ID:   actx.UserId,
-		common.CTX_KEY_TENENT_ID: actx.TenantId,
+		common.CTX_KEY_TENANT_ID: actx.TenantId,
 		common.CTX_KEY_IS_ADMIN:  strconv.FormatBool(actx.IsAdmin),
 	})
 	res, err := s.dataflowClient.ListPlan(ctx, listPlanReq)
@@ -301,7 +301,7 @@ func (s *APIService) GetPlan(request *restful.Request, response *restful.Respons
 	actx := request.Attribute(c.KContext).(*c.Context)
 	ctx := metadata.NewContext(context.Background(), map[string]string{
 		common.CTX_KEY_USER_ID:   actx.UserId,
-		common.CTX_KEY_TENENT_ID: actx.TenantId,
+		common.CTX_KEY_TENANT_ID: actx.TenantId,
 		common.CTX_KEY_IS_ADMIN:  strconv.FormatBool(actx.IsAdmin),
 	})
 	res, err := s.dataflowClient.GetPlan(ctx, &dataflow.GetPlanRequest{Id: id})
@@ -350,7 +350,7 @@ func (s *APIService) CreatePlan(request *restful.Request, response *restful.Resp
 	actx := request.Attribute(c.KContext).(*c.Context)
 	ctx := metadata.NewContext(context.Background(), map[string]string{
 		common.CTX_KEY_USER_ID:   actx.UserId,
-		common.CTX_KEY_TENENT_ID: actx.TenantId,
+		common.CTX_KEY_TENANT_ID: actx.TenantId,
 		common.CTX_KEY_IS_ADMIN:  strconv.FormatBool(actx.IsAdmin),
 	})
 	plan.TenantId = actx.TenantId
@@ -383,7 +383,7 @@ func (s *APIService) UpdatePlan(request *restful.Request, response *restful.Resp
 	actx := request.Attribute(c.KContext).(*c.Context)
 	ctx := metadata.NewContext(context.Background(), map[string]string{
 		common.CTX_KEY_USER_ID:   actx.UserId,
-		common.CTX_KEY_TENENT_ID: actx.TenantId,
+		common.CTX_KEY_TENANT_ID: actx.TenantId,
 		common.CTX_KEY_IS_ADMIN:  strconv.FormatBool(actx.IsAdmin),
 	})
 	req := &dataflow.UpdatePlanRequest{PlanId: planId, Body: string(body)}
@@ -417,7 +417,7 @@ func (s *APIService) DeletePlan(request *restful.Request, response *restful.Resp
 	actx := request.Attribute(c.KContext).(*c.Context)
 	ctx := metadata.NewContext(context.Background(), map[string]string{
 		common.CTX_KEY_USER_ID:   actx.UserId,
-		common.CTX_KEY_TENENT_ID: actx.TenantId,
+		common.CTX_KEY_TENANT_ID: actx.TenantId,
 		common.CTX_KEY_IS_ADMIN:  strconv.FormatBool(actx.IsAdmin),
 	})
 	res, err := s.dataflowClient.DeletePlan(ctx, &dataflow.DeletePlanRequest{Id: id})
@@ -440,7 +440,7 @@ func (s *APIService) RunPlan(request *restful.Request, response *restful.Respons
 	actx := request.Attribute(c.KContext).(*c.Context)
 	ctx := metadata.NewContext(context.Background(), map[string]string{
 		common.CTX_KEY_USER_ID:   actx.UserId,
-		common.CTX_KEY_TENENT_ID: actx.TenantId,
+		common.CTX_KEY_TENANT_ID: actx.TenantId,
 		common.CTX_KEY_IS_ADMIN:  strconv.FormatBool(actx.IsAdmin),
 	})
 
@@ -464,7 +464,7 @@ func (s *APIService) GetJob(request *restful.Request, response *restful.Response
 	actx := request.Attribute(c.KContext).(*c.Context)
 	ctx := metadata.NewContext(context.Background(), map[string]string{
 		common.CTX_KEY_USER_ID:   actx.UserId,
-		common.CTX_KEY_TENENT_ID: actx.TenantId,
+		common.CTX_KEY_TENANT_ID: actx.TenantId,
 		common.CTX_KEY_IS_ADMIN:  strconv.FormatBool(actx.IsAdmin),
 	})
 
@@ -527,7 +527,7 @@ func (s *APIService) ListJob(request *restful.Request, response *restful.Respons
 	actx := request.Attribute(c.KContext).(*c.Context)
 	ctx := metadata.NewContext(context.Background(), map[string]string{
 		common.CTX_KEY_USER_ID:   actx.UserId,
-		common.CTX_KEY_TENENT_ID: actx.TenantId,
+		common.CTX_KEY_TENANT_ID: actx.TenantId,
 		common.CTX_KEY_IS_ADMIN:  strconv.FormatBool(actx.IsAdmin),
 	})
 

@@ -27,7 +27,6 @@ import (
 	"github.com/opensds/multi-cloud/s3/pkg/meta"
 	. "github.com/opensds/multi-cloud/s3/error"
 	"github.com/opensds/multi-cloud/s3/pkg/meta/types"
-
 	"github.com/opensds/multi-cloud/api/pkg/utils/obs"
 	"github.com/opensds/multi-cloud/api/pkg/s3"
 	"github.com/opensds/multi-cloud/s3/pkg/redis"
@@ -377,7 +376,7 @@ func (b *s3Service) UpdateObject(ctx context.Context, in *pb.Object, out *pb.Bas
 	return nil
 }
 
-func (b *s3Service) PutObject(ctx context.Context, in *pb.PutObjectRequest, out *pb.BaseResponse) error {
+func (b *s3Service) PutObject(ctx context.Context, in pb.S3_PutObjectStream) error {
 	log.Log("PutObject is called in s3 service.")
 
 	return nil

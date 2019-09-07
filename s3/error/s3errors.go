@@ -153,6 +153,9 @@ const (
 	ErrBackendInitMultipartFailed
 	ErrBackendCompleteMultipartFailed
 	ErrBackendAbortMultipartFailed
+	ErrGetBackendFailed
+	ErrUnmarshalFailed
+	ErrGetBucketFailed
 )
 
 // error code to APIError structure, these fields carry respective
@@ -687,6 +690,21 @@ var ErrorCodeResponse = map[S3ErrorCode]S3ErrorStruct{
 	ErrBackendAbortMultipartFailed: {
 		AwsErrorCode:   "BackendAbortMultipartFailed",
 		Description:    "Backend abort multipart upload failed.",
+		HttpStatusCode: http.StatusInternalServerError,
+	},
+	ErrGetBackendFailed: {
+		AwsErrorCode: "GetBackendFailed",
+		Description: "Backend is not exist, or get it failed.",
+		HttpStatusCode: http.StatusInternalServerError,
+	},
+	ErrUnmarshalFailed: {
+		AwsErrorCode: "UnmarshalFailed",
+		Description: "Unmarshal failed.",
+		HttpStatusCode: http.StatusInternalServerError,
+	},
+	ErrGetBucketFailed: {
+		AwsErrorCode: "GetBucketFailed",
+		Description: "Bucket is not exist, or get it failed.",
 		HttpStatusCode: http.StatusInternalServerError,
 	},
 }

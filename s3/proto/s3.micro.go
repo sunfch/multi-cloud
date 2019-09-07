@@ -10,6 +10,7 @@ It is generated from these files:
 It has these top-level messages:
 	CopyObjectRequest
 	PutObjectRequest
+	PutObjectResponse
 	PutBucketVersioningRequest
 	PutBucketACLRequest
 	BucketACL
@@ -103,7 +104,7 @@ type S3Service interface {
 	ListObjects(ctx context.Context, in *ListObjectsRequest, opts ...client.CallOption) (*ListObjectResponse, error)
 	CountObjects(ctx context.Context, in *ListObjectsRequest, opts ...client.CallOption) (*CountObjectsResponse, error)
 	// rpc CreateObject(Object) returns (BaseResponse) {}
-	PutObject(ctx context.Context, in *PutObjectRequest, opts ...client.CallOption) (*BaseResponse, error)
+	PutObject(ctx context.Context, opts ...client.CallOption) (S3_PutObjectService, error)
 	UpdateObject(ctx context.Context, in *Object, opts ...client.CallOption) (*BaseResponse, error)
 	GetObject(ctx context.Context, in *GetObjectInput, opts ...client.CallOption) (*Object, error)
 	DeleteObject(ctx context.Context, in *DeleteObjectInput, opts ...client.CallOption) (*BaseResponse, error)
@@ -221,14 +222,40 @@ func (c *s3Service) CountObjects(ctx context.Context, in *ListObjectsRequest, op
 	return out, nil
 }
 
-func (c *s3Service) PutObject(ctx context.Context, in *PutObjectRequest, opts ...client.CallOption) (*BaseResponse, error) {
-	req := c.c.NewRequest(c.name, "S3.PutObject", in)
-	out := new(BaseResponse)
-	err := c.c.Call(ctx, req, out, opts...)
+func (c *s3Service) PutObject(ctx context.Context, opts ...client.CallOption) (S3_PutObjectService, error) {
+	req := c.c.NewRequest(c.name, "S3.PutObject", &PutObjectRequest{})
+	stream, err := c.c.Stream(ctx, req, opts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	return &s3ServicePutObject{stream}, nil
+}
+
+type S3_PutObjectService interface {
+	SendMsg(interface{}) error
+	RecvMsg(interface{}) error
+	Close() error
+	Send(*PutObjectRequest) error
+}
+
+type s3ServicePutObject struct {
+	stream client.Stream
+}
+
+func (x *s3ServicePutObject) Close() error {
+	return x.stream.Close()
+}
+
+func (x *s3ServicePutObject) SendMsg(m interface{}) error {
+	return x.stream.Send(m)
+}
+
+func (x *s3ServicePutObject) RecvMsg(m interface{}) error {
+	return x.stream.Recv(m)
+}
+
+func (x *s3ServicePutObject) Send(m *PutObjectRequest) error {
+	return x.stream.Send(m)
 }
 
 func (c *s3Service) UpdateObject(ctx context.Context, in *Object, opts ...client.CallOption) (*BaseResponse, error) {
@@ -602,7 +629,7 @@ type S3Handler interface {
 	ListObjects(context.Context, *ListObjectsRequest, *ListObjectResponse) error
 	CountObjects(context.Context, *ListObjectsRequest, *CountObjectsResponse) error
 	// rpc CreateObject(Object) returns (BaseResponse) {}
-	PutObject(context.Context, *PutObjectRequest, *BaseResponse) error
+	PutObject(context.Context, S3_PutObjectStream) error
 	UpdateObject(context.Context, *Object, *BaseResponse) error
 	GetObject(context.Context, *GetObjectInput, *Object) error
 	DeleteObject(context.Context, *DeleteObjectInput, *BaseResponse) error
@@ -650,7 +677,7 @@ func RegisterS3Handler(s server.Server, hdlr S3Handler, opts ...server.HandlerOp
 		GetBucket(ctx context.Context, in *BaseRequest, out *Bucket) error
 		ListObjects(ctx context.Context, in *ListObjectsRequest, out *ListObjectResponse) error
 		CountObjects(ctx context.Context, in *ListObjectsRequest, out *CountObjectsResponse) error
-		PutObject(ctx context.Context, in *PutObjectRequest, out *BaseResponse) error
+		PutObject(ctx context.Context, stream server.Stream) error
 		UpdateObject(ctx context.Context, in *Object, out *BaseResponse) error
 		GetObject(ctx context.Context, in *GetObjectInput, out *Object) error
 		DeleteObject(ctx context.Context, in *DeleteObjectInput, out *BaseResponse) error
@@ -723,8 +750,39 @@ func (h *s3Handler) CountObjects(ctx context.Context, in *ListObjectsRequest, ou
 	return h.S3Handler.CountObjects(ctx, in, out)
 }
 
-func (h *s3Handler) PutObject(ctx context.Context, in *PutObjectRequest, out *BaseResponse) error {
-	return h.S3Handler.PutObject(ctx, in, out)
+func (h *s3Handler) PutObject(ctx context.Context, stream server.Stream) error {
+	return h.S3Handler.PutObject(ctx, &s3PutObjectStream{stream})
+}
+
+type S3_PutObjectStream interface {
+	SendMsg(interface{}) error
+	RecvMsg(interface{}) error
+	Close() error
+	Recv() (*PutObjectRequest, error)
+}
+
+type s3PutObjectStream struct {
+	stream server.Stream
+}
+
+func (x *s3PutObjectStream) Close() error {
+	return x.stream.Close()
+}
+
+func (x *s3PutObjectStream) SendMsg(m interface{}) error {
+	return x.stream.Send(m)
+}
+
+func (x *s3PutObjectStream) RecvMsg(m interface{}) error {
+	return x.stream.Recv(m)
+}
+
+func (x *s3PutObjectStream) Recv() (*PutObjectRequest, error) {
+	m := new(PutObjectRequest)
+	if err := x.stream.Recv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 func (h *s3Handler) UpdateObject(ctx context.Context, in *Object, out *BaseResponse) error {

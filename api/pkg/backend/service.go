@@ -64,7 +64,7 @@ func (s *APIService) GetBackend(request *restful.Request, response *restful.Resp
 	actx := request.Attribute(c.KContext).(*c.Context)
 	ctx := metadata.NewContext(context.Background(), map[string]string{
 		common.CTX_KEY_USER_ID: actx.UserId,
-		common.CTX_KEY_TENENT_ID: actx.TenantId,
+		common.CTX_KEY_TENANT_ID: actx.TenantId,
 		common.CTX_KEY_IS_ADMIN: strconv.FormatBool(actx.IsAdmin),
 	})
 	res, err := s.backendClient.GetBackend(ctx, &backend.GetBackendRequest{Id: id})
@@ -171,7 +171,7 @@ func (s *APIService) ListBackend(request *restful.Request, response *restful.Res
 	actx := request.Attribute(c.KContext).(*c.Context)
 	ctx := metadata.NewContext(context.Background(), map[string]string{
 		common.CTX_KEY_USER_ID: actx.UserId,
-		common.CTX_KEY_TENENT_ID: actx.TenantId,
+		common.CTX_KEY_TENANT_ID: actx.TenantId,
 		common.CTX_KEY_IS_ADMIN: strconv.FormatBool(actx.IsAdmin),
 	})
 
@@ -205,7 +205,7 @@ func (s *APIService) CreateBackend(request *restful.Request, response *restful.R
 	actx := request.Attribute(c.KContext).(*c.Context)
 	ctx := metadata.NewContext(context.Background(), map[string]string{
 		common.CTX_KEY_USER_ID: actx.UserId,
-		common.CTX_KEY_TENENT_ID: actx.TenantId,
+		common.CTX_KEY_TENANT_ID: actx.TenantId,
 		common.CTX_KEY_IS_ADMIN: strconv.FormatBool(actx.IsAdmin),
 	})
 	backendDetail.TenantId = actx.TenantId
@@ -237,7 +237,7 @@ func (s *APIService) UpdateBackend(request *restful.Request, response *restful.R
 	actx := request.Attribute(c.KContext).(*c.Context)
 	ctx := metadata.NewContext(context.Background(), map[string]string{
 		common.CTX_KEY_USER_ID: actx.UserId,
-		common.CTX_KEY_TENENT_ID: actx.TenantId,
+		common.CTX_KEY_TENANT_ID: actx.TenantId,
 		common.CTX_KEY_IS_ADMIN: strconv.FormatBool(actx.IsAdmin),
 	})
 	res, err := s.backendClient.UpdateBackend(ctx, &updateBackendRequest)
@@ -261,7 +261,7 @@ func (s *APIService) DeleteBackend(request *restful.Request, response *restful.R
 	actx := request.Attribute(c.KContext).(*c.Context)
 	ctx := metadata.NewContext(context.Background(), map[string]string{
 		common.CTX_KEY_USER_ID: actx.UserId,
-		common.CTX_KEY_TENENT_ID: actx.TenantId,
+		common.CTX_KEY_TENANT_ID: actx.TenantId,
 		common.CTX_KEY_IS_ADMIN: strconv.FormatBool(actx.IsAdmin),
 	})
 	// TODO: refactor this part

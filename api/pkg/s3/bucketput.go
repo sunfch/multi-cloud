@@ -22,80 +22,69 @@ import (
 
 	"github.com/emicklei/go-restful"
 	"github.com/micro/go-log"
-	. "github.com/opensds/multi-cloud/s3/pkg/exception"
-	"github.com/micro/go-micro/metadata"
 	"github.com/opensds/multi-cloud/s3/pkg/model"
 	"github.com/opensds/multi-cloud/s3/proto"
-	"golang.org/x/net/context"
-	//"github.com/opensds/multi-cloud/s3/error"
-	"strconv"
+
 	"github.com/opensds/multi-cloud/api/pkg/common"
 	c "github.com/opensds/multi-cloud/api/pkg/context"
+	"github.com/opensds/multi-cloud/s3/error"
 )
 
 func (s *APIService) BucketPut(request *restful.Request, response *restful.Response) {
-	bucketName := strings.ToLower(request.PathParameter("bucketName"))
+	bucketName := strings.ToLower(request.PathParameter(common.REQUEST_PATH_BUCKET_NAME))
 	if !isValidBucketName(bucketName) {
-		//WriteErrorResponse(response, request, error.ErrInvalidBucketName)
+		response.WriteError(http.StatusBadRequest, s3error.ErrInvalidBucketName)
+
 		return
 	}
 	log.Logf("received request: PUT bucket[name=%s]\n", bucketName)
 
-	if len(request.Request.Header.Get("Content-Length")) == 0 {
-		log.Logf("Content Length is null!")
-		//WriteErrorResponse(response, request, error.ErrInvalidHeader)
+	if len(request.HeaderParameter(common.REQUEST_HEADER_CONTENT_LENGTH)) == 0 {
+		log.Logf("missing content length")
+		response.WriteError(http.StatusLengthRequired, s3error.ErrMissingContentLength)
+
 		return
 	}
 
+	ctx := common.InitCtxWithAuthInfo(request)
 	actx := request.Attribute(c.KContext).(*c.Context)
 	bucket := s3.Bucket{Name: bucketName}
 	bucket.OwnerId = actx.TenantId
-	bucket.OwnerId = "hehehehe"
 	bucket.Deleted = false
 	bucket.CreateTime = time.Now().Unix()
 
 	body := ReadBody(request)
+	flag := false
 	if body != nil && len(body) != 0{
 		log.Logf("request body is not empty")
 		createBucketConf := model.CreateBucketConfiguration{}
 		err := xml.Unmarshal(body, &createBucketConf)
 		if err != nil {
-			response.WriteError(http.StatusInternalServerError, err)
+			log.Logf("unmarshal failed, body:%v, err:%v\n", body, err)
+			response.WriteError(http.StatusInternalServerError, s3error.ErrUnmarshalFailed)
 			return
-		} else {
-			backendName := createBucketConf.LocationConstraint
-			if backendName != "" {
-				log.Logf("backendName is %v\n", backendName)
-				bucket.DefaultLocation = backendName
-				/*actx := request.Attribute(c.KContext).(*c.Context).ToJson()
-				flag := s.isBackendExist(context.Background(), actx, backendName)
-				if flag == false {
-					response.WriteError(http.StatusBadRequest, NoSuchBackend.Error())
-					return
-				}*/
-			} else {
-				log.Log("default backend is not provided.")
-				response.WriteError(http.StatusBadRequest, NoSuchBackend.Error())
-				return
-			}
+		}
+
+		backendName := createBucketConf.LocationConstraint
+		if backendName != "" {
+			log.Logf("backendName is %v\n", backendName)
+			bucket.DefaultLocation = backendName
+			flag = s.isBackendExist(ctx, backendName)
 		}
 	}
+	if flag == false {
+		log.Log("default backend is not provided or it is not exist.")
+		response.WriteError(http.StatusInternalServerError, s3error.ErrGetBackendFailed)
+		return
+	}
 
-	ctx := metadata.NewContext(context.Background(), map[string]string{
-		common.CTX_KEY_USER_ID: actx.UserId,
-		common.CTX_KEY_TENENT_ID: actx.TenantId,
-		common.CTX_KEY_IS_ADMIN: strconv.FormatBool(actx.IsAdmin),
-	})
-
-	//ctx := context.Background()
-	//credential := common.Credential{UserId:bucket.OwnerId}
-	//ctx = context.WithValue(ctx, RequestContextKey, RequestContext{Credential: &credential})
 	res, err := s.s3Client.CreateBucket(ctx, &bucket)
 	if err != nil {
+		log.Logf("create bucket failed, err:%v\n", err)
 		response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
-	log.Log("errcode:", res.ErrorCode, " msg:", res.String())
-	log.Log("Create bucket successfully.")
+
+	log.Logf("create bucket[name=%s, defaultLocation=%s] successfully.\n", bucket.Name, bucket.DefaultLocation)
 	response.WriteEntity(res)
 }
