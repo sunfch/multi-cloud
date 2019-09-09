@@ -13,7 +13,7 @@ import (
 
 	. "github.com/opensds/multi-cloud/s3/error"
 	dscommon "github.com/opensds/multi-cloud/s3/pkg/datastore/common"
-	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/helper"
+	"github.com/opensds/multi-cloud/s3/pkg/helper"
 	pb "github.com/opensds/multi-cloud/s3/proto"
 )
 

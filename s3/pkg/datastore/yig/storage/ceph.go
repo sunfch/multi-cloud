@@ -9,7 +9,7 @@ import (
 
 	"fmt"
 	"github.com/journeymidnight/radoshttpd/rados"
-	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/helper"
+	"github.com/opensds/multi-cloud/s3/pkg/helper"
 	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/log"
 	"time"
 )

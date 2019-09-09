@@ -15,7 +15,7 @@ import (
 	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/config"
 	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/helper"
 	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/log"
-	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/redis"
+	"github.com/opensds/multi-cloud/s3/pkg/redis"
 	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/storage"
 )
 

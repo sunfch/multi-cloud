@@ -18,14 +18,15 @@ import (
 	"fmt"
 	"os"
 
-	micro "github.com/micro/go-micro"
+	"github.com/micro/go-micro"
 	_ "github.com/opensds/multi-cloud/s3/pkg/datastore"
 	"github.com/opensds/multi-cloud/s3/pkg/datastore/driver"
 	handler "github.com/opensds/multi-cloud/s3/pkg/service"
 	"github.com/opensds/multi-cloud/s3/pkg/helper"
 	"github.com/opensds/multi-cloud/s3/pkg/log"
-	"github.com/opensds/multi-cloud/s3/pkg/redis"
 	pb "github.com/opensds/multi-cloud/s3/proto"
+	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/config"
+	"github.com/opensds/multi-cloud/s3/pkg/redis"
 )
 
 var logger *log.Logger
@@ -64,7 +65,13 @@ func main() {
 	helper.AccessLogger = accessLogger
 
 	if helper.CONFIG.MetaCacheType > 0 || helper.CONFIG.EnableDataCache {
-		redis.Initialize()
+		//redis.Initialize()
+		// read common config settings
+		cc, err := config.ReadCommonConfig("/etc/yig")
+		if err != nil {
+			return
+		}
+		redis.Initialize(cc)
 	}
 
 	pb.RegisterS3Handler(service.Server(), handler.NewS3Service())

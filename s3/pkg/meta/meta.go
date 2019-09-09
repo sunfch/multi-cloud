@@ -1,12 +1,9 @@
 package meta
 
 import (
-	"errors"
-
-	"github.com/opensds/multi-cloud/s3/pkg/helper"
-	"github.com/opensds/multi-cloud/s3/pkg/log"
-	"github.com/opensds/multi-cloud/s3/pkg/meta/client"
-	"github.com/opensds/multi-cloud/s3/pkg/meta/client/tidbclient"
+	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/log"
+	"github.com/opensds/multi-cloud/s3/pkg/meta/db"
+	"github.com/opensds/multi-cloud/s3/pkg/meta/db/drivers/tidb"
 )
 
 const (
@@ -14,7 +11,7 @@ const (
 )
 
 type Meta struct {
-	Client client.Client
+	Db db.DBAdapter
 	Logger *log.Logger
 	Cache  MetaCache
 }
@@ -25,28 +22,11 @@ func (m *Meta) Stop() {
 	}
 }
 
-func (m *Meta) Sync(event SyncEvent) error {
-	switch event.Type {
-	case SYNC_EVENT_TYPE_BUCKET_USAGE:
-		return m.bucketUsageSync(event)
-	default:
-		return errors.New("got unknown sync event.")
-	}
-}
-
 func New(logger *log.Logger, myCacheType CacheType) *Meta {
 	meta := Meta{
 		Logger: logger,
 		Cache:  newMetaCache(myCacheType),
 	}
-	if helper.CONFIG.MetaStore == "tidb" {
-		meta.Client = tidbclient.NewTidbClient()
-	} else {
-		panic("unsupport metastore")
-	}
-	err := meta.InitBucketUsageCache()
-	if err != nil {
-		panic("failed to init bucket usage cache")
-	}
+	meta.Db = tidbclient.NewTidbClient()
 	return &meta
 }

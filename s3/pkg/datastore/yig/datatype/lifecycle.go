@@ -3,7 +3,7 @@ package datatype
 import (
 	"encoding/xml"
 	//	. "github.com/opensds/multi-cloud/s3/pkg/datastore/yig/error"
-	//	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/helper"
+	//	"github.com/opensds/multi-cloud/s3/pkg/helper"
 )
 
 type LcRule struct {

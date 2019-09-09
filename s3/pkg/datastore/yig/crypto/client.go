@@ -1,7 +1,7 @@
 package crypto
 
 import (
-	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/helper"
+	"github.com/opensds/multi-cloud/s3/pkg/helper"
 )
 
 func NewKMS() KMS {

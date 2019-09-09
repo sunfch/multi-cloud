@@ -21,7 +21,7 @@ import (
 	"encoding/binary"
 	"io"
 
-	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/helper"
+	"github.com/opensds/multi-cloud/s3/pkg/helper"
 )
 
 // ObjectKey is a 256 bit secret key used to encrypt the object.

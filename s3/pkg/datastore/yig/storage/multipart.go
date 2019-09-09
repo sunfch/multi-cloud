@@ -14,7 +14,7 @@ package storage
 	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/crypto"
 	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/datatype"
 	. "github.com/opensds/multi-cloud/s3/pkg/datastore/yig/error"
-	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/helper"
+	"github.com/opensds/multi-cloud/s3/pkg/helper"
 	obj "github.com/opensds/multi-cloud/s3/pkg/datastore/yig/meta"
 	meta "github.com/opensds/multi-cloud/s3/pkg/datastore/yig/meta/types"
 	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/redis"

@@ -18,7 +18,7 @@ const (
 // invalid cache when updating usage. For accurate usage info, use `GetUsage()`
 func (m *Meta) GetBucket(bucketName string, willNeed bool) (bucket *Bucket, err error) {
 	getBucket := func() (b helper.Serializable, err error) {
-		bt, err := m.Client.GetBucket(bucketName)
+		bt, err := m.Db.GetBucket(bucketName)
 		helper.Logger.Println(10, "GetBucket CacheMiss. bucket:", bucketName)
 		return bt, err
 	}
@@ -80,17 +80,6 @@ func (m *Meta) GetBucketInfo(bucketName string) (*Bucket, error) {
 }
 
 /*
-func (m *Meta) GetUserInfo(uid string) ([]string, error) {
-	m.Cache.Remove(redis.UserTable, USER_CACHE_PREFIX, uid)
-	buckets, err := m.GetUserBuckets(uid, true)
-	if err != nil {
-		return nil, err
-	}
-	return buckets, nil
-}
-*/
-
-/*
 * init bucket usage cache when meta is newed.
 *
  */
@@ -100,7 +89,7 @@ func (m *Meta) InitBucketUsageCache() error {
 	// the map contains the bucket usage which are in cache and will be synced into database.
 	bucketUsageCacheMap := make(map[string]int64)
 	// the usage in buckets table is accurate now.
-	buckets, err := m.Client.GetBuckets()
+	buckets, err := m.Db.GetBuckets()
 	if err != nil {
 		helper.Logger.Println(2, "failed to get buckets from db. err: ", err)
 		return err
@@ -155,7 +144,7 @@ func (m *Meta) InitBucketUsageCache() error {
 	}
 	// sync the buckets usage in cache into database.
 	if len(bucketUsageCacheMap) > 0 {
-		err = m.Client.UpdateUsages(bucketUsageCacheMap, nil)
+		err = m.Db.UpdateUsages(bucketUsageCacheMap, nil)
 		if err != nil {
 			helper.Logger.Println(2, "failed to sync usages to database, err: ", err)
 			return err
@@ -172,7 +161,7 @@ func (m *Meta) bucketUsageSync(event SyncEvent) error {
 		return err
 	}
 
-	err = m.Client.UpdateUsage(bu.BucketName, bu.Usage, nil)
+	err = m.Db.UpdateUsage(bu.BucketName, bu.Usage, nil)
 	if err != nil {
 		helper.Logger.Println(2, "failed to update bucket usage ", bu.Usage, " to bucket: ", bu.BucketName,
 			" err: ", err)

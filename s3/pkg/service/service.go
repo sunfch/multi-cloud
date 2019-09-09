@@ -310,7 +310,7 @@ func (b *s3Service) CreateBucket(ctx context.Context, in *pb.Bucket, out *pb.Bas
 	}
 
 	//credential := ctx.Value(s3.RequestContextKey).(s3.RequestContext).Credential
-	processed, err := b.MetaStorage.Client.CheckAndPutBucket(&types.Bucket{Bucket: in})
+	processed, err := b.MetaStorage.Db.CheckAndPutBucket(&types.Bucket{Bucket: in})
 	if err != nil {
 		helper.Logger.Println(5, "Error making checkandput: ", err)
 		return err
@@ -327,16 +327,16 @@ func (b *s3Service) CreateBucket(ctx context.Context, in *pb.Bucket, out *pb.Bas
 			return ErrBucketAlreadyExists
 		}*/
 	}
-	err = b.MetaStorage.Client.AddBucketForUser(bucketName, in.OwnerId)
+	/*err = b.MetaStorage.Db.AddBucketForUser(bucketName, in.OwnerId)
 	if err != nil { // roll back bucket table, i.e. remove inserted bucket
 		helper.Logger.Println(5, "Error AddBucketForUser: ", err)
-		err = b.MetaStorage.Client.DeleteBucket(&types.Bucket{Bucket: in})
+		err = b.MetaStorage.Db.DeleteBucket(&types.Bucket{Bucket: in})
 		if err != nil {
 			helper.Logger.Println(5, "Error deleting: ", err)
 			helper.Logger.Println(5, "Leaving junk bucket unremoved: ", bucketName)
 			return err
 		}
-	}
+	}*/
 
 	if err == nil {
 		b.MetaStorage.Cache.Remove(redis.UserTable, meta.BUCKET_CACHE_PREFIX, in.OwnerId)

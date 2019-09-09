@@ -14,7 +14,7 @@ const (
 func (m *Meta) GetObject(bucketName string, objectName string, willNeed bool) (object *Object, err error) {
 	getObject := func() (o helper.Serializable, err error) {
 		helper.Logger.Println(10, "GetObject CacheMiss. bucket:", bucketName, "object:", objectName)
-		object, err := m.Client.GetObject(bucketName, objectName, "")
+		object, err := m.Db.GetObject(bucketName, objectName, "")
 		if err != nil {
 			return
 		}
@@ -87,14 +87,14 @@ func (m *Meta) GetObjectVersion(bucketName, objectName, version string, willNeed
 */
 
 func (m *Meta) PutObject(object *Object, multipart *Multipart, objMap *ObjMap, updateUsage bool) error {
-	tx, err := m.Client.NewTrans()
+	tx, err := m.Db.NewTrans()
 	defer func() {
 		if err != nil {
-			m.Client.AbortTrans(tx)
+			m.Db.AbortTrans(tx)
 		}
 	}()
 
-	err = m.Client.PutObject(object, tx)
+	err = m.Db.PutObject(object, tx)
 	if err != nil {
 		return err
 	}
@@ -119,12 +119,12 @@ func (m *Meta) PutObject(object *Object, multipart *Multipart, objMap *ObjMap, u
 			return err
 		}
 	}
-	err = m.Client.CommitTrans(tx)
+	err = m.Db.CommitTrans(tx)
 	return nil
 }
 
 func (m *Meta) PutObjectEntry(object *Object) error {
-	err := m.Client.PutObject(object, nil)
+	err := m.Db.PutObject(object, nil)
 	return err
 }
 
