@@ -13,10 +13,10 @@ import (
 	backendpb "github.com/opensds/multi-cloud/backend/proto"
 	"github.com/opensds/multi-cloud/s3/pkg/datastore/driver"
 	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/config"
-	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/helper"
-	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/log"
-	"github.com/opensds/multi-cloud/s3/pkg/redis"
 	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/storage"
+	"github.com/opensds/multi-cloud/s3/pkg/helper"
+	"github.com/opensds/multi-cloud/s3/pkg/log"
+	"github.com/opensds/multi-cloud/s3/pkg/redis"
 )
 
 type YigDriverFactory struct {

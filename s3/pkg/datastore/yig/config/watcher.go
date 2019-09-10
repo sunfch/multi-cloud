@@ -71,6 +71,11 @@ func (cw *ConfigWatcher) Watch(dir string) {
 					cw.err = err
 					return
 				}
+			case stopped := <-cw.stopSignal:
+				if stopped {
+					cw.err = nil
+					return
+				}
 			}
 		}
 	}()
