@@ -92,17 +92,6 @@ func (b *Bucket) GetValues() (values map[string]map[string][]byte, err error) {
 	return
 }
 
-//Tidb related function
-func (b Bucket) GetUpdateSql() (string, []interface{}) {
-	acl, _ := json.Marshal(b.Acl)
-	cors, _ := json.Marshal(b.Cors)
-	lc, _ := json.Marshal(b.LifeCycle)
-	bucket_policy, _ := json.Marshal(b.Policy)
-	sql := "update buckets set bucketname=?,acl=?,policy=?,cors=?,lc=?,uid=?,versioning=? where bucketname=?"
-	args := []interface{}{b.Name, acl, bucket_policy, cors, lc, b.OwnerId, b.Versioning, b.Name}
-	return sql, args
-}
-
 func (b Bucket) GetCreateSql() (string, []interface{}) {
 	acl, _ := json.Marshal(b.Acl)
 	cors, _ := json.Marshal(b.Cors)

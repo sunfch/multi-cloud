@@ -16,7 +16,7 @@ import (
 	. "github.com/opensds/multi-cloud/s3/error"
 	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/config"
 	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/crypto"
-	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/datatype"
+	"github.com/opensds/multi-cloud/api/pkg/s3/datatype"
 	"github.com/opensds/multi-cloud/s3/pkg/helper"
 	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/log"
 	"github.com/opensds/multi-cloud/s3/pkg/meta"

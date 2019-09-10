@@ -113,11 +113,18 @@ func (t *TidbClient) GetBuckets() (buckets []*Bucket, err error) {
 
 //Actually this method is used to update bucket
 func (t *TidbClient) PutBucket(bucket *Bucket) error {
-	sql, args := bucket.GetUpdateSql()
+	acl, _ := json.Marshal(bucket.Acl)
+	cors, _ := json.Marshal(bucket.Cors)
+	lc, _ := json.Marshal(bucket.LifeCycle)
+	bucket_policy, _ := json.Marshal(bucket.Policy)
+	sql := "update buckets set bucketname=?,acl=?,policy=?,cors=?,lc=?,uid=?,versioning=? where bucketname=?"
+	args := []interface{}{bucket.Name, acl, bucket_policy, cors, lc, bucket.OwnerId, bucket.Versioning, bucket.Name}
+
 	_, err := t.Client.Exec(sql, args...)
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 

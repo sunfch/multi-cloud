@@ -70,15 +70,6 @@ func (m *Meta) GetUsage(bucketName string) (int64, error) {
 	return usage, nil
 }
 
-func (m *Meta) GetBucketInfo(bucketName string) (*Bucket, error) {
-	m.Cache.Remove(redis.BucketTable, BUCKET_CACHE_PREFIX, bucketName)
-	bucket, err := m.GetBucket(bucketName, true)
-	if err != nil {
-		return bucket, err
-	}
-	return bucket, nil
-}
-
 /*
 * init bucket usage cache when meta is newed.
 *
