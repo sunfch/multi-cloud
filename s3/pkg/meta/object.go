@@ -4,7 +4,7 @@ import (
 	. "github.com/opensds/multi-cloud/s3/error"
 	"github.com/opensds/multi-cloud/s3/pkg/helper"
 	. "github.com/opensds/multi-cloud/s3/pkg/meta/types"
-	"github.com/opensds/multi-cloud/s3/pkg/redis"
+	"github.com/opensds/multi-cloud/s3/pkg/meta/redis"
 )
 
 const (

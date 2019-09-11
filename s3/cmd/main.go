@@ -26,7 +26,7 @@ import (
 	"github.com/opensds/multi-cloud/s3/pkg/log"
 	pb "github.com/opensds/multi-cloud/s3/proto"
 	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/config"
-	"github.com/opensds/multi-cloud/s3/pkg/redis"
+	"github.com/opensds/multi-cloud/s3/pkg/meta/redis"
 )
 
 var logger *log.Logger

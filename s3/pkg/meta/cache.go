@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	"github.com/opensds/multi-cloud/s3/pkg/helper"
-	"github.com/opensds/multi-cloud/s3/pkg/redis"
+	"github.com/opensds/multi-cloud/s3/pkg/meta/redis"
 )
 
 type CacheType int

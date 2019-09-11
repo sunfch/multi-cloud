@@ -16,7 +16,7 @@ import (
 	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/storage"
 	"github.com/opensds/multi-cloud/s3/pkg/helper"
 	"github.com/opensds/multi-cloud/s3/pkg/log"
-	"github.com/opensds/multi-cloud/s3/pkg/redis"
+	"github.com/opensds/multi-cloud/s3/pkg/meta/redis"
 )
 
 type YigDriverFactory struct {
