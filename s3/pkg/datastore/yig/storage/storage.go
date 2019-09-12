@@ -9,14 +9,11 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
 	"path/filepath"
 	"sync"
 
-	. "github.com/opensds/multi-cloud/s3/error"
 	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/config"
 	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/crypto"
-	"github.com/opensds/multi-cloud/api/pkg/s3/datatype"
 	"github.com/opensds/multi-cloud/s3/pkg/helper"
 	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/log"
 	"github.com/opensds/multi-cloud/s3/pkg/meta"
@@ -103,7 +100,7 @@ func (y *YigStorage) Close() error {
 
 	return nil
 }
-
+/*
 func (yig *YigStorage) encryptionKeyFromSseRequest(sseRequest datatype.SseRequest, bucket, object string) (key []byte, encKey []byte, err error) {
 	switch sseRequest.Type {
 	case "": // no encryption
@@ -127,7 +124,7 @@ func (yig *YigStorage) encryptionKeyFromSseRequest(sseRequest datatype.SseReques
 		return
 	}
 }
-
+*/
 func newInitializationVector() (initializationVector []byte, err error) {
 
 	initializationVector = make([]byte, INITIALIZATION_VECTOR_LENGTH)
