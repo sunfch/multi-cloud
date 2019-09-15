@@ -131,10 +131,9 @@ message CopyObjPartResponse {
 }
 
 message ServerSideEncryption {
-	string cryptScheme = 1;
-	string algorithm = 2;
-	string masterKeyId = 3;
-	bool mandtory = 4;
+    string sseType = 1;
+    bytes encryptionKey = 2;
+    bytes initilizationVector = 3;
 }
 
 message VersioningConfiguration {
@@ -244,23 +243,24 @@ message ReplicationInfo {
 }
 
 message Bucket {
-	string id = 1;
-	string name = 2;
-	string ownerId = 3;
-	string ownerDisplayName = 4;
-	string cors = 5;
-	string lifeCycle = 6;
-	string acl = 7;
-	string policy = 8;
-	int64 createTime = 9;
-	int64 usages = 10;
-	int32 tier = 11;
-	string versioning = 12;  // Enable, suspend, disable
-	string defaultLocation = 13; // Means backend
-	string replicationConf = 14;
-	string sseConf = 15;
-	string websiteConf = 16;
-	bool deleted = 17;
+	string name = 1;
+	string tenantId = 2;
+	string userId = 3;
+	string acl = 4;
+	int64 createTime = 5;
+	string id = 6;
+	bool deleted = 7;
+	ServerSideEncryption serverSideEncryption = 8;
+	VersioningConfiguration versioningConfiguration = 9;
+	string defaultLocation = 10;	// Means backend
+	WebsiteConfiguration websiteConfiguration = 11;
+	CORSConfiguration cors = 12;
+	ReplicationConfiguration replicationConfiguration = 13;
+	repeated LifecycleRule lifecycleConfiguration = 14;
+	string bucketPolicy = 15;
+	int64 usages = 16;
+	int32 tier = 17;
+	repeated ReplicationInfo replicationInfo = 18;
 }
 
 message Partion {
@@ -284,23 +284,23 @@ message Object {
 	string bucketName = 2;
 	string tenantId = 3;
 	string userId = 4;
-	string location = 5;
-	string versionId = 6;
-	int64 size = 7;
-	int64 lastModifiedTime = 8;
-	int32 tier = 9;
+	string versionId = 5;
+	string objectId = 6;
+	string contentType = 7;
+	string contentMd5 = 8;
+	repeated Version versions = 9;
 	string storageClass = 10;
-	// For backend of YIG ceph, objectId is random string, for other backends, is the key in the backend related bucket.
-	string objectId = 11;  // id used in backend
-	string etag = 12;
-	string contentType = 13;
-	string acl = 14;
-	bool nullVersion = 15;
+	ServerSideEncryption serverSideEncryption = 11;
+	string websiteRedirectLocation = 12;
+	string acl = 13;
+	string location = 14;
+	bool isNull = 15;
 	bool deleteMarker = 16;
-	string sseType = 17;
-	bytes encryptionKey = 18;  // TODO: How to define blob data of TiDB in protobuf??
-	bytes initilizationVector = 19;
-	string customeAttributes = 20;
+	int64 size = 17;
+	repeated Tag tags = 18;
+	int64 lastModified = 19;
+	string etag = 20;
+	int32 tier = 21;
 }
 
 message ListBucketsResponse {
@@ -315,11 +315,6 @@ message BaseResponse {
 message BaseRequest {
 	string id = 1;
 }
-
-/*message CommonRequest {
-	string context = 1;
-	string id = 2;
-}*/
 
 message ListObjectsRequest {
     // Bucket is a required field
