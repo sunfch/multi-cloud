@@ -22,7 +22,6 @@ import (
 	"strings"
 	"sync"
 
-	"encoding/json"
 	"github.com/emicklei/go-restful"
 	"github.com/micro/go-log"
 	. "github.com/opensds/multi-cloud/api/pkg/utils/constants"
@@ -130,7 +129,7 @@ func (s *APIService) BucketLifecyclePut(request *restful.Request, response *rest
 			return
 		} else {
 			dupIdCheck := make(map[string]interface{})
-			s3RuleArr := make([]s3.LifecycleRule, 0)
+			s3RuleArr := make([]*s3.LifecycleRule, 0)
 			for _, rule := range createLifecycleConf.Rule {
 				s3Rule := s3.LifecycleRule{}
 
@@ -199,16 +198,10 @@ func (s *APIService) BucketLifecyclePut(request *restful.Request, response *rest
 				s3Rule.AbortIncompleteMultipartUpload = convertRuleUploadToS3Upload(rule.AbortIncompleteMultipartUpload)
 
 				// add to the s3 array
-				s3RuleArr = append(s3RuleArr, s3Rule)
+				s3RuleArr = append(s3RuleArr, &s3Rule)
 			}
 			// assign lifecycle rules to s3 bucket
-			lifecycldStr, err := json.Marshal(s3RuleArr)
-			if err != nil {
-				log.Logf("marshal s3RuleArr[%v] failed, err=%v\n", s3RuleArr, err)
-				response.WriteError(http.StatusInternalServerError, err)
-			} else {
-				bucket.LifeCycle = string(lifecycldStr)
-			}
+			bucket.LifecycleConfiguration = s3RuleArr
 		}
 	} else {
 		log.Log("no request body provided for creating lifecycle configuration")

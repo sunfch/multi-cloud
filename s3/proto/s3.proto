@@ -136,10 +136,10 @@ message ServerSideEncryption {
     bytes initilizationVector = 3;
 }
 
-message VersioningConfiguration {
+/*message VersioningConfiguration {
 	string Status = 1;
 	string MfaDelete = 2;
-}
+}*/
 
 message RedirectAllRequestsTo {
 	string hostName = 1;
@@ -251,7 +251,7 @@ message Bucket {
 	string id = 6;
 	bool deleted = 7;
 	ServerSideEncryption serverSideEncryption = 8;
-	VersioningConfiguration versioningConfiguration = 9;
+	string versioning = 9;
 	string defaultLocation = 10;	// Means backend
 	WebsiteConfiguration websiteConfiguration = 11;
 	CORSConfiguration cors = 12;

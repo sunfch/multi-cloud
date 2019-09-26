@@ -49,7 +49,7 @@ func (s *APIService) BucketPut(request *restful.Request, response *restful.Respo
 	ctx := common.InitCtxWithAuthInfo(request)
 	actx := request.Attribute(c.KContext).(*c.Context)
 	bucket := s3.Bucket{Name: bucketName}
-	bucket.OwnerId = actx.TenantId
+	bucket.TenantId = actx.TenantId
 	bucket.Deleted = false
 	bucket.CreateTime = time.Now().Unix()
 

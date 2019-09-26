@@ -59,11 +59,11 @@ func (b *Bucket) Deserialize(fields map[string]string) (interface{}, error) {
 func (b *Bucket) String() (s string) {
 	s += "Name: " + b.Name + "\n"
 	s += "CreateTime: " + time.Unix(b.CreateTime, 0).Format(CREATE_TIME_LAYOUT) + "\n"
-	s += "OwnerId: " + b.OwnerId + "\n"
+	s += "TenantId: " + b.TenantId + "\n"
 	s += "CORS: " + fmt.Sprintf("%+v", b.Cors) + "\n"
 	s += "ACL: " + fmt.Sprintf("%+v", b.Acl) + "\n"
-	s += "LifeCycle: " + fmt.Sprintf("%+v", b.LifeCycle) + "\n"
-	s += "Policy: " + fmt.Sprintf("%+v", b.Policy) + "\n"
+	s += "LifeCycle: " + fmt.Sprintf("%+v", b.LifecycleConfiguration) + "\n"
+	s += "Policy: " + fmt.Sprintf("%+v", b.BucketPolicy) + "\n"
 	s += "Version: " + b.Versioning + "\n"
 	s += "Usage: " + humanize.Bytes(uint64(b.Usages)) + "\n"
 	return
@@ -72,6 +72,15 @@ func (b *Bucket) String() (s string) {
 /* Learn from this, http://stackoverflow.com/questions/33587227/golang-method-sets-pointer-vs-value-receiver */
 /* If you have a T and it is addressable you can call methods that have a receiver type of *T as well as methods that have a receiver type of T */
 func (b *Bucket) GetValues() (values map[string]map[string][]byte, err error) {
+	cors, err := json.Marshal(b.Cors)
+	if err != nil {
+		return
+	}
+	lc, err := json.Marshal(b.LifecycleConfiguration)
+	if err != nil {
+		return
+	}
+
 	var usage bytes.Buffer
 	err = binary.Write(&usage, binary.BigEndian, b.Usages)
 	if err != nil {
@@ -79,10 +88,10 @@ func (b *Bucket) GetValues() (values map[string]map[string][]byte, err error) {
 	}
 	values = map[string]map[string][]byte{
 		BUCKET_COLUMN_FAMILY: map[string][]byte{
-			"UID":        []byte(b.OwnerId),
+			"UID":        []byte(b.TenantId),
 			"ACL":        []byte(b.Acl),
-			"CORS":       []byte(b.Cors),
-			"LC":         []byte(b.LifeCycle),
+			"CORS":       cors,
+			"LC":         lc,
 			"createTime": []byte(time.Unix(b.CreateTime, 0).Format(CREATE_TIME_LAYOUT)),
 			"versioning": []byte(b.Versioning),
 			"usage":      usage.Bytes(),
@@ -95,12 +104,12 @@ func (b *Bucket) GetValues() (values map[string]map[string][]byte, err error) {
 func (b Bucket) GetCreateSql() (string, []interface{}) {
 	acl, _ := json.Marshal(b.Acl)
 	cors, _ := json.Marshal(b.Cors)
-	lc, _ := json.Marshal(b.LifeCycle)
-	bucket_policy, _ := json.Marshal(b.Policy)
+	lc, _ := json.Marshal(b.LifecycleConfiguration)
+	bucket_policy, _ := json.Marshal(b.BucketPolicy)
 	createTime := time.Unix(b.CreateTime, 0).Format(TIME_LAYOUT_TIDB)
 
 	sql := "insert into buckets(bucketname,acl,cors,lc,uid,policy,createtime,usages,versioning) " +
 		"values(?,?,?,?,?,?,?,?,?);"
-	args := []interface{}{b.Name, acl, cors, lc, b.OwnerId, bucket_policy, createTime, b.Usages, b.Versioning}
+	args := []interface{}{b.Name, acl, cors, lc, b.TenantId, bucket_policy, createTime, b.Usages, b.Versioning}
 	return sql, args
 }

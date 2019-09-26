@@ -22,7 +22,6 @@ It has these top-level messages:
 	CopyObjPartRequest
 	CopyObjPartResponse
 	ServerSideEncryption
-	VersioningConfiguration
 	RedirectAllRequestsTo
 	Redirect
 	Condition

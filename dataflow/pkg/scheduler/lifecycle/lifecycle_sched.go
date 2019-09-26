@@ -87,20 +87,13 @@ func ScheduleLifecycle() {
 
 	for _, v := range listRsp.Buckets {
 		// For each bucket, get the lifecycle rules, and schedule each rule.
-		if v.LifeCycle == "" {
+		if v.LifecycleConfiguration == nil {
 			log.Logf("[ScheduleLifecycle]bucket[%s] has no lifecycle rule.\n", v.Name)
-			continue
 		}
 
 		log.Logf("[ScheduleLifecycle]bucket[%s] has lifecycle rule.\n", v.Name)
 
-		lifecycleConf := []*osdss3.LifecycleRule{}
-		err = json.Unmarshal([]byte(v.LifeCycle), &lifecycleConf)
-		if err != nil {
-			log.Logf("[ScheduleLifecycle]bucket[%s] has invliad lifecycle.\n", v.Name, v.LifeCycle)
-			continue
-		}
-		err = handleBucketLifecyle(v.Name, lifecycleConf)
+		err = handleBucketLifecyle(v.Name, v.LifecycleConfiguration)
 		if err != nil {
 			log.Logf("[ScheduleLifecycle]handle bucket lifecycle for bucket[%s] failed, err:%v.\n", v.Name, err)
 			continue
@@ -229,7 +222,6 @@ func getObjects(r *InternalLifecycleRule, offset, limit int32) ([]*osdss3.Object
 
 	return s3rsp.ListObjects, nil
 }
-
 /*
 func schedSortedAbortRules(inRules *InterRules) {
 	log.Log("schedSortedAbortRules begin ...")
@@ -274,7 +266,6 @@ func schedSortedAbortRules(inRules *InterRules) {
 	log.Log("schedSortedAbortRules end ...")
 }
 */
-
 func schedSortedActionsRules(inRules *InterRules) {
 	log.Log("schedSortedActionsRules begin ...")
 	dupCheck := map[string]struct{}{}
@@ -341,7 +332,7 @@ func schedSortedActionsRules(inRules *InterRules) {
 						SourceBackend: obj.Location,
 						TargetBackend: r.Backend,
 						ObjSize:       obj.Size,
-						LastModified:  obj.LastModifiedTime,
+						LastModified:  obj.LastModified,
 					}
 
 					// If send failed, then ignore it, because it will be re-sent in the next schedule period.

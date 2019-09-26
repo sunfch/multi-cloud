@@ -15,7 +15,6 @@
 package s3
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -67,19 +66,11 @@ func (s *APIService) BucketLifecycleGet(request *restful.Request, response *rest
 		return
 	}
 
-	lifecycleConf := []*s3.LifecycleRule{}
-	err = json.Unmarshal([]byte(bucket.LifeCycle), &lifecycleConf)
-	if err != nil {
-		log.Logf("unmarshal lifecycle of bucket[%s] failed, lifecycle=%s, err=%v.\n", bucketName, bucket.LifeCycle, err)
-		response.WriteError(http.StatusInternalServerError, InternalError.Error())
-		return
-	}
-
 	// convert back to xml struct
 	lifecycleConfXml := model.LifecycleConfiguration{}
 
 	// convert lifecycle rule to xml Rule
-	for _, lcRule := range lifecycleConf {
+	for _, lcRule := range bucket.LifecycleConfiguration {
 		xmlRule := model.Rule{}
 
 		xmlRule.Status = lcRule.Status
@@ -115,7 +106,8 @@ func (s *APIService) BucketLifecycleGet(request *restful.Request, response *rest
 	// marshall the array back to xml format
 	err = response.WriteAsXml(lifecycleConfXml)
 	if err != nil {
-		log.Logf("write lifecycle of bucket[%s] as xml failed, =%s, err=%v.\n", bucketName, bucket.LifeCycle, err)
+		log.Logf("write lifecycle of bucket[%s] as xml failed, lifecycle =%s, err=%v.\n", bucketName,
+			bucket.LifecycleConfiguration, err)
 		response.WriteError(http.StatusInternalServerError, InternalError.Error())
 	}
 	log.Log("GET lifecycle successful.")

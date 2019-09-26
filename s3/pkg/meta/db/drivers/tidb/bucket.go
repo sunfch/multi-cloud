@@ -22,7 +22,7 @@ func (t *TidbClient) GetBucket(bucketName string) (bucket *Bucket, err error) {
 		&acl,
 		&cors,
 		&lc,
-		&tmp.OwnerId,
+		&tmp.TenantId,
 		&policy,
 		&createTime,
 		&tmp.Usages,
@@ -49,11 +49,11 @@ func (t *TidbClient) GetBucket(bucketName string) (bucket *Bucket, err error) {
 	if err != nil {
 		return
 	}
-	err = json.Unmarshal([]byte(lc), &tmp.LifeCycle)
+	err = json.Unmarshal([]byte(lc), &tmp.LifecycleConfiguration)
 	if err != nil {
 		return
 	}
-	err = json.Unmarshal([]byte(policy), &tmp.Policy)
+	err = json.Unmarshal([]byte(policy), &tmp.BucketPolicy)
 	if err != nil {
 		return
 	}
@@ -81,7 +81,7 @@ func (t *TidbClient) GetBuckets() (buckets []*Bucket, err error) {
 			&acl,
 			&cors,
 			&lc,
-			&tmp.OwnerId,
+			&tmp.TenantId,
 			&policy,
 			&tmp.CreateTime,
 			&tmp.Usages,
@@ -98,11 +98,11 @@ func (t *TidbClient) GetBuckets() (buckets []*Bucket, err error) {
 		if err != nil {
 			return
 		}
-		err = json.Unmarshal([]byte(lc), &tmp.LifeCycle)
+		err = json.Unmarshal([]byte(lc), &tmp.LifecycleConfiguration)
 		if err != nil {
 			return
 		}
-		err = json.Unmarshal([]byte(policy), &tmp.Policy)
+		err = json.Unmarshal([]byte(policy), &tmp.BucketPolicy)
 		if err != nil {
 			return
 		}
@@ -115,10 +115,10 @@ func (t *TidbClient) GetBuckets() (buckets []*Bucket, err error) {
 func (t *TidbClient) PutBucket(bucket *Bucket) error {
 	acl, _ := json.Marshal(bucket.Acl)
 	cors, _ := json.Marshal(bucket.Cors)
-	lc, _ := json.Marshal(bucket.LifeCycle)
-	bucket_policy, _ := json.Marshal(bucket.Policy)
+	lc, _ := json.Marshal(bucket.LifecycleConfiguration)
+	bucket_policy, _ := json.Marshal(bucket.BucketPolicy)
 	sql := "update buckets set bucketname=?,acl=?,policy=?,cors=?,lc=?,uid=?,versioning=? where bucketname=?"
-	args := []interface{}{bucket.Name, acl, bucket_policy, cors, lc, bucket.OwnerId, bucket.Versioning, bucket.Name}
+	args := []interface{}{bucket.Name, acl, bucket_policy, cors, lc, bucket.TenantId, bucket.Versioning, bucket.Name}
 
 	_, err := t.Client.Exec(sql, args...)
 	if err != nil {

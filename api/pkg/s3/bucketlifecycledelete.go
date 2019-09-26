@@ -23,7 +23,6 @@ import (
 	. "github.com/opensds/multi-cloud/s3/pkg/exception"
 	"github.com/opensds/multi-cloud/s3/proto"
 	"golang.org/x/net/context"
-	"encoding/json"
 )
 
 func (s *APIService) BucketLifecycleDelete(request *restful.Request, response *restful.Response) {
@@ -50,15 +49,7 @@ func (s *APIService) BucketLifecycleDelete(request *restful.Request, response *r
 
 	for _, id := range ruleID {
 		isfound := false
-		lifecycleConf := []s3.LifecycleRule{}
-		err = json.Unmarshal([]byte(bucket.LifeCycle), &lifecycleConf)
-		if err != nil {
-			log.Logf("unmarshal lifecycle of bucket[%s] failed, lifecycle=%s, err=%v.\n", bucketName, bucket.LifeCycle, err)
-			response.WriteError(http.StatusInternalServerError, InternalError.Error())
-			return
-		}
-
-		for _, lcRule := range lifecycleConf {
+		for _, lcRule := range bucket.LifecycleConfiguration {
 			if lcRule.Id == id {
 				isfound = true
 				FoundIDArray = append(FoundIDArray, id)
