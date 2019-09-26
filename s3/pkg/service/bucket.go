@@ -64,6 +64,25 @@ func (b *s3Service) CreateBucket(ctx context.Context, in *pb.Bucket, out *pb.Bas
 func (b *s3Service) GetBucket(ctx context.Context, in *pb.BaseRequest, out *pb.Bucket) error {
 	log.Logf("GetBucket %s is called in s3 service.", in.Id)
 
+	bucket, err := b.MetaStorage.GetBucket(in.Id, false)
+	if err != nil {
+		helper.Logger.Println(5, "Error get bucket: ", in.Id, ", with error", err)
+		return err
+	}
+
+	out = &pb.Bucket{
+		Id: bucket.Id,
+		Name: bucket.Name,
+		TenantId: bucket.TenantId,
+		UserId: bucket.UserId,
+		Acl: bucket.Acl,
+		CreateTime: bucket.CreateTime,
+		Deleted: bucket.Deleted,
+		DefaultLocation: bucket.DefaultLocation,
+		Tier: bucket.Tier,
+		Usages: bucket.Usages,
+	}
+
 	return nil
 }
 
