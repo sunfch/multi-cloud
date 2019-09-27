@@ -26,13 +26,13 @@ import (
 
 func (s *APIService) BucketDelete(request *restful.Request, response *restful.Response) {
 	bucketName := request.PathParameter("bucketName")
-	log.Logf("Received request for deleting bucket[name=%s].\n", bucketName)
+	log.Infof("Received request for deleting bucket[name=%s].\n", bucketName)
 
 	ctx := context.Background()
 	// Check if objects exist in the bucket, if yes then bucket cannot be deleted.
 	res, err := s.s3Client.ListObjects(ctx, &s3.ListObjectsRequest{Bucket: bucketName})
 	if err != nil {
-		log.Logf("list objects of bucket[name=%s] before deleting it failed, err=%v\n", bucketName, err)
+		log.Infof("list objects of bucket[name=%s] before deleting it failed, err=%v\n", bucketName, err)
 		response.WriteError(http.StatusInternalServerError, err)
 		return
 	}

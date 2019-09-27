@@ -56,7 +56,7 @@ func NewContextFromJson(s string) *Context {
 	ctx := &Context{}
 	err := json.Unmarshal([]byte(s), ctx)
 	if err != nil {
-		log.Logf("Unmarshal json to context failed, reason: %v", err)
+		log.Infof("Unmarshal json to context failed, reason: %v", err)
 	}
 	return ctx
 }

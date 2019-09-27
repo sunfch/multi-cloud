@@ -60,7 +60,7 @@ func md5Content(data []byte) string {
 func (ad *GcsAdapter) Put(ctx context.Context, stream io.Reader, object *pb.Object) (dscommon.PutResult, error) {
 	bucketName := ad.backend.BucketName
 	objectId := object.BucketName + "/" + object.ObjectKey
-	log.Logf("put object[GCS], objectid:%s, bucket:%s\n", objectId, bucketName)
+	log.Infof("put object[GCS], objectid:%s, bucket:%s\n", objectId, bucketName)
 
 	bucket := ad.session.NewBucket()
 	result := dscommon.PutResult{}
@@ -74,21 +74,21 @@ func (ad *GcsAdapter) Put(ctx context.Context, stream io.Reader, object *pb.Obje
 
 	err = GcpObject.Create(objectId, contentMD5, "", length, body, models.Private)
 	if err != nil {
-		log.Logf("put object[GCS] failed, object:%s, err:%v", objectId, err)
+		log.Infof("put object[GCS] failed, object:%s, err:%v", objectId, err)
 		return result, ErrPutToBackendFailed
 	}
 	//object.LastModifiedTime = time.Now().Unix()
 	result.UpdateTime = time.Now().Unix()
 	result.ObjectId = objectId
 	// TODO: set ETAG
-	log.Logf("put object[GCS] succeed, objectId:%s, LastModified is:%v\n", objectId, result.UpdateTime)
+	log.Infof("put object[GCS] succeed, objectId:%s, LastModified is:%v\n", objectId, result.UpdateTime)
 
 	return result, nil
 }
 
 func (ad *GcsAdapter) Get(ctx context.Context, object *pb.Object, start int64, end int64) (io.ReadCloser, error) {
 	objectId := object.BucketName + "/" + object.ObjectKey
-	log.Logf("get object[GCS], objectId:%s\n", objectId)
+	log.Infof("get object[GCS], objectId:%s\n", objectId)
 	getObjectOption := GetObjectOption{}
 	if start != 0 || end != 0 {
 		rangeObj := Range{
@@ -106,28 +106,28 @@ func (ad *GcsAdapter) Get(ctx context.Context, object *pb.Object, start int64, e
 	getObject, err := GcpObject.Get(objectId, &getObjectOption)
 	if err != nil {
 		fmt.Println(err)
-		log.Logf("get object[GCS] failed, objectId:%s, err:%v", objectId, err)
+		log.Infof("get object[GCS] failed, objectId:%s, err:%v", objectId, err)
 		return nil, ErrGetFromBackendFailed
 	}
 	//}
 
-	log.Logf("get object[GCS] succeed, objectId:%s, bytes:%d\n", objectId, getObject.ContentLength)
+	log.Infof("get object[GCS] succeed, objectId:%s, bytes:%d\n", objectId, getObject.ContentLength)
 	return getObject.Body, nil
 }
 
 func (ad *GcsAdapter) Delete(ctx context.Context, input *pb.DeleteObjectInput) error {
 	bucket := ad.session.NewBucket()
 	objectId := input.Bucket + "/" + input.Key
-	log.Logf("delete object[GCS], objectId:%s, err:%v\n", objectId)
+	log.Infof("delete object[GCS], objectId:%s, err:%v\n", objectId)
 
 	GcpObject := bucket.NewObject(ad.backend.BucketName)
 	err := GcpObject.Remove(objectId)
 	if err != nil {
-		log.Logf("delete object[GCS] failed, objectId:%s, err:%v\n", objectId, err)
+		log.Infof("delete object[GCS] failed, objectId:%s, err:%v\n", objectId, err)
 		return ErrDeleteFromBackendFailed
 	}
 
-	log.Logf("delete object[GCS] succeed, objectId:%s.\n", objectId)
+	log.Infof("delete object[GCS] succeed, objectId:%s.\n", objectId)
 	return nil
 }
 
@@ -140,7 +140,7 @@ func (ad *GcsAdapter) Delete(ctx context.Context, input *pb.DeleteObjectInput) e
 	bucketResp, err := bucketO.Get(bucket, newKey, "", "", 1000)
 
 	if err != nil {
-		log.Logf("Error occured during get Object Info, err:%v\n", err)
+		log.Infof("Error occured during get Object Info, err:%v\n", err)
 		//log.Fatalf("Error occured during get Object Info, err:%v\n", err)
 		return nil, S3Error{Code: 500, Description: err.Error()}
 	}
@@ -159,14 +159,14 @@ func (ad *GcsAdapter) Delete(ctx context.Context, input *pb.DeleteObjectInput) e
 		return obj, NoError
 	}
 
-	log.Logf("Can not find specified object(%s).\n", key)
+	log.Infof("Can not find specified object(%s).\n", key)
 	return nil, NoSuchObject
 }*/
 
 func (ad *GcsAdapter) InitMultipartUpload(ctx context.Context, object *pb.Object) (*pb.MultipartUpload, error) {
 	bucket := ad.session.NewBucket()
 	objectId := object.BucketName + "/" + object.ObjectKey
-	log.Logf("init multipart upload[GCS] bucket:%s, objectId:%s\n", bucket, objectId)
+	log.Infof("init multipart upload[GCS] bucket:%s, objectId:%s\n", bucket, objectId)
 
 	GcpObject := bucket.NewObject(ad.backend.BucketName)
 	uploader := GcpObject.NewUploads(objectId)
@@ -177,7 +177,7 @@ func (ad *GcsAdapter) InitMultipartUpload(ctx context.Context, object *pb.Object
 		log.Fatalf("init multipart upload[GCS] failed, objectId:%s, err:%v\n", objectId, err)
 		return nil, ErrBackendInitMultipartFailed
 	} else {
-		log.Logf("Init multipart upload[GCS] succeed, objectId:%s, UploadId:%s\n", objectId, res.UploadID)
+		log.Infof("Init multipart upload[GCS] succeed, objectId:%s, UploadId:%s\n", objectId, res.UploadID)
 		multipartUpload.Bucket = object.BucketName
 		multipartUpload.Key = object.ObjectKey
 		multipartUpload.UploadId = res.UploadID
@@ -191,7 +191,7 @@ func (ad *GcsAdapter) UploadPart(ctx context.Context, stream io.Reader, multipar
 	tries := 1
 	objectId := multipartUpload.Bucket + "/" + multipartUpload.Key
 	bucket := ad.session.NewBucket()
-	log.Logf("upload part[GCS], objectId:%s, bucket:%s, partNum:%d, bytes:%s\n",
+	log.Infof("upload part[GCS], objectId:%s, bucket:%s, partNum:%d, bytes:%s\n",
 		objectId, bucket, partNumber, upBytes)
 
 	GcpObject := bucket.NewObject(ad.backend.BucketName)
@@ -206,13 +206,13 @@ func (ad *GcsAdapter) UploadPart(ctx context.Context, stream io.Reader, multipar
 
 		if err != nil {
 			if tries == 3 {
-				log.Logf("upload part[GCS] failed, objectId:%s, partNum:%d, err:%v\n", objectId, partNumber, err)
+				log.Infof("upload part[GCS] failed, objectId:%s, partNum:%d, err:%v\n", objectId, partNumber, err)
 				return nil, ErrPutToBackendFailed
 			}
-			log.Logf("retrying to upload[GCS] part#%d ,err:%s\n", partNumber, err)
+			log.Infof("retrying to upload[GCS] part#%d ,err:%s\n", partNumber, err)
 			tries++
 		} else {
-			log.Logf("upload part[CGS] objectId:%s, partNum:#%d, ETag:%s\n", objectId, partNumber, part.Etag)
+			log.Infof("upload part[CGS] objectId:%s, partNum:#%d, ETag:%s\n", objectId, partNumber, part.Etag)
 			result := &model.UploadPartResult{
 				Xmlns:      model.Xmlns,
 				ETag:       part.Etag,
@@ -230,7 +230,7 @@ func (ad *GcsAdapter) CompleteMultipartUpload(ctx context.Context, multipartUplo
 	bucket := ad.session.NewBucket()
 	GcpObject := bucket.NewObject(ad.backend.BucketName)
 	uploader := GcpObject.NewUploads(multipartUpload.ObjectId)
-	log.Logf("complete multipart upload[GCS], objectId:%s, bucket:%s\n", multipartUpload.ObjectId, bucket)
+	log.Infof("complete multipart upload[GCS], objectId:%s, bucket:%s\n", multipartUpload.ObjectId, bucket)
 
 	var completeParts []CompletePart
 	for _, p := range completeUpload.Part {
@@ -242,7 +242,7 @@ func (ad *GcsAdapter) CompleteMultipartUpload(ctx context.Context, multipartUplo
 	}
 	resp, err := uploader.Complete(multipartUpload.UploadId, completeParts)
 	if err != nil {
-		log.Logf("complete multipart upload[GCS] failed, objectId:%s, err:%v\n", err)
+		log.Infof("complete multipart upload[GCS] failed, objectId:%s, err:%v\n", err)
 		return nil, ErrBackendCompleteMultipartFailed
 	}
 	result := &model.CompleteMultipartUploadResult{
@@ -253,22 +253,22 @@ func (ad *GcsAdapter) CompleteMultipartUpload(ctx context.Context, multipartUplo
 		ETag:     resp.Etag,
 	}
 
-	log.Logf("complete multipart upload[GCS] succeed, objectId:%s, resp:%v\n", multipartUpload.ObjectId, resp)
+	log.Infof("complete multipart upload[GCS] succeed, objectId:%s, resp:%v\n", multipartUpload.ObjectId, resp)
 	return result, nil
 }
 
 func (ad *GcsAdapter) AbortMultipartUpload(ctx context.Context, multipartUpload *pb.MultipartUpload) error {
 	bucket := ad.session.NewBucket()
-	log.Logf("abort multipart upload[GCS], objectId:%s, bucket:%s\n", multipartUpload.ObjectId, bucket)
+	log.Infof("abort multipart upload[GCS], objectId:%s, bucket:%s\n", multipartUpload.ObjectId, bucket)
 	GcpObject := bucket.NewObject(ad.backend.BucketName)
 	uploader := GcpObject.NewUploads(multipartUpload.ObjectId)
 	err := uploader.RemoveUploads(multipartUpload.UploadId)
 	if err != nil {
-		log.Logf("abort multipart upload[GCS] failed, objectId:%s, err:%v\n", multipartUpload.ObjectId, err)
+		log.Infof("abort multipart upload[GCS] failed, objectId:%s, err:%v\n", multipartUpload.ObjectId, err)
 		return ErrBackendAbortMultipartFailed
 	}
 
-	log.Logf("abort multipart upload[GCS] succeed, objectId:%s\n", multipartUpload.ObjectId)
+	log.Infof("abort multipart upload[GCS] succeed, objectId:%s\n", multipartUpload.ObjectId)
 	return nil
 }
 
@@ -280,10 +280,10 @@ func (ad *GcsAdapter) AbortMultipartUpload(ctx context.Context, multipartUpload 
 
 	listPartsResult, err := uploader.ListPart(listParts.UploadId)
 	if err != nil {
-		log.Logf("List parts failed, err:%v\n", err)
+		log.Infof("List parts failed, err:%v\n", err)
 		return nil, S3Error{Code: 500, Description: err.Error()}
 	} else {
-		log.Logf("List parts successful\n")
+		log.Infof("List parts successful\n")
 		var parts []model.Part
 		for _, p := range listPartsResult.Parts {
 			part := model.Part{

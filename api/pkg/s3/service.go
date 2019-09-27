@@ -74,7 +74,7 @@ func ReadBody(r *restful.Request) []byte {
 }
 
 /*func getBackendClient(s *APIService, bucketName string) datastore.DataStoreAdapter {
-	log.Logf("bucketName is %v:\n", bucketName)
+	log.Infof("bucketName is %v:\n", bucketName)
 
 	ctx := context.Background()
 	bucket, err := s.s3Client.GetBucket(ctx, &s3.CommonRequest{
@@ -84,18 +84,18 @@ func ReadBody(r *restful.Request) []byte {
 		return nil
 	}
 	//backendRep, backendErr := s.backendClient.GetBackend(ctx, &backendpb.GetBackendRequest{Id: bucket.Backend})
-	log.Logf("bucketName is %v\n", bucketName)
+	log.Infof("bucketName is %v\n", bucketName)
 	backendRep, backendErr := s.backendClient.ListBackend(ctx, &backendpb.ListBackendRequest{
 		Context: c.NewAdminContext().ToJson(),
 		Offset:  0,
 		Limit:   math.MaxInt32,
 		Filter:  map[string]string{"name": bucket.Backend}})
-	log.Logf("backendErr is %v:", backendErr)
+	log.Infof("backendErr is %v:", backendErr)
 	if backendErr != nil {
-		log.Logf("Get backend %s failed.", bucket.Backend)
+		log.Infof("Get backend %s failed.", bucket.Backend)
 		return nil
 	}
-	log.Logf("backendRep is %v:", backendRep)
+	log.Infof("backendRep is %v:", backendRep)
 	backend := backendRep.Backends[0]
 	client, _ := datastore.Init(backend)
 	return client
@@ -105,7 +105,7 @@ func ReadBody(r *restful.Request) []byte {
 func (s *APIService) getBucketMeta(ctx context.Context, bucketName string) *s3.Bucket {
 	bucket, err := s.s3Client.GetBucket(ctx, &s3.BaseRequest{Id: bucketName})
 	if err != nil {
-		log.Logf("get bucket[name=%s] failed, err=%v.\n", bucketName, err)
+		log.Infof("get bucket[name=%s] failed, err=%v.\n", bucketName, err)
 		return nil
 	}
 
@@ -119,12 +119,12 @@ func (s *APIService) isBackendExist(ctx context.Context, backendName string) boo
 		Offset:  0,
 		Limit:   math.MaxInt32,
 		Filter:  map[string]string{"name": backendName}})
-	log.Logf("backendErr is %v:", backendErr)
+	log.Infof("backendErr is %v:", backendErr)
 	if backendErr != nil {
-		log.Logf("Get backend[name=%s] failed.", backendName)
+		log.Infof("Get backend[name=%s] failed.", backendName)
 	} else {
 		if len(backendRep.Backends) > 0 {
-			log.Logf("backend[name=%s] exist.", backendName)
+			log.Infof("backend[name=%s] exist.", backendName)
 			flag = true
 		}
 	}
@@ -139,12 +139,12 @@ func (s *APIService) isBackendExist(ctx context.Context, backendName string) boo
 		Offset:  0,
 		Limit:   math.MaxInt32,
 		Filter:  map[string]string{"name": backendName}})
-	log.Logf("backendErr is %v:", backendErr)
+	log.Infof("backendErr is %v:", backendErr)
 	if backendErr != nil {
-		log.Logf("Get backend %s failed.", backendName)
+		log.Infof("Get backend %s failed.", backendName)
 		return nil
 	}
-	log.Logf("backendRep is %v:", backendRep)
+	log.Infof("backendRep is %v:", backendRep)
 	backend := backendRep.Backends[0]
 	client, _ := datastore.Init(backend)
 	return client
@@ -157,12 +157,12 @@ func getBucketNameByBackend(s *APIService, backendName string) string {
 		Offset: 0,
 		Limit:  math.MaxInt32,
 		Filter: map[string]string{"name": backendName}})
-	log.Logf("backendErr is %v:", backendErr)
+	log.Infof("backendErr is %v:", backendErr)
 	if backendErr != nil {
-		log.Logf("Get backend %s failed.", backendName)
+		log.Infof("Get backend %s failed.", backendName)
 		return ""
 	}
-	log.Logf("backendRep is %v:", backendRep)
+	log.Infof("backendRep is %v:", backendRep)
 	backend := backendRep.Backends[0]
 	return backend.BucketName
 }

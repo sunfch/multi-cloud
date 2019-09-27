@@ -29,7 +29,7 @@ import (
 var InProgressObjs map[string]struct{}
 
 func doCrossCloudTransition(acReq *datamover.LifecycleActionRequest) error {
-	log.Logf("cross-cloud transition action: transition %s from %d of %s to %d of %s.\n",
+	log.Infof("cross-cloud transition action: transition %s from %d of %s to %d of %s.\n",
 		acReq.ObjKey, acReq.SourceTier, acReq.SourceBackend, acReq.TargetTier, acReq.TargetBackend)
 
 	// add object to InProgressObjs
@@ -45,7 +45,7 @@ func doCrossCloudTransition(acReq *datamover.LifecycleActionRequest) error {
 	if _, ok := InProgressObjs[acReq.ObjKey]; !ok {
 		InProgressObjs[acReq.ObjKey] = struct{}{}
 	} else {
-		log.Logf("the transition of object[%s] is in-progress\n", acReq.ObjKey)
+		log.Infof("the transition of object[%s] is in-progress\n", acReq.ObjKey)
 		return errors.New(DMERR_TransitionInprogress)
 	}
 
@@ -58,7 +58,7 @@ func doCrossCloudTransition(acReq *datamover.LifecycleActionRequest) error {
 
 	_, err := s3client.CopyObject(context.Background(), &req)
 	if err != nil {
-		log.Logf("copy object based on osds s3 failed, obj=%s, err:%v\n", acReq.ObjKey, err)
+		log.Infof("copy object based on osds s3 failed, obj=%s, err:%v\n", acReq.ObjKey, err)
 	}
 
 	// remove object from InProgressObjs

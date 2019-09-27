@@ -28,7 +28,7 @@ import (
 func (s *APIService) BucketLifecycleDelete(request *restful.Request, response *restful.Response) {
 	bucketName := request.PathParameter("bucketName")
 	ruleID := request.Request.URL.Query()["ruleID"]
-	log.Logf("received request for deleting lifecycle rule[id=%s] for bucket[name=%s].\n", ruleID, bucketName)
+	log.Infof("received request for deleting lifecycle rule[id=%s] for bucket[name=%s].\n", ruleID, bucketName)
 
 	if ruleID == nil {
 		response.WriteErrorString(http.StatusBadRequest, NoRuleIDForLifecycleDelete)
@@ -42,7 +42,7 @@ func (s *APIService) BucketLifecycleDelete(request *restful.Request, response *r
 
 	bucket, err := s.s3Client.GetBucket(ctx, &s3.BaseRequest{Id: bucketName})
 	if err != nil {
-		log.Logf("get bucket[name=%s] failed, err=%v.\n", bucketName, err)
+		log.Infof("get bucket[name=%s] failed, err=%v.\n", bucketName, err)
 		response.WriteError(http.StatusInternalServerError, NoSuchBucket.Error())
 		return
 	}
@@ -67,7 +67,7 @@ func (s *APIService) BucketLifecycleDelete(request *restful.Request, response *r
 			deleteInput := s3.DeleteLifecycleInput{Bucket: bucketName, RuleID: id}
 			res, err := s.s3Client.DeleteBucketLifecycle(ctx, &deleteInput)
 		if err != nil {
-			log.Logf("delete lifecycle[id=%s] of bucket[name=%s] failed, err=%v.\n", id, bucketName, err)
+			log.Infof("delete lifecycle[id=%s] of bucket[name=%s] failed, err=%v.\n", id, bucketName, err)
 			response.WriteError(http.StatusBadRequest, err)
 			return
 		}

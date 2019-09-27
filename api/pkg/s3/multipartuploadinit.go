@@ -34,7 +34,7 @@ func (s *APIService) MultiPartUploadInit(request *restful.Request, response *res
 	objectKey := request.PathParameter("objectKey")
 /*	//assign backend
 	backendName := request.HeaderParameter("x-amz-storage-class")
-	log.Logf("Received request for create bucket: name=%s, backend=%s", bucketName, backendName)
+	log.Infof("Received request for create bucket: name=%s, backend=%s", bucketName, backendName)
 
 	ctx := context.WithValue(request.Request.Context(), "operation", "multipartupload")
 	actx := request.Attribute(c.KContext).(*c.Context)
@@ -99,7 +99,7 @@ func (s *APIService) MultiPartUploadInit(request *restful.Request, response *res
 		//insert metadata
 		_, err := s.s3Client.CreateObject(ctx, objectMD)
 		if err != nil {
-			log.Logf("err is %v\n", err)
+			log.Infof("err is %v\n", err)
 			response.WriteError(http.StatusInternalServerError, err)
 		}
 	} else {
@@ -110,7 +110,7 @@ func (s *APIService) MultiPartUploadInit(request *restful.Request, response *res
 		//insert metadata
 		_, err := s.s3Client.CreateObject(ctx, &object)
 		if err != nil {
-			log.Logf("err is %v\n", err)
+			log.Infof("err is %v\n", err)
 			response.WriteError(http.StatusInternalServerError, err)
 		}
 	}
@@ -124,15 +124,15 @@ func (s *APIService) MultiPartUploadInit(request *restful.Request, response *res
 
 	xmlstring, err := xml.MarshalIndent(result, "", "  ")
 	if err != nil {
-		log.Logf("Parse ListBuckets error: %v", err)
+		log.Infof("Parse ListBuckets error: %v", err)
 		response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
 
 	xmlstring = []byte(xml.Header + string(xmlstring))
-	log.Logf("resp:\n%s", xmlstring)
+	log.Infof("resp:\n%s", xmlstring)
 	response.Write(xmlstring)
 */
-	log.Logf("Init multipart upload[bucketName=%s, objectKey=%s] successfully.\n",
+	log.Infof("Init multipart upload[bucketName=%s, objectKey=%s] successfully.\n",
 		bucketName, objectKey)
 }

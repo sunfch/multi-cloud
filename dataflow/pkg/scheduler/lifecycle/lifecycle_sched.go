@@ -49,8 +49,8 @@ func loadStorageClassDefinition() error {
 		log.Log("get transition map failed")
 		return fmt.Errorf("get tier definition failed")
 	} else {
-		log.Logf("res.Transition:%v", res.Transition)
-		log.Logf("res.Tier2Name:%+v", res.Tier2Name)
+		log.Infof("res.Transition:%v", res.Transition)
+		log.Infof("res.Tier2Name:%+v", res.Tier2Name)
 	}
 
 	TransitionMap = make(map[string]struct{})
@@ -71,7 +71,7 @@ func ScheduleLifecycle() {
 		if len(TransitionMap) == 0 {
 			err := loadStorageClassDefinition()
 			if err != nil {
-				log.Logf("[ScheduleLifecycle]load storage classes failed: %v.\n", err)
+				log.Infof("[ScheduleLifecycle]load storage classes failed: %v.\n", err)
 				return
 			}
 		}
@@ -81,21 +81,21 @@ func ScheduleLifecycle() {
 	listReq := s3.BaseRequest{}
 	listRsp, err := s3client.ListBuckets(context.Background(), &listReq)
 	if err != nil {
-		log.Logf("[ScheduleLifecycle]list buckets failed: %v.\n", err)
+		log.Infof("[ScheduleLifecycle]list buckets failed: %v.\n", err)
 		return
 	}
 
 	for _, v := range listRsp.Buckets {
 		// For each bucket, get the lifecycle rules, and schedule each rule.
 		if v.LifecycleConfiguration == nil {
-			log.Logf("[ScheduleLifecycle]bucket[%s] has no lifecycle rule.\n", v.Name)
+			log.Infof("[ScheduleLifecycle]bucket[%s] has no lifecycle rule.\n", v.Name)
 		}
 
-		log.Logf("[ScheduleLifecycle]bucket[%s] has lifecycle rule.\n", v.Name)
+		log.Infof("[ScheduleLifecycle]bucket[%s] has lifecycle rule.\n", v.Name)
 
 		err = handleBucketLifecyle(v.Name, v.LifecycleConfiguration)
 		if err != nil {
-			log.Logf("[ScheduleLifecycle]handle bucket lifecycle for bucket[%s] failed, err:%v.\n", v.Name, err)
+			log.Infof("[ScheduleLifecycle]handle bucket lifecycle for bucket[%s] failed, err:%v.\n", v.Name, err)
 			continue
 		}
 	}
@@ -121,7 +121,7 @@ func handleBucketLifecyle(bucket string, rules []*osdss3.LifecycleRule) error {
 		}
 	}
 	if ret != LockSuccess {
-		log.Logf("lock scheduling failed.\n")
+		log.Infof("lock scheduling failed.\n")
 		return fmt.Errorf("internal error: lock failed")
 	}
 	// Make sure unlock before return
@@ -168,7 +168,7 @@ func handleBucketLifecyle(bucket string, rules []*osdss3.LifecycleRule) error {
 	sort.Stable(inRules)
 	// Begin: Log for debug
 	for _, v := range inRules {
-		log.Logf("action rule: %+v\n", *v)
+		log.Infof("action rule: %+v\n", *v)
 	}
 	// End: Log for debug
 	schedSortedActionsRules(&inRules)
@@ -176,7 +176,7 @@ func handleBucketLifecyle(bucket string, rules []*osdss3.LifecycleRule) error {
 	sort.Stable(abortRules)
 	// Begin: Log for debug
 	for _, v := range abortRules {
-		log.Logf("abort rule: %+v\n", *v)
+		log.Infof("abort rule: %+v\n", *v)
 	}
 	// End: Log for debug
 	//schedSortedAbortRules(&abortRules)
@@ -213,10 +213,10 @@ func getObjects(r *InternalLifecycleRule, offset, limit int32) ([]*osdss3.Object
 		Limit:  limit,
 	}
 	ctx := context.Background()
-	log.Logf("ListObjectsRequest:%+v\n", s3req)
+	log.Infof("ListObjectsRequest:%+v\n", s3req)
 	s3rsp, err := s3client.ListObjects(ctx, &s3req)
 	if err != nil {
-		log.Logf("list objects failed, req: %v.\n", s3req)
+		log.Infof("list objects failed, req: %v.\n", s3req)
 		return nil, err
 	}
 
@@ -232,13 +232,13 @@ func schedSortedAbortRules(inRules *InterRules) {
 			req := osdss3.ListMultipartUploadRequest{Bucket: r.Bucket, Prefix: r.Filter.Prefix, Days: r.Days, Limit: limit, Offset: offset}
 			s3rsp, err := s3client.ListUploadRecord(context.Background(), &req)
 			if err != nil {
-				log.Logf("schedule for rule[id=%s,bucket=%s] failed, err:%v\n", r.Id, r.Bucket, err)
+				log.Infof("schedule for rule[id=%s,bucket=%s] failed, err:%v\n", r.Id, r.Bucket, err)
 				break
 			}
 			records := s3rsp.Records
 			num := int32(len(records))
 			offset += num
-			log.Logf("schedSortedAbortRules:num=%d,offset=%d\n", num, offset)
+			log.Infof("schedSortedAbortRules:num=%d,offset=%d\n", num, offset)
 			for _, rc := range records {
 				if _, ok := dupCheck[rc.UploadId]; !ok {
 					req := datamover.LifecycleActionRequest{
@@ -255,7 +255,7 @@ func schedSortedAbortRules(inRules *InterRules) {
 					dupCheck[rc.UploadId] = struct{}{}
 
 				} else {
-					log.Logf("upload[id=%s] is already handled in this schedule time.\n", rc.UploadId)
+					log.Infof("upload[id=%s] is already handled in this schedule time.\n", rc.UploadId)
 				}
 			}
 			if num < limit {
@@ -281,12 +281,12 @@ func schedSortedActionsRules(inRules *InterRules) {
 			// Check if the object exist in the dupCheck map.
 			for _, obj := range objs {
 				if obj.DeleteMarker == true {
-					log.Logf("deleteMarker of object[%s] is set, no lifecycle action need.\n", obj.ObjectKey)
+					log.Infof("deleteMarker of object[%s] is set, no lifecycle action need.\n", obj.ObjectKey)
 					continue
 				}
 				if r.ActionType != ActionExpiration && obj.Tier == s3utils.Tier999 {
 					// archived object cannot be transit
-					log.Logf("object[%s] is already archived.\n", obj.ObjectKey)
+					log.Infof("object[%s] is already archived.\n", obj.ObjectKey)
 					continue
 				}
 				if _, ok := dupCheck[obj.ObjectKey]; !ok {
@@ -294,7 +294,7 @@ func schedSortedActionsRules(inRules *InterRules) {
 					if r.ActionType != ActionExpiration && obj.Tier == r.Tier &&
 						(obj.Location == r.Backend || r.Backend == "") {
 						// For transition, if target backend and storage class is the same as source backend and storage class, then no transition is need.
-						log.Logf("no need transition for object[%s], backend=%s, tier=%d\n", obj.ObjectKey, r.Backend, r.Tier)
+						log.Infof("no need transition for object[%s], backend=%s, tier=%d\n", obj.ObjectKey, r.Backend, r.Tier)
 						// in case different actions exist for an object at the same time, for example transition to aws after 30 days
 						// and transition to azure after 30 days, we need to make sure only one action will be taken.
 						dupCheck[obj.ObjectKey] = struct{}{}
@@ -312,13 +312,13 @@ func schedSortedActionsRules(inRules *InterRules) {
 					}
 
 					if r.ActionType != ActionExpiration && checkTransitionValidation(obj.Tier, r.Tier) != true {
-						log.Logf("transition object[%s] from tier[%d] to tier[%d] is invalid.\n", obj.ObjectKey, obj.Tier, r.Tier)
+						log.Infof("transition object[%s] from tier[%d] to tier[%d] is invalid.\n", obj.ObjectKey, obj.Tier, r.Tier)
 						// in case different actions exist for an object at the same time, for example transition to aws after 30 days
 						// and transition to azure after 30 days, we need to make sure only one action will be taken.
 						dupCheck[obj.ObjectKey] = struct{}{}
 						continue
 					}
-					log.Logf("lifecycle action: object=[%s] type=[%d] source-tier=[%d] target-tier=[%d] " +
+					log.Infof("lifecycle action: object=[%s] type=[%d] source-tier=[%d] target-tier=[%d] " +
 						"source-backend=[%s] target-backend=[%s].\n", obj.ObjectKey, r.ActionType, obj.Tier, r.Tier,
 						obj.Location, r.Backend)
 					//actx := c.Context{TenantId: obj.TenantId, UserId: obj.UserId}
@@ -341,7 +341,7 @@ func schedSortedActionsRules(inRules *InterRules) {
 					// Add object key to dupCheck so it will not be processed repeatedly in this round or scheduling.
 					dupCheck[obj.ObjectKey] = struct{}{}
 				} else {
-					log.Logf("object[%s] is already handled in this schedule time.\n", obj.ObjectKey)
+					log.Infof("object[%s] is already handled in this schedule time.\n", obj.ObjectKey)
 				}
 			}
 			if num < limit {
@@ -353,10 +353,10 @@ func schedSortedActionsRules(inRules *InterRules) {
 }
 
 func sendActionRequest(req *datamover.LifecycleActionRequest) error {
-	log.Logf("Send lifecycle request to datamover: %v\n", req)
+	log.Infof("Send lifecycle request to datamover: %v\n", req)
 	data, err := json.Marshal(*req)
 	if err != nil {
-		log.Logf("marshal run job request failed, err:%v\n", data)
+		log.Infof("marshal run job request failed, err:%v\n", data)
 		return err
 	}
 

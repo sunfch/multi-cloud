@@ -85,7 +85,7 @@ func (ad *AwsAdapter) Put(ctx context.Context, stream io.Reader, object *pb.Obje
 	result := dscommon.PutResult{}
 
 	uploader := s3manager.NewUploader(ad.session)
-	log.Logf("put object[AWS S3] begin, objectId:%s\n", objectId)
+	log.Infof("put object[AWS S3] begin, objectId:%s\n", objectId)
 	_, err := uploader.Upload(&s3manager.UploadInput{
 		Bucket: &bucket,
 		Key:    &objectId,
@@ -93,16 +93,16 @@ func (ad *AwsAdapter) Put(ctx context.Context, stream io.Reader, object *pb.Obje
 		// Currently, only support STANDARD for PUT.
 		StorageClass: aws.String(constants.StorageClassAWSStandard),
 	})
-	log.Logf("put object[AWS S3] end, objectId:%s\n", objectId)
+	log.Infof("put object[AWS S3] end, objectId:%s\n", objectId)
 	if err != nil {
-		log.Logf("put object[AWS S3] failed, objectId:%s, err:%v", objectId, err)
+		log.Infof("put object[AWS S3] failed, objectId:%s, err:%v", objectId, err)
 		return result, ErrPutToBackendFailed
 	}
 
 	result.UpdateTime = time.Now().Unix()
 	result.ObjectId = objectId
 	// TODO: set ETAG
-	log.Logf("put object[AWS S3] successfully, objectId:%s, UpdateTime is:%v\n", objectId, result.UpdateTime)
+	log.Infof("put object[AWS S3] successfully, objectId:%s, UpdateTime is:%v\n", objectId, result.UpdateTime)
 
 	return result, nil
 }
@@ -116,7 +116,7 @@ func (ad *AwsAdapter) Get(ctx context.Context, object *pb.Object, start int64, e
 		Bucket: &bucket,
 		Key:    &objectId,
 	}
-	log.Logf("get object[AWS S3], objectId:%s, start = %d, end = %d\n", objectId, start, end)
+	log.Infof("get object[AWS S3], objectId:%s, start = %d, end = %d\n", objectId, start, end)
 	if start != 0 || end != 0 {
 		strStart := strconv.FormatInt(start, 10)
 		strEnd := strconv.FormatInt(end, 10)
@@ -127,12 +127,12 @@ func (ad *AwsAdapter) Get(ctx context.Context, object *pb.Object, start int64, e
 	downloader := s3manager.NewDownloader(ad.session)
 	numBytes, err := downloader.DownloadWithContext(ctx, writer, &getObjectInput)
 	if err != nil {
-		log.Logf("get object[AWS S3] failed, objectId:%s, err:%v", objectId, err)
+		log.Infof("get object[AWS S3] failed, objectId:%s, err:%v", objectId, err)
 		return nil, ErrGetFromBackendFailed
 	}
 
-	log.Logf("get object[AWS S3] succeed, objectId:%s, numBytes:%d\n", objectId, numBytes)
-	log.Logf("writer.Bytes() is %v \n", writer.Bytes())
+	log.Infof("get object[AWS S3] succeed, objectId:%s, numBytes:%d\n", objectId, numBytes)
+	log.Infof("writer.Bytes() is %v \n", writer.Bytes())
 	body := bytes.NewReader(writer.Bytes())
 	ioReaderClose := ioutil.NopCloser(body)
 
@@ -144,15 +144,15 @@ func (ad *AwsAdapter) Delete(ctx context.Context, input *pb.DeleteObjectInput) e
 	objectId := input.Bucket + "/" + input.Key
 	deleteInput := awss3.DeleteObjectInput{Bucket: &bucket, Key: &objectId}
 
-	log.Logf("delete object[AWS S3], objectId:%s.\n", objectId)
+	log.Infof("delete object[AWS S3], objectId:%s.\n", objectId)
 	svc := awss3.New(ad.session)
 	_, err := svc.DeleteObject(&deleteInput)
 	if err != nil {
-		log.Logf("delete object[AWS S3] failed, objectId:%s, err:%v.\n", objectId, err)
+		log.Infof("delete object[AWS S3] failed, objectId:%s, err:%v.\n", objectId, err)
 		return ErrDeleteFromBackendFailed
 	}
 
-	log.Logf("delete object[AWS S3] succeed, objectId:%s.\n", objectId)
+	log.Infof("delete object[AWS S3] succeed, objectId:%s.\n", objectId)
 
 	return nil
 }
@@ -186,7 +186,7 @@ func (ad *AwsAdapter) GetObjectInfo(bucketName string, key string, context conte
 		}
 		return obj, NoError
 	}
-	log.Logf("Can not find spceified object(%s).\n", key)
+	log.Infof("Can not find spceified object(%s).\n", key)
 	return nil, NoSuchObject
 }
 */
@@ -194,7 +194,7 @@ func (ad *AwsAdapter) GetObjectInfo(bucketName string, key string, context conte
 func (ad *AwsAdapter) InitMultipartUpload(ctx context.Context, object *pb.Object) (*pb.MultipartUpload, error) {
 	bucket := ad.backend.BucketName
 	objectId := object.BucketName + "/" + object.ObjectKey
-	log.Logf("init multipart upload[AWS S3], bucket = %v,objectId = %v\n", bucket, objectId)
+	log.Infof("init multipart upload[AWS S3], bucket = %v,objectId = %v\n", bucket, objectId)
 	multipartUpload := &pb.MultipartUpload{}
 	multiUpInput := &awss3.CreateMultipartUploadInput{
 		Bucket: &bucket,
@@ -209,7 +209,7 @@ func (ad *AwsAdapter) InitMultipartUpload(ctx context.Context, object *pb.Object
 		log.Fatalf("init multipart upload[AWS S3] failed, err:%v\n", err)
 		return nil, ErrBackendInitMultipartFailed
 	} else {
-		log.Logf("init multipart upload[AWS S3] succeed, UploadId:%s\n", *res.UploadId)
+		log.Infof("init multipart upload[AWS S3] succeed, UploadId:%s\n", *res.UploadId)
 		multipartUpload.Bucket = object.BucketName
 		multipartUpload.Key = object.ObjectKey
 		multipartUpload.UploadId = *res.UploadId
@@ -231,20 +231,20 @@ func (ad *AwsAdapter) UploadPart(ctx context.Context, stream io.Reader, multipar
 		UploadId:      &multipartUpload.UploadId,
 		ContentLength: aws.Int64(upBytes),
 	}
-	log.Logf("upload part[AWS S3], input:%v\n", upPartInput)
+	log.Infof("upload part[AWS S3], input:%v\n", upPartInput)
 
 	svc := awss3.New(ad.session)
 	for tries <= 3 {
 		upRes, err := svc.UploadPart(upPartInput)
 		if err != nil {
 			if tries == 3 {
-				log.Logf("upload part[AWS S3] failed. err:%v\n", err)
+				log.Infof("upload part[AWS S3] failed. err:%v\n", err)
 				return nil, ErrPutToBackendFailed
 			}
-			log.Logf("retrying to upload[AWS S3] part#%d ,err:%s\n", partNumber, err)
+			log.Infof("retrying to upload[AWS S3] part#%d ,err:%s\n", partNumber, err)
 			tries++
 		} else {
-			log.Logf("upload object[AWS S3], objectId:%s, part #%d succeed, ETag:%s\n", multipartUpload.ObjectId,
+			log.Infof("upload object[AWS S3], objectId:%s, part #%d succeed, ETag:%s\n", multipartUpload.ObjectId,
 				partNumber, *upRes.ETag)
 			result := &model.UploadPartResult{
 				Xmlns:      model.Xmlns,
@@ -261,7 +261,7 @@ func (ad *AwsAdapter) UploadPart(ctx context.Context, stream io.Reader, multipar
 func (ad *AwsAdapter) CompleteMultipartUpload(ctx context.Context, multipartUpload *pb.MultipartUpload,
 	completeUpload *model.CompleteMultipartUpload) (*model.CompleteMultipartUploadResult, error) {
 	bucket := ad.backend.BucketName
-	log.Logf("complete multipart upload[AWS S3], bucket:%s, objectId:%s.\n", bucket, multipartUpload.ObjectId)
+	log.Infof("complete multipart upload[AWS S3], bucket:%s, objectId:%s.\n", bucket, multipartUpload.ObjectId)
 
 	var completeParts []*awss3.CompletedPart
 	for _, p := range completeUpload.Part {
@@ -280,11 +280,11 @@ func (ad *AwsAdapter) CompleteMultipartUpload(ctx context.Context, multipartUplo
 		},
 	}
 
-	log.Logf("completeInput %v\n", completeInput)
+	log.Infof("completeInput %v\n", completeInput)
 	svc := awss3.New(ad.session)
 	resp, err := svc.CompleteMultipartUpload(completeInput)
 	if err != nil {
-		log.Logf("complete multipart upload[AWS S3] failed, err:%v\n", err)
+		log.Infof("complete multipart upload[AWS S3] failed, err:%v\n", err)
 		return nil, ErrBackendCompleteMultipartFailed
 	}
 	result := &model.CompleteMultipartUploadResult{
@@ -295,13 +295,13 @@ func (ad *AwsAdapter) CompleteMultipartUpload(ctx context.Context, multipartUplo
 		ETag:     *resp.ETag,
 	}
 
-	log.Logf("complete multipart upload[AWS S3] successfully, resp:%v\n", resp)
+	log.Infof("complete multipart upload[AWS S3] successfully, resp:%v\n", resp)
 	return result, nil
 }
 
 func (ad *AwsAdapter) AbortMultipartUpload(ctx context.Context, multipartUpload *pb.MultipartUpload) error {
 	bucket := ad.backend.BucketName
-	log.Logf("abort multipart upload[AWS S3], bucket:%s, objectId:%s.\n", bucket, multipartUpload.ObjectId)
+	log.Infof("abort multipart upload[AWS S3], bucket:%s, objectId:%s.\n", bucket, multipartUpload.ObjectId)
 
 	abortInput := &awss3.AbortMultipartUploadInput{
 		Bucket:   &bucket,
@@ -312,11 +312,11 @@ func (ad *AwsAdapter) AbortMultipartUpload(ctx context.Context, multipartUpload 
 	svc := awss3.New(ad.session)
 	rsp, err := svc.AbortMultipartUpload(abortInput)
 	if err != nil {
-		log.Logf("complete multipart upload[AWS S3] failed, err:%v\n", err)
+		log.Infof("complete multipart upload[AWS S3] failed, err:%v\n", err)
 		return ErrBackendAbortMultipartFailed
 	}
 
-	log.Logf("complete multipart upload[AWS S3] successfully, rsp:%v\n", rsp)
+	log.Infof("complete multipart upload[AWS S3] successfully, rsp:%v\n", rsp)
 	return nil
 }
 

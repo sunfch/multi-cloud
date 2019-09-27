@@ -62,7 +62,7 @@ func (b *s3Service) CreateBucket(ctx context.Context, in *pb.Bucket, out *pb.Bas
 }
 
 func (b *s3Service) GetBucket(ctx context.Context, in *pb.BaseRequest, out *pb.Bucket) error {
-	log.Logf("GetBucket %s is called in s3 service.", in.Id)
+	log.Infof("GetBucket %s is called in s3 service.", in.Id)
 
 	bucket, err := b.MetaStorage.GetBucket(in.Id, false)
 	if err != nil {

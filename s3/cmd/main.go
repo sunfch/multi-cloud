@@ -16,37 +16,41 @@ package main
 
 import (
 	"fmt"
-	"os"
-
-	"github.com/micro/go-micro"
-	_ "github.com/opensds/multi-cloud/s3/pkg/datastore"
-	"github.com/opensds/multi-cloud/s3/pkg/datastore/driver"
+	micro "github.com/micro/go-micro"
+	//_ "github.com/opensds/multi-cloud/s3/pkg/datastore"
 	handler "github.com/opensds/multi-cloud/s3/pkg/service"
-	"github.com/opensds/multi-cloud/s3/pkg/helper"
-	"github.com/opensds/multi-cloud/s3/pkg/log"
 	pb "github.com/opensds/multi-cloud/s3/proto"
-	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/config"
-	"github.com/opensds/multi-cloud/s3/pkg/meta/redis"
+	"github.com/opensds/multi-cloud/api/pkg/utils/obs"
+	//"github.com/micro/go-log"
+	//"github.com/opensds/multi-cloud/s3/pkg/datastore/driver"
+	//"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/config"
+	//"github.com/opensds/multi-cloud/s3/pkg/helper"
+	//"github.com/opensds/multi-cloud/s3/pkg/meta/redis"
+	//"os"
+	"github.com/opensds/multi-cloud/s3/pkg/datastore/driver"
 )
-
-var logger *log.Logger
 
 func main() {
 	service := micro.NewService(
 		micro.Name("s3"),
 	)
 
+	obs.InitLogs()
+	fmt.Printf("Init s3 service\n")
+	//service.Init()
+	//micro.NewService()
 	service.Init(micro.AfterStop(func() error {
 		driver.FreeCloser()
 		return nil
 	}))
-
+/*
 	helper.SetupConfig()
+	//fmt.Printf("CONFIG:%+v\n", helper.CONFIG)
 
 	//yig log
 	f, err := os.OpenFile(helper.CONFIG.LogPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
-		panic("Failed to open log file " + helper.CONFIG.LogPath)
+		panic("Failed to open log file " + helper.CONFIG.LogPath + ", err:" + err.Error())
 	}
 	defer f.Close()
 
@@ -73,7 +77,7 @@ func main() {
 		}
 		redis.Initialize(cc)
 	}
-
+*/
 	pb.RegisterS3Handler(service.Server(), handler.NewS3Service())
 	if err := service.Run(); err != nil {
 		fmt.Println(err)

@@ -56,7 +56,7 @@ func check(rule BaseCheck,
 	enforcer Enforcer,
 	currentRule string) bool {
 	ret := rule.Exec(target, cred, enforcer, currentRule)
-	log.Logf("check rules:%s -- %v", rule, ret)
+	log.Infof("check rules:%s -- %v", rule, ret)
 	return ret
 }
 

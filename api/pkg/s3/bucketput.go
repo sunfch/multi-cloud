@@ -37,10 +37,10 @@ func (s *APIService) BucketPut(request *restful.Request, response *restful.Respo
 
 		return
 	}
-	log.Logf("received request: PUT bucket[name=%s]\n", bucketName)
+	log.Infof("received request: PUT bucket[name=%s]\n", bucketName)
 
 	if len(request.HeaderParameter(common.REQUEST_HEADER_CONTENT_LENGTH)) == 0 {
-		log.Logf("missing content length")
+		log.Infof("missing content length")
 		response.WriteError(http.StatusLengthRequired, s3error.ErrMissingContentLength)
 
 		return
@@ -56,18 +56,18 @@ func (s *APIService) BucketPut(request *restful.Request, response *restful.Respo
 	body := ReadBody(request)
 	flag := false
 	if body != nil && len(body) != 0{
-		log.Logf("request body is not empty")
+		log.Infof("request body is not empty")
 		createBucketConf := model.CreateBucketConfiguration{}
 		err := xml.Unmarshal(body, &createBucketConf)
 		if err != nil {
-			log.Logf("unmarshal failed, body:%v, err:%v\n", body, err)
+			log.Infof("unmarshal failed, body:%v, err:%v\n", body, err)
 			response.WriteError(http.StatusInternalServerError, s3error.ErrUnmarshalFailed)
 			return
 		}
 
 		backendName := createBucketConf.LocationConstraint
 		if backendName != "" {
-			log.Logf("backendName is %v\n", backendName)
+			log.Infof("backendName is %v\n", backendName)
 			bucket.DefaultLocation = backendName
 			flag = s.isBackendExist(ctx, backendName)
 		}
@@ -80,11 +80,11 @@ func (s *APIService) BucketPut(request *restful.Request, response *restful.Respo
 
 	res, err := s.s3Client.CreateBucket(ctx, &bucket)
 	if err != nil {
-		log.Logf("create bucket failed, err:%v\n", err)
+		log.Infof("create bucket failed, err:%v\n", err)
 		response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
 
-	log.Logf("create bucket[name=%s, defaultLocation=%s] successfully.\n", bucket.Name, bucket.DefaultLocation)
+	log.Infof("create bucket[name=%s, defaultLocation=%s] successfully.\n", bucket.Name, bucket.DefaultLocation)
 	response.WriteEntity(res)
 }

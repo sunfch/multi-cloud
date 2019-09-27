@@ -52,7 +52,7 @@ func main() {
 	ws.Filter(auth.FilterFactory())
 	
 	s3ws := new(restful.WebService)
-	s3ws.Path("/")
+	s3ws.Path("/v1/s3")
 	s3ws.Doc("OpenSDS Multi-Cloud API")
 	//s3ws.Consumes(restful.MIME_XML)
 	s3ws.Produces(restful.MIME_XML)

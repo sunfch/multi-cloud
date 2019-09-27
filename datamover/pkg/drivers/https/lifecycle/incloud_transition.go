@@ -22,7 +22,7 @@ import (
 )
 
 func doInCloudTransition(acReq *datamover.LifecycleActionRequest) error {
-	log.Logf("in-cloud transition action: transition %s from %d to %d of %s.\n",
+	log.Infof("in-cloud transition action: transition %s from %d to %d of %s.\n",
 		acReq.ObjKey, acReq.SourceTier, acReq.TargetTier, acReq.SourceBackend)
 
 	req := osdss3.CopyObjectRequest{
@@ -33,7 +33,7 @@ func doInCloudTransition(acReq *datamover.LifecycleActionRequest) error {
 
 	_, err := s3client.CopyObject(context.Background(), &req)
 	if err != nil {
-		log.Logf("copy object based on osds s3 failed, obj=%s, err:%v\n", acReq.ObjKey, err)
+		log.Infof("copy object based on osds s3 failed, obj=%s, err:%v\n", acReq.ObjKey, err)
 	}
 
 	return err

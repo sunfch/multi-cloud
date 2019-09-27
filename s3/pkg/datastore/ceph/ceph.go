@@ -51,7 +51,7 @@ func md5Content(data []byte) string {
 func (ad *CephAdapter) Put(ctx context.Context, stream io.Reader, object *pb.Object) (result dscommon.PutResult, err error) {
 	bucketName := ad.backend.BucketName
 	objectId := object.BucketName + "/" + object.ObjectKey
-	log.Logf("put object[Ceph S3], bucket:%s, objectId:%s\n", bucketName, objectId)
+	log.Infof("put object[Ceph S3], bucket:%s, objectId:%s\n", bucketName, objectId)
 
 	bucket := ad.session.NewBucket()
 	cephObject := bucket.NewObject(bucketName)
@@ -61,24 +61,24 @@ func (ad *CephAdapter) Put(ctx context.Context, stream io.Reader, object *pb.Obj
 	length := int64(len(d))
 	body := ioutil.NopCloser(bytes.NewReader(data))
 
-	log.Logf("put object[Ceph S3] begin, objectId:%s\n", objectId)
+	log.Infof("put object[Ceph S3] begin, objectId:%s\n", objectId)
 	err = cephObject.Create(objectId, contentMD5, "", length, body, models.Private)
-	log.Logf("put object[Ceph S3] end, objectId:%s\n", objectId)
+	log.Infof("put object[Ceph S3] end, objectId:%s\n", objectId)
 	if err != nil {
-		log.Logf("upload object[Ceph S3] failed, objectId:%s, err:%v", objectId, err)
+		log.Infof("upload object[Ceph S3] failed, objectId:%s, err:%v", objectId, err)
 		return result, ErrPutToBackendFailed
 	}
 
 	result.UpdateTime = time.Now().Unix()
 	result.ObjectId = objectId
 	// TODO: set ETAG
-	log.Logf("upload object[Ceph S3] succeed, objectId:%s, UpdateTime is:%v\n", objectId, result.UpdateTime)
+	log.Infof("upload object[Ceph S3] succeed, objectId:%s, UpdateTime is:%v\n", objectId, result.UpdateTime)
 
 	return result,nil
 }
 
 func (ad *CephAdapter) Get(ctx context.Context, object *pb.Object, start int64, end int64) (io.ReadCloser, error) {
-	log.Logf("get object[Ceph S3], bucket:%s, objectId:%s\n", object.BucketName, object.ObjectId)
+	log.Infof("get object[Ceph S3], bucket:%s, objectId:%s\n", object.BucketName, object.ObjectId)
 
 	getObjectOption := GetObjectOption{}
 	if start != 0 || end != 0 {
@@ -96,27 +96,27 @@ func (ad *CephAdapter) Get(ctx context.Context, object *pb.Object, start int64, 
 	getObject, err := cephObject.Get(object.ObjectId, &getObjectOption)
 	if err != nil {
 		fmt.Println(err)
-		log.Logf("get object[Ceph S3], objectId:%s failed:%v", object.ObjectId, err)
+		log.Infof("get object[Ceph S3], objectId:%s failed:%v", object.ObjectId, err)
 		return nil, ErrGetFromBackendFailed
 	}
 
-	log.Logf("get object[Ceph S3] succeed, objectId:%s, bytes:%d\n", object.ObjectId, getObject.ContentLength)
+	log.Infof("get object[Ceph S3] succeed, objectId:%s, bytes:%d\n", object.ObjectId, getObject.ContentLength)
 	return getObject.Body, nil
 }
 
 func (ad *CephAdapter) Delete(ctx context.Context, object *pb.DeleteObjectInput) error {
 	bucket := ad.session.NewBucket()
 	objectId := object.Bucket + "/" + object.Key
-	log.Logf("delete object[Ceph S3], objectId:%s, bucket:%s\n", objectId, bucket)
+	log.Infof("delete object[Ceph S3], objectId:%s, bucket:%s\n", objectId, bucket)
 
 	cephObject := bucket.NewObject(ad.backend.BucketName)
 	err := cephObject.Remove(objectId)
 	if err != nil {
-		log.Logf("delete object[Ceph S3] failed, objectId:%s, err:%v\n", objectId, err)
+		log.Infof("delete object[Ceph S3] failed, objectId:%s, err:%v\n", objectId, err)
 		return ErrDeleteFromBackendFailed
 	}
 
-	log.Logf("delete object[Ceph S3] succeed, objectId:%s.\n", objectId)
+	log.Infof("delete object[Ceph S3] succeed, objectId:%s.\n", objectId)
 	return nil
 }
 
@@ -127,7 +127,7 @@ func (ad *CephAdapter) Delete(ctx context.Context, object *pb.DeleteObjectInput)
 	bucketO := ad.session.NewBucket()
 	bucketResp, err := bucketO.Get(bucket, newKey, "", "", 1000)
 	if err != nil {
-		log.Logf("error occured during get Object Info, err:%v\n", err)
+		log.Infof("error occured during get Object Info, err:%v\n", err)
 		return nil, err
 	}
 
@@ -145,14 +145,14 @@ func (ad *CephAdapter) Delete(ctx context.Context, object *pb.DeleteObjectInput)
 		return obj, nil
 	}
 
-	log.Logf("can not find specified object(%s).\n", key)
+	log.Infof("can not find specified object(%s).\n", key)
 	return nil, NoSuchObject.Error()
 }*/
 
 func (ad *CephAdapter) InitMultipartUpload(ctx context.Context, object *pb.Object) (*pb.MultipartUpload, error) {
 	bucket := ad.session.NewBucket()
 	objectId := object.BucketName + "/" + object.ObjectKey
-	log.Logf("init multipart upload[Ceph S3], bucket = %v,objectId = %v\n", bucket, objectId)
+	log.Infof("init multipart upload[Ceph S3], bucket = %v,objectId = %v\n", bucket, objectId)
 	cephObject := bucket.NewObject(ad.backend.BucketName)
 	uploader := cephObject.NewUploads(objectId)
 	multipartUpload := &pb.MultipartUpload{}
@@ -163,7 +163,7 @@ func (ad *CephAdapter) InitMultipartUpload(ctx context.Context, object *pb.Objec
 		log.Fatalf("init multipart upload[Ceph S3] failed, objectId:%s, err:%v\n", objectId, err)
 		return nil, err
 	} else {
-		log.Logf("init multipart upload[Ceph S3] succeed, objectId:%s, UploadId:%s\n", objectId, res.UploadID)
+		log.Infof("init multipart upload[Ceph S3] succeed, objectId:%s, UploadId:%s\n", objectId, res.UploadID)
 		multipartUpload.Bucket = object.BucketName
 		multipartUpload.Key = object.ObjectKey
 		multipartUpload.UploadId = res.UploadID
@@ -175,7 +175,7 @@ func (ad *CephAdapter) InitMultipartUpload(ctx context.Context, object *pb.Objec
 func (ad *CephAdapter) UploadPart(ctx context.Context, stream io.Reader, multipartUpload *pb.MultipartUpload,
 	partNumber int64, upBytes int64) (*model.UploadPartResult, error) {
 	bucket := ad.session.NewBucket()
-	log.Logf("upload part[Ceph S3], objectId:%s, bucket:%s\n", multipartUpload.ObjectId, bucket)
+	log.Infof("upload part[Ceph S3], objectId:%s, bucket:%s\n", multipartUpload.ObjectId, bucket)
 
 	cephObject := bucket.NewObject(ad.backend.BucketName)
 	uploader := cephObject.NewUploads(multipartUpload.ObjectId)
@@ -190,13 +190,13 @@ func (ad *CephAdapter) UploadPart(ctx context.Context, stream io.Reader, multipa
 
 		if err != nil {
 			if tries == 3 {
-				log.Logf("upload part[Ceph S3] failed, err:%v\n", err)
+				log.Infof("upload part[Ceph S3] failed, err:%v\n", err)
 				return nil, ErrPutToBackendFailed
 			}
-			log.Logf("retrying to upload[Ceph S3] part#%d ,err:%s\n", partNumber, err)
+			log.Infof("retrying to upload[Ceph S3] part#%d ,err:%s\n", partNumber, err)
 			tries++
 		} else {
-			log.Logf("uploaded part[Ceph S3] #%d successfully, ETag:%s\n", partNumber, part.Etag)
+			log.Infof("uploaded part[Ceph S3] #%d successfully, ETag:%s\n", partNumber, part.Etag)
 			result := &model.UploadPartResult{
 				Xmlns:      model.Xmlns,
 				ETag:       part.Etag,
@@ -212,7 +212,7 @@ func (ad *CephAdapter) UploadPart(ctx context.Context, stream io.Reader, multipa
 func (ad *CephAdapter) CompleteMultipartUpload(ctx context.Context, multipartUpload *pb.MultipartUpload,
 	completeUpload *model.CompleteMultipartUpload) (*model.CompleteMultipartUploadResult, error) {
 	bucket := ad.session.NewBucket()
-	log.Logf("complete multipart upload[Ceph S3], objectId:%s, bucket:%s\n", multipartUpload.ObjectId, bucket)
+	log.Infof("complete multipart upload[Ceph S3], objectId:%s, bucket:%s\n", multipartUpload.ObjectId, bucket)
 
 	cephObject := bucket.NewObject(ad.backend.BucketName)
 	uploader := cephObject.NewUploads(multipartUpload.ObjectId)
@@ -226,7 +226,7 @@ func (ad *CephAdapter) CompleteMultipartUpload(ctx context.Context, multipartUpl
 	}
 	resp, err := uploader.Complete(multipartUpload.UploadId, completeParts)
 	if err != nil {
-		log.Logf("complete multipart upload[Ceph S3] failed, objectId:%s, err:%v\n", multipartUpload.ObjectId, err)
+		log.Infof("complete multipart upload[Ceph S3] failed, objectId:%s, err:%v\n", multipartUpload.ObjectId, err)
 		return nil, ErrBackendCompleteMultipartFailed
 	}
 	result := &model.CompleteMultipartUploadResult{
@@ -237,7 +237,7 @@ func (ad *CephAdapter) CompleteMultipartUpload(ctx context.Context, multipartUpl
 		ETag:     resp.Etag,
 	}
 
-	log.Logf("complete multipart upload[Ceph S3] succeed, objectId:%s, resp:%v\n", multipartUpload.ObjectId, resp)
+	log.Infof("complete multipart upload[Ceph S3] succeed, objectId:%s, resp:%v\n", multipartUpload.ObjectId, resp)
 	return result, nil
 }
 
@@ -245,14 +245,14 @@ func (ad *CephAdapter) AbortMultipartUpload(ctx context.Context, multipartUpload
 	bucket := ad.session.NewBucket()
 	cephObject := bucket.NewObject(ad.backend.BucketName)
 	uploader := cephObject.NewUploads(multipartUpload.ObjectId)
-	log.Logf("abort multipart upload[Ceph S3], objectId:%s, bucket:%s\n", multipartUpload.ObjectId, bucket)
+	log.Infof("abort multipart upload[Ceph S3], objectId:%s, bucket:%s\n", multipartUpload.ObjectId, bucket)
 
 	err := uploader.RemoveUploads(multipartUpload.UploadId)
 	if err != nil {
-		log.Logf("abort multipart upload[Ceph S3] failed, objectId:%s, err:%v\n", multipartUpload.ObjectId, err)
+		log.Infof("abort multipart upload[Ceph S3] failed, objectId:%s, err:%v\n", multipartUpload.ObjectId, err)
 		return ErrBackendAbortMultipartFailed
 	} else {
-		log.Logf("abort multipart upload[Ceph S3] succeed, objectId:%s, err:%v\n", multipartUpload.ObjectId, err)
+		log.Infof("abort multipart upload[Ceph S3] succeed, objectId:%s, err:%v\n", multipartUpload.ObjectId, err)
 	}
 
 	return nil
@@ -266,10 +266,10 @@ func (ad *CephAdapter) AbortMultipartUpload(ctx context.Context, multipartUpload
 
 	listPartsResult, err := uploader.ListPart(listParts.UploadId)
 	if err != nil {
-		log.Logf("list parts failed, err:%v\n", err)
+		log.Infof("list parts failed, err:%v\n", err)
 		return nil, S3Error{Code: 500, Description: err.Error()}.Error()
 	} else {
-		log.Logf("List parts successful\n")
+		log.Infof("List parts successful\n")
 		var parts []model.Part
 		for _, p := range listPartsResult.Parts {
 			part := model.Part{

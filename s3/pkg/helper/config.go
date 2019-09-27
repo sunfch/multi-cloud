@@ -3,6 +3,7 @@ package helper
 import (
 	"io/ioutil"
 	"time"
+	"fmt"
 
 	"github.com/BurntSushi/toml"
 )
@@ -125,11 +126,14 @@ func MarshalTOMLConfig() error {
 			panic("Cannot open yig.toml")
 		}
 	}
+
+	fmt.Printf("config data: \n%s\n", string(data))
 	var c Config
 	_, err = toml.Decode(string(data), &c)
 	if err != nil {
 		panic("load yig.toml error: " + err.Error())
 	}
+	fmt.Printf("c: %+v\n", c)
 	// setup CONFIG with defaults
 	CONFIG.S3Domain = c.S3Domain
 	CONFIG.Region = c.Region

@@ -167,7 +167,7 @@ func (repo *mongoRepository) ListBackend(ctx context.Context, limit, offset int,
 	if err != nil {
 		return nil, err
 	}
-	log.Logf("ListBackend, limit=%d, offset=%d\n", limit, offset)
+	log.Infof("ListBackend, limit=%d, offset=%d\n", limit, offset)
 
 	err = session.DB(defaultDBName).C(defaultCollection).Find(m).Skip(offset).Limit(limit).All(&backends)
 	if err != nil {

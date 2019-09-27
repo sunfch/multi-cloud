@@ -50,6 +50,6 @@ func InitDatamoverService() error {
 	go kafka.LoopConsume()
 
 	datamoverID := os.Getenv("HOSTNAME")
-	log.Logf("init datamover[ID#%s] finished.\n", datamoverID)
+	log.Infof("init datamover[ID#%s] finished.\n", datamoverID)
 	return nil
 }

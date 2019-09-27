@@ -57,18 +57,19 @@ services:
     image: opensdsio/multi-cloud-s3
     environment:
       - MICRO_REGISTRY=mdns
-      #- DB_HOST=datastore:27017
-      - DB_HOST=tidb:4000
+      - DB_HOST=datastore:27017
+      #- DB_HOST=tidb:4000
       # 0 means use user defined storage class, otherwise use default storage class.
       - USE_DEFAULT_STORAGE_CLASS=1
-    volumes:
-      - /etc/localtime:/etc/localtime
-      - .:/etc/yig
-      - .:/var/log/yig
-      - .:/etc/ceph
-    depends_on:
-      - redis
-      - tidb
+   # volumes:
+   #   - /etc/localtime:/etc/localtime
+   #   - /etc/yig:/etc/yig
+   #   #- .:/etc/yig
+   #   - /var/log/yig:/var/log/yig
+   #   - .:/etc/ceph
+    #depends_on:
+    #  - redis
+    #  - tidb
 
   dataflow:
     image: opensdsio/multi-cloud-dataflow

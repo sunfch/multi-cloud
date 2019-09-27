@@ -40,7 +40,7 @@ type Int2String map[int32]string
 var Int2ExtTierMap map[string]*Int2String
 
 func Init() {
-	log.Logf("Lifecycle datamover init.")
+	log.Infof("Lifecycle datamover init.")
 	s3client = osdss3.NewS3Service("s3", client.DefaultClient)
 	bkendclient = backend.NewBackendService("backend", client.DefaultClient)
 	bkendInfo = make(map[string]*BackendInfo)
@@ -50,7 +50,7 @@ func HandleMsg(msgData []byte) error {
 	var acReq datamover.LifecycleActionRequest
 	err := json.Unmarshal(msgData, &acReq)
 	if err != nil {
-		log.Logf("unmarshal lifecycle action request failed, err:%v\n", err)
+		log.Infof("unmarshal lifecycle action request failed, err:%v\n", err)
 		return err
 	}
 
@@ -71,7 +71,7 @@ func doAction(acReq *datamover.LifecycleActionRequest) {
 	case utils.AbortIncompleteMultipartUpload:
 		doAbortUpload(acReq)
 	default:
-		log.Logf("unsupported action type: %d.\n", acType)
+		log.Infof("unsupported action type: %d.\n", acType)
 	}
 }
 
@@ -91,12 +91,12 @@ func getBackendInfo(backendName *string, force bool) (*BackendInfo, error) {
 
 	bk, err := db.DbAdapter.GetBackendByName(*backendName)
 	if err != nil {
-		log.Logf("get backend[%s] information failed, err:%v\n", backendName, err)
+		log.Infof("get backend[%s] information failed, err:%v\n", backendName, err)
 		return nil, err
 	} else {
 		loca := &BackendInfo{bk.Type, bk.Region, bk.Endpoint, bk.BucketName,
 			bk.Access, bk.Security, *backendName}
-		log.Logf("refresh backend[name:%s, loca:%+v] successfully.\n", *backendName, *loca)
+		log.Infof("refresh backend[name:%s, loca:%+v] successfully.\n", *backendName, *loca)
 		bkendInfo[*backendName] = loca
 		return loca, nil
 	}
@@ -131,9 +131,9 @@ func getBackendInfo(backendName *string, force bool) (*BackendInfo, error) {
 	}
 
 	if err != nil {
-		log.Logf("delete object[%s] from backend[type:%s,bucket:%s] failed.\n", objKey, loca.StorType, loca.BucketName)
+		log.Infof("delete object[%s] from backend[type:%s,bucket:%s] failed.\n", objKey, loca.StorType, loca.BucketName)
 	} else {
-		log.Logf("delete object[%s] from backend[type:%s,bucket:%s] successfully.\n", objKey, loca.StorType, loca.BucketName)
+		log.Infof("delete object[%s] from backend[type:%s,bucket:%s] successfully.\n", objKey, loca.StorType, loca.BucketName)
 	}
 
 	return err

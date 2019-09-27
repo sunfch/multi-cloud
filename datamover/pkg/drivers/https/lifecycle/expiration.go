@@ -22,18 +22,18 @@ import (
 )
 
 func doExpirationAction(acReq *datamover.LifecycleActionRequest) error {
-	log.Logf("delete action: delete %s.\n", acReq.ObjKey)
+	log.Infof("delete action: delete %s.\n", acReq.ObjKey)
 
 	req := osdss3.DeleteObjectInput{Bucket: acReq.BucketName, Key: acReq.ObjKey}
 	ctx := context.Background()
 	_, err := s3client.DeleteObject(ctx, &req)
 	if err != nil {
 		// if it is deleted failed, it will be delete again in the next schedule round
-		log.Logf("delete object[bucket:%s,objKey:%s] failed, err:%v\n",
+		log.Infof("delete object[bucket:%s,objKey:%s] failed, err:%v\n",
 			acReq.BucketName, acReq.ObjKey, err)
 		return err
 	} else {
-		log.Logf("delete object[bucket:%s,objKey:%s] successfully.\n",
+		log.Infof("delete object[bucket:%s,objKey:%s] successfully.\n",
 			acReq.BucketName, acReq.ObjKey)
 	}
 

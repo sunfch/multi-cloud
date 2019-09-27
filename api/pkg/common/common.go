@@ -69,7 +69,7 @@ func GetPaginationParam(request *restful.Request) (int32, int32, error) {
 	if request.QueryParameter(KLimit) != "" {
 		limitVal, err := strconv.Atoi(request.QueryParameter("limit"))
 		if err != nil {
-			log.Logf("limit is invalid: %v", err)
+			log.Infof("limit is invalid: %v", err)
 			return limit, offset, err
 		}
 		if limit > int32(limitVal) {
@@ -80,7 +80,7 @@ func GetPaginationParam(request *restful.Request) (int32, int32, error) {
 	if request.QueryParameter(KOffset) != "" {
 		offsetVal, err := strconv.Atoi(request.QueryParameter("offset"))
 		if err != nil {
-			log.Logf("offset is invalid: %v", err)
+			log.Infof("offset is invalid: %v", err)
 			return limit, offset, err
 		}
 		offset = int32(offsetVal)

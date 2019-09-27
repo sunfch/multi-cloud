@@ -64,6 +64,11 @@ const (
 	DBKEY_LASTMODIFIED   = "lastmodified"
 	DBKEY_SUPPOSEDSTATUS = "supposedstatus"
 	DBKEY_LOCKOBJ_OBJKEY = "objkey"
+	DBKEY_BUCKET         = "bucket"
+	DBKEY_INITTIME       = "inittime"
+	DBKEY_NAME           = "name"
+	DBKEY_LIFECYCLE      = "lifecycleconfiguration"
+	DBKEY_ID             = "id"
 )
 
 type ObjsCountInfo struct {

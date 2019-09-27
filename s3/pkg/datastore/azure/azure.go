@@ -49,7 +49,7 @@ type AzureAdapter struct {
 	ad := AzureAdapter{}
 	containerURL, err := ad.createContainerURL(endpoint, AccessKeyID, AccessKeySecret)
 	if err != nil {
-		log.Logf("AzureAdapter Init container URL faild:%v\n", err)
+		log.Infof("AzureAdapter Init container URL faild:%v\n", err)
 		return nil
 	}
 	adap := &AzureAdapter{backend: backend, containerURL: containerURL}
@@ -62,7 +62,7 @@ func (ad *AzureAdapter) createContainerURL(endpoint string, acountName string, a
 	credential, err := azblob.NewSharedKeyCredential(acountName, accountKey)
 
 	if err != nil {
-		log.Logf("create credential[Azure Blob] failed, err:%v\n", err)
+		log.Infof("create credential[Azure Blob] failed, err:%v\n", err)
 		return azblob.ContainerURL{}, err
 	}
 
@@ -80,45 +80,45 @@ func (ad *AzureAdapter) createContainerURL(endpoint string, acountName string, a
 func (ad *AzureAdapter) Put(ctx context.Context, stream io.Reader, object *pb.Object) (dscommon.PutResult, error) {
 	objectId := object.BucketName + "/" + object.ObjectKey
 	blobURL := ad.containerURL.NewBlockBlobURL(objectId)
-	log.Logf("put object[Azure Blob], objectId:%s, blobURL is %v\n", objectId, blobURL)
+	log.Infof("put object[Azure Blob], objectId:%s, blobURL is %v\n", objectId, blobURL)
 
 	bytess, _ := ioutil.ReadAll(stream)
 	result := dscommon.PutResult{}
-	log.Logf("put object[Azure Blob] begin, objectId:%s\n", objectId)
+	log.Infof("put object[Azure Blob] begin, objectId:%s\n", objectId)
 	uploadResp, err := blobURL.Upload(ctx, bytes.NewReader(bytess), azblob.BlobHTTPHeaders{}, nil,
 		azblob.BlobAccessConditions{})
-	log.Logf("put object[Azure Blob] end, objectId:%s\n", objectId)
+	log.Infof("put object[Azure Blob] end, objectId:%s\n", objectId)
 	if err != nil {
-		log.Logf("put object[Azure Blob] failed, objectId:%s, err = %v\n", objectId, err)
+		log.Infof("put object[Azure Blob] failed, objectId:%s, err = %v\n", objectId, err)
 		return result, ErrPutToBackendFailed
 	}
 
 	if uploadResp.StatusCode() != http.StatusCreated {
-		log.Logf("put object[Azure Blob], objectId:%s, StatusCode:%d\n", objectId, uploadResp.StatusCode())
+		log.Infof("put object[Azure Blob], objectId:%s, StatusCode:%d\n", objectId, uploadResp.StatusCode())
 		return result, ErrPutToBackendFailed
 	}
 
 	// Currently, only support Hot
 	_, err = blobURL.SetTier(ctx, azblob.AccessTierHot, azblob.LeaseAccessConditions{})
 	if err != nil {
-		log.Logf("set azure blob tier failed:%v\n", err)
+		log.Infof("set azure blob tier failed:%v\n", err)
 		return result, ErrPutToBackendFailed
 	}
 
 	result.UpdateTime = time.Now().Unix()
 	result.ObjectId = objectId
 	// TODO: set ETAG
-	log.Logf("upload object[Azure Blob] succeed, objectId:%s, UpdateTime is:%v\n", objectId, result.UpdateTime)
+	log.Infof("upload object[Azure Blob] succeed, objectId:%s, UpdateTime is:%v\n", objectId, result.UpdateTime)
 
 	return result, nil
 }
 
 func (ad *AzureAdapter) Get(ctx context.Context, object *pb.Object, start int64, end int64) (io.ReadCloser, error) {
 	bucket := ad.backend.BucketName
-	log.Logf("get object[Azure Blob], bucket:%s, objectId:%s\n", bucket, object.ObjectId)
+	log.Infof("get object[Azure Blob], bucket:%s, objectId:%s\n", bucket, object.ObjectId)
 
 	blobURL := ad.containerURL.NewBlobURL(object.ObjectId)
-	log.Logf("blobURL:%v, size:%d\n", blobURL, object.Size)
+	log.Infof("blobURL:%v, size:%d\n", blobURL, object.Size)
 
 	len := object.Size
 	var buf []byte
@@ -127,7 +127,7 @@ func (ad *AzureAdapter) Get(ctx context.Context, object *pb.Object, start int64,
 		buf = make([]byte, count)
 		err := azblob.DownloadBlobToBuffer(ctx, blobURL, start, count, buf, azblob.DownloadFromBlobOptions{})
 		if err != nil {
-			log.Logf("get object[Azure Blob] failed, objectId:%s, err:%v\n", object.ObjectId, err)
+			log.Infof("get object[Azure Blob] failed, objectId:%s, err:%v\n", object.ObjectId, err)
 			return nil, ErrGetFromBackendFailed
 		}
 		body := bytes.NewReader(buf)
@@ -140,11 +140,11 @@ func (ad *AzureAdapter) Get(ctx context.Context, object *pb.Object, start int64,
 			false)
 		_, readErr := downloadResp.Response().Body.Read(buf)
 		if readErr != nil {
-			log.Logf("readErr[objkey:%s]=%v\n", object.ObjectId, readErr)
+			log.Infof("readErr[objkey:%s]=%v\n", object.ObjectId, readErr)
 			return nil, ErrGetFromBackendFailed
 		}
 		if err != nil {
-			log.Logf("get object[Azure Blob] failed, objectId:%s, err:%v\n", object.ObjectId, err)
+			log.Infof("get object[Azure Blob] failed, objectId:%s, err:%v\n", object.ObjectId, err)
 			return nil, ErrGetFromBackendFailed
 		}
 		body := bytes.NewReader(buf)
@@ -159,29 +159,29 @@ func (ad *AzureAdapter) Get(ctx context.Context, object *pb.Object, start int64,
 func (ad *AzureAdapter) Delete(ctx context.Context, input *pb.DeleteObjectInput) error {
 	bucket := ad.backend.BucketName
 	objectId := input.Bucket + "/" + input.Key
-	log.Logf("delete object[Azure Blob], objectId:%s, bucket:%s\n", objectId, bucket)
+	log.Infof("delete object[Azure Blob], objectId:%s, bucket:%s\n", objectId, bucket)
 
 	blobURL := ad.containerURL.NewBlockBlobURL(objectId)
-	log.Logf("blobURL is %v\n", blobURL)
+	log.Infof("blobURL is %v\n", blobURL)
 	delRsp, err := blobURL.Delete(ctx, azblob.DeleteSnapshotsOptionInclude, azblob.BlobAccessConditions{})
 	if err != nil {
 		if serr, ok := err.(azblob.StorageError); ok { // This error is a Service-specific
-			log.Logf("delete service code:%s\n", serr.ServiceCode())
+			log.Infof("delete service code:%s\n", serr.ServiceCode())
 			if string(serr.ServiceCode()) == string(azblob.StorageErrorCodeBlobNotFound) {
 				return nil
 			}
 		}
 
-		log.Logf("delete object[Azure Blob] failed, objectId:%s, err:%v\n", objectId, err)
+		log.Infof("delete object[Azure Blob] failed, objectId:%s, err:%v\n", objectId, err)
 		return ErrDeleteFromBackendFailed
 	}
 
 	if delRsp.StatusCode() != http.StatusOK && delRsp.StatusCode() != http.StatusAccepted {
-		log.Logf("delete object[Azure Blob] failed, objectId:%s, status code:%d\n", objectId, delRsp.StatusCode())
+		log.Infof("delete object[Azure Blob] failed, objectId:%s, status code:%d\n", objectId, delRsp.StatusCode())
 		return ErrDeleteFromBackendFailed
 	}
 
-	log.Logf("delete object[Azure Blob] succeed, objectId:%s\n", objectId)
+	log.Infof("delete object[Azure Blob] succeed, objectId:%s\n", objectId)
 	return nil
 }
 
@@ -194,7 +194,7 @@ func (ad *AzureAdapter) GetObjectInfo(bucketName string, key string, context con
 
 func (ad *AzureAdapter) InitMultipartUpload(ctx context.Context, object *pb.Object) (*pb.MultipartUpload, error) {
 	bucket := ad.backend.BucketName
-	log.Logf("bucket is %v\n", bucket)
+	log.Infof("bucket is %v\n", bucket)
 	multipartUpload := &pb.MultipartUpload{}
 	multipartUpload.Key = object.ObjectKey
 
@@ -222,18 +222,18 @@ func (ad *AzureAdapter) Base64ToInt64(base64ID string) int64 {
 func (ad *AzureAdapter) UploadPart(ctx context.Context, stream io.Reader, multipartUpload *pb.MultipartUpload,
 	partNumber int64, upBytes int64) (*model.UploadPartResult, error) {
 	bucket := ad.backend.BucketName
-	log.Logf("upload part[Azure Blob], bucket:%s, objectId:%s\n", bucket, multipartUpload.ObjectId)
+	log.Infof("upload part[Azure Blob], bucket:%s, objectId:%s\n", bucket, multipartUpload.ObjectId)
 
 	blobURL := ad.containerURL.NewBlockBlobURL(multipartUpload.UploadId)
 	base64ID := ad.Int64ToBase64(partNumber)
 	bytess, _ := ioutil.ReadAll(stream)
 	_, err := blobURL.StageBlock(ctx, base64ID, bytes.NewReader(bytess), azblob.LeaseAccessConditions{}, nil)
 	if err != nil {
-		log.Logf("stage block[#%d,base64ID:%s] failed:%v\n", partNumber, base64ID, err)
+		log.Infof("stage block[#%d,base64ID:%s] failed:%v\n", partNumber, base64ID, err)
 		return nil, ErrPutToBackendFailed
 	}
 
-	log.Logf("stage block[#%d,base64ID:%s] succeed.\n", partNumber, base64ID)
+	log.Infof("stage block[#%d,base64ID:%s] succeed.\n", partNumber, base64ID)
 	result := &model.UploadPartResult{PartNumber: partNumber, ETag: multipartUpload.UploadId}
 
 	return result, nil
@@ -246,7 +246,7 @@ func (ad *AzureAdapter) CompleteMultipartUpload(ctx context.Context, multipartUp
 	result.Bucket = multipartUpload.Bucket
 	result.Key = multipartUpload.Key
 	result.Location = ad.backend.Name
-	log.Logf("complete multipart upload[Azure Blob], bucket:%s, objectId:%s\n", bucket, multipartUpload.ObjectId)
+	log.Infof("complete multipart upload[Azure Blob], bucket:%s, objectId:%s\n", bucket, multipartUpload.ObjectId)
 
 	blobURL := ad.containerURL.NewBlockBlobURL(multipartUpload.ObjectId)
 	var completeParts []string
@@ -257,26 +257,26 @@ func (ad *AzureAdapter) CompleteMultipartUpload(ctx context.Context, multipartUp
 
 	_, err := blobURL.CommitBlockList(ctx, completeParts, azblob.BlobHTTPHeaders{}, azblob.Metadata{}, azblob.BlobAccessConditions{})
 	if err != nil {
-		log.Logf("commit blocks[bucket:%s, objectId:%s] failed:%v\n", bucket, multipartUpload.ObjectId, err)
+		log.Infof("commit blocks[bucket:%s, objectId:%s] failed:%v\n", bucket, multipartUpload.ObjectId, err)
 		return nil, ErrBackendCompleteMultipartFailed
 	} else {
-		log.Logf("commit blocks succeed.\n")
+		log.Infof("commit blocks succeed.\n")
 		// Currently, only support Hot
 		_, err = blobURL.SetTier(ctx, azblob.AccessTierHot, azblob.LeaseAccessConditions{})
 		if err != nil {
-			log.Logf("set blob[objectId:%s] tier failed:%v\n", multipartUpload.ObjectId, err)
+			log.Infof("set blob[objectId:%s] tier failed:%v\n", multipartUpload.ObjectId, err)
 			return nil, ErrBackendCompleteMultipartFailed
 		}
 	}
 
-	log.Logf("complete multipart upload[Azure Blob], bucket:%s, objectId:%s succeed\n",
+	log.Infof("complete multipart upload[Azure Blob], bucket:%s, objectId:%s succeed\n",
 		bucket, multipartUpload.ObjectId)
 	return &result, nil
 }
 
 func (ad *AzureAdapter) AbortMultipartUpload(ctx context.Context, multipartUpload *pb.MultipartUpload) error {
 	bucket := ad.backend.BucketName
-	log.Logf("no need to abort multipart upload[objkey:%s].\n", bucket)
+	log.Infof("no need to abort multipart upload[objkey:%s].\n", bucket)
 	return nil
 }
 

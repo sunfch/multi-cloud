@@ -15,7 +15,7 @@ func OsdsS3CopyObj(ctx context.Context, s3client osdss3.S3Service, obj *osdss3.O
 
 	_, err := s3client.CopyObject(ctx, &req)
 	if err != nil {
-		log.Logf("copy object based on osds s3 failed, obj=%s, err:%v\n", obj.ObjectKey, err)
+		log.Infof("copy object based on osds s3 failed, obj=%s, err:%v\n", obj.ObjectKey, err)
 	}
 
 	return err
@@ -29,7 +29,7 @@ func OsdsS3DeleteObj(ctx context.Context, s3client osdss3.S3Service, obj *osdss3
 
 	_, err := s3client.DeleteObject(ctx, &req)
 	if err != nil {
-		log.Logf("delete object based on osds s3 failed, obj=%s, err:%v\n", obj.ObjectKey, err)
+		log.Infof("delete object based on osds s3 failed, obj=%s, err:%v\n", obj.ObjectKey, err)
 	}
 
 	return nil

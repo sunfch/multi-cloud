@@ -35,7 +35,7 @@ func (s *APIService) tier2class(tier int32) (string, error) {
 		if len(ClassAndTier) == 0 {
 			err := s.loadStorageClassDefinition()
 			if err != nil {
-				log.Logf("load storage classes failed: %v.\n", err)
+				log.Infof("load storage classes failed: %v.\n", err)
 				return "", err
 			}
 		}
@@ -47,7 +47,7 @@ func (s *APIService) tier2class(tier int32) (string, error) {
 		}
 	}
 	if className == "" {
-		log.Logf("invalid tier: %d\n", tier)
+		log.Infof("invalid tier: %d\n", tier)
 		return "", fmt.Errorf(InvalidTier)
 	}
 	return className, nil
@@ -56,12 +56,12 @@ func (s *APIService) tier2class(tier int32) (string, error) {
 //Function for GET Bucket Lifecycle API
 func (s *APIService) BucketLifecycleGet(request *restful.Request, response *restful.Response) {
 	bucketName := request.PathParameter("bucketName")
-	log.Logf("received request for getting lifecycle of bucket[name=%s].\n", bucketName)
+	log.Infof("received request for getting lifecycle of bucket[name=%s].\n", bucketName)
 
 	ctx := context.Background()
 	bucket, err := s.s3Client.GetBucket(ctx, &s3.BaseRequest{Id: bucketName})
 	if err != nil {
-		log.Logf("get bucket[name=%s] failed, err=%v.\n", bucketName, err)
+		log.Infof("get bucket[name=%s] failed, err=%v.\n", bucketName, err)
 		response.WriteError(http.StatusInternalServerError, NoSuchBucket.Error())
 		return
 	}
@@ -81,7 +81,7 @@ func (s *APIService) BucketLifecycleGet(request *restful.Request, response *rest
 
 		//Arranging the transition and expiration actions in XML
 		for _, action := range lcRule.Actions {
-			log.Logf("action is : %v\n", action)
+			log.Infof("action is : %v\n", action)
 
 			if action.Name == ActionNameTransition {
 				xmlTransition := model.Transition{}
@@ -106,7 +106,7 @@ func (s *APIService) BucketLifecycleGet(request *restful.Request, response *rest
 	// marshall the array back to xml format
 	err = response.WriteAsXml(lifecycleConfXml)
 	if err != nil {
-		log.Logf("write lifecycle of bucket[%s] as xml failed, lifecycle =%s, err=%v.\n", bucketName,
+		log.Infof("write lifecycle of bucket[%s] as xml failed, lifecycle =%s, err=%v.\n", bucketName,
 			bucket.LifecycleConfiguration, err)
 		response.WriteError(http.StatusInternalServerError, InternalError.Error())
 	}

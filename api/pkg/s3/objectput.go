@@ -40,7 +40,7 @@ func (s *APIService) ObjectPut(request *restful.Request, response *restful.Respo
 	if strings.HasSuffix(url.String(), "/") {
 		objectKey = objectKey + "/"
 	}
-	log.Logf("received request: PUT object, objectkey=%s, bucketName=%s\n:",
+	log.Infof("received request: PUT object, objectkey=%s, bucketName=%s\n:",
 		objectKey, bucketName)
 
 	// get size
@@ -92,12 +92,12 @@ func (s *APIService) ObjectPut(request *restful.Request, response *restful.Respo
 			break
 		}
 		if err != nil {
-			log.Logf("read error:%v\n", err)
+			log.Infof("read error:%v\n", err)
 			break
 		}
 		err = stream.Send(&s3.PutObjectRequest{Data: buf[:n]})
 		if err != nil {
-			log.Logf("stream send error: %v\n", err)
+			log.Infof("stream send error: %v\n", err)
 			break
 		}
 	}
@@ -112,7 +112,7 @@ func (s *APIService) ObjectPut(request *restful.Request, response *restful.Respo
 	rsp := s3.PutObjectResponse{}
 	err = stream.RecvMsg(rsp)
 	if err != nil {
-		log.Logf("stream receive message failed:%v\n", err)
+		log.Infof("stream receive message failed:%v\n", err)
 		response.WriteError(http.StatusInternalServerError, s3error.ErrInternalError)
 	}
 
@@ -125,15 +125,15 @@ func getSize(request *restful.Request, response *restful.Response) (int64, error
 	contentLenght := request.HeaderParameter(common.REQUEST_HEADER_CONTENT_LENGTH)
 	size, err := strconv.ParseInt(contentLenght, 10, 64)
 	if err != nil {
-		log.Logf("parse contentLenght[%s] failed, err:%v\n", contentLenght, err)
+		log.Infof("parse contentLenght[%s] failed, err:%v\n", contentLenght, err)
 		response.WriteError(http.StatusLengthRequired, s3error.ErrMissingContentLength)
 		return 0, err
 	}
 
-	log.Logf("object size is %v\n", size)
+	log.Infof("object size is %v\n", size)
 
 	if size == 0 || size > common.MaxObjectSize {
-		log.Logf("invalid contentLenght:%s\n", contentLenght)
+		log.Infof("invalid contentLenght:%s\n", contentLenght)
 		errMsg := fmt.Sprintf("invalid contentLenght[%s], it should be less than %d and more than 0",
 			contentLenght, common.MaxObjectSize)
 		err := errors.New(errMsg)

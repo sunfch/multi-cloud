@@ -22,5 +22,5 @@ const (
 	BackendTypeCeph      = "ceph-s3"
 	BackendTypeGcs       = "gcp-s3"
 	BackendFusionStorage = "fusionstorage-object"
-	BackendTypeYIGS3     = "yig-s3"
+	BackendTypeYIGS3     = "yig"
 )

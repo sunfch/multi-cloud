@@ -33,7 +33,7 @@ func parseListBuckets(list *s3.ListBucketsResponse) []byte {
 	}
 	temp := model.ListAllMyBucketsResult{}
 
-	log.Logf("Parse ListBuckets: %v", list.Buckets)
+	log.Infof("Parse ListBuckets: %v", list.Buckets)
 	//default xmlns
 	temp.Xmlns = model.Xmlns
 	buckets := []model.Bucket{}
@@ -46,7 +46,7 @@ func parseListBuckets(list *s3.ListBucketsResponse) []byte {
 
 	xmlstring, err := xml.MarshalIndent(temp, "", "  ")
 	if err != nil {
-		log.Logf("Parse ListBuckets error: %v", err)
+		log.Infof("Parse ListBuckets error: %v", err)
 		return nil
 	}
 	xmlstring = []byte(xml.Header + string(xmlstring))
@@ -68,6 +68,6 @@ func (s *APIService) ListBuckets(request *restful.Request, response *restful.Res
 
 	realRes := parseListBuckets(res)
 
-	log.Logf("Get List of buckets successfully:%v\n", string(realRes))
+	log.Infof("Get List of buckets successfully:%v\n", string(realRes))
 	response.Write(realRes)
 }
