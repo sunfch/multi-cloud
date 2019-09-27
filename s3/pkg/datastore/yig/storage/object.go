@@ -48,7 +48,7 @@ func (yig *YigStorage) PickOneClusterAndPool(bucket string, object string, size 
 	for fsid, _ := range yig.DataStorage {
 		cluster, err := yig.MetaStorage.GetCluster(fsid, poolName)
 		if err != nil {
-			helper.Debugln("Error getting cluster: ", err)
+			log.Debug("Error getting cluster: ", err)
 			continue
 		}
 		if cluster.Weight == 0 {
@@ -263,7 +263,7 @@ func init() {
 			// encrypted object
 			err = copyEncryptedPart(object.Pool, p, cephCluster, readOffset, readLength, encryptionKey, writer)
 			if err != nil {
-				helper.Debugln("Multipart uploaded object write error:", err)
+				log.Debug("Multipart uploaded object write error:", err)
 			}
 		}
 	}
@@ -341,7 +341,7 @@ func (yig *YigStorage) Put(ctx context.Context, stream io.Reader, obj *pb.Object
 
 	cephCluster, poolName := yig.PickOneClusterAndPool(obj.BucketName, obj.ObjectKey, size, false)
 	if cephCluster == nil {
-		helper.Logger.Printf(2, "failed to pick cluster and pool for(%s, %s), err: %v", obj.BucketName, obj.ObjectKey, err)
+		log.Errorf("failed to pick cluster and pool for(%s, %s), err: %v", obj.BucketName, obj.ObjectKey, err)
 		return result, ErrInternalError
 	}
 
@@ -352,7 +352,7 @@ func (yig *YigStorage) Put(ctx context.Context, stream io.Reader, obj *pb.Object
 
 	metaBytes, err := json.Marshal(objMeta)
 	if err != nil {
-		helper.Logger.Printf(2, "failed to marshal %v for (%s, %s), err: %v", objMeta, obj.BucketName, obj.ObjectKey, err)
+		log.Errorf("failed to marshal %v for (%s, %s), err: %v", objMeta, obj.BucketName, obj.ObjectKey, err)
 		return result, ErrInternalError
 	}
 
@@ -373,7 +373,7 @@ func (yig *YigStorage) Put(ctx context.Context, stream io.Reader, obj *pb.Object
 	}
 	bytesWritten, err := cephCluster.Put(poolName, oid, storageReader)
 	if err != nil {
-		helper.Logger.Printf(2, "failed to put(%s, %s), err: %v", poolName, oid, err)
+		log.Errorf("failed to put(%s, %s), err: %v", poolName, oid, err)
 		return
 	}
 	// Should metadata update failed, add `maybeObjectToRecycle` to `RecycleQueue`,
@@ -385,7 +385,7 @@ func (yig *YigStorage) Put(ctx context.Context, stream io.Reader, obj *pb.Object
 	}
 	if bytesWritten < size {
 		RecycleQueue <- maybeObjectToRecycle
-		helper.Logger.Printf(2, "failed to write objects, already written(%d), total size(%d)", bytesWritten, size)
+		log.Errorf("failed to write objects, already written(%d), total size(%d)", bytesWritten, size)
 		return result, ErrIncompleteBody
 	}
 
@@ -426,7 +426,7 @@ func (yig *YigStorage) Delete(ctx context.Context, object *pb.DeleteObjectInput)
 	sseRequest datatype.SseRequest, storageClass types.StorageClass, objInfo *types.Object) (result datatype.AppendObjectResult, err error) {
 
 	encryptionKey, cipherKey, err := yig.encryptionKeyFromSseRequest(sseRequest, bucketName, objectName)
-	helper.Logger.Println(10, "get encryptionKey:", encryptionKey, "cipherKey:", cipherKey, "err:", err)
+	log.Info("get encryptionKey:", encryptionKey, "cipherKey:", cipherKey, "err:", err)
 	if err != nil {
 		return
 	}
@@ -464,7 +464,7 @@ func (yig *YigStorage) Delete(ctx context.Context, object *pb.DeleteObjectInput)
 		// New appendable object
 		cephCluster, poolName = yig.PickOneClusterAndPool(bucketName, objectName, size, true)
 		if cephCluster == nil || poolName != BIG_FILE_POOLNAME {
-			helper.Debugln("PickOneClusterAndPool error")
+			log.Debug("PickOneClusterAndPool error")
 			return result, ErrInternalError
 		}
 		// Mapping a shorter name for the object
@@ -486,7 +486,7 @@ func (yig *YigStorage) Delete(ctx context.Context, object *pb.DeleteObjectInput)
 	}
 	bytesWritten, err := cephCluster.Append(poolName, oid, storageReader, offset, isObjectExist(objInfo))
 	if err != nil {
-		helper.Debugln("cephCluster.Append err:", err, poolName, oid, offset)
+		log.Debug("cephCluster.Append err:", err, poolName, oid, offset)
 		return
 	}
 
@@ -532,14 +532,14 @@ func (yig *YigStorage) Delete(ctx context.Context, object *pb.DeleteObjectInput)
 		"objSize:", object.Size, "bytesWritten:", bytesWritten, "storageClass:", storageClass)
 	err = yig.MetaStorage.AppendObject(object, isObjectExist(objInfo))
 	if err != nil {
-		helper.Logger.Println(2, fmt.Sprintf("failed to append object %v, err: %v", object, err))
+		log.Error(fmt.Sprintf("failed to append object %v, err: %v", object, err))
 		return
 	}
 
 	// update bucket usage.
 	err = yig.MetaStorage.UpdateUsage(bucketName, bytesWritten)
 	if err != nil {
-		helper.Logger.Println(2, fmt.Sprintf("failed to update bucket usage for bucket: %s with append object: %v, err: %v", bucketName, object, err))
+		log.Error(fmt.Sprintf("failed to update bucket usage for bucket: %s with append object: %v, err: %v", bucketName, object, err))
 		return result, err
 	}
 	yig.MetaStorage.Cache.Remove(redis.ObjectTable, meta.OBJECT_CACHE_PREFIX, bucketName+":"+objectName+":")

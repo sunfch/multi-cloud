@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	_ "github.com/go-sql-driver/mysql"
 	. "github.com/opensds/multi-cloud/s3/error"
-	"github.com/opensds/multi-cloud/s3/pkg/helper"
 	. "github.com/opensds/multi-cloud/s3/pkg/meta/types"
 	pb "github.com/opensds/multi-cloud/s3/proto"
 )
@@ -312,7 +312,7 @@ func (t *TidbClient) UpdateUsages(usages map[string]int64, tx interface{}) error
 	sqlStr := "update buckets set usages = ? where bucketname = ?;"
 	st, err := sqlTx.Prepare(sqlStr)
 	if err != nil {
-		helper.Logger.Println(2, "failed to prepare statment with sql: ", sqlStr, ", err: ", err)
+		log.Error("failed to prepare statment with sql: ", sqlStr, ", err: ", err)
 		return err
 	}
 	defer st.Close()
@@ -320,7 +320,7 @@ func (t *TidbClient) UpdateUsages(usages map[string]int64, tx interface{}) error
 	for bucket, usage := range usages {
 		_, err = st.Exec(usage, bucket)
 		if err != nil {
-			helper.Logger.Println(2, "failed to update usage for bucket: ", bucket, " with usage: ", usage, ", err: ", err)
+			log.Error("failed to update usage for bucket: ", bucket, " with usage: ", usage, ", err: ", err)
 			return err
 		}
 	}

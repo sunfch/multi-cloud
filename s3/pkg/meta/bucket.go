@@ -3,6 +3,7 @@ package meta
 import (
 	"fmt"
 
+	log "github.com/sirupsen/logrus"
 	. "github.com/opensds/multi-cloud/s3/error"
 	"github.com/opensds/multi-cloud/s3/pkg/helper"
 	. "github.com/opensds/multi-cloud/s3/pkg/meta/types"
@@ -19,7 +20,7 @@ const (
 func (m *Meta) GetBucket(bucketName string, willNeed bool) (bucket *Bucket, err error) {
 	getBucket := func() (b helper.Serializable, err error) {
 		bt, err := m.Db.GetBucket(bucketName)
-		helper.Logger.Println(10, "GetBucket CacheMiss. bucket:", bucketName)
+		log.Info("GetBucket CacheMiss. bucket:", bucketName)
 		return bt, err
 	}
 
@@ -34,7 +35,7 @@ func (m *Meta) GetBucket(bucketName string, willNeed bool) (bucket *Bucket, err 
 	}
 	bucket, ok := b.(*Bucket)
 	if !ok {
-		helper.Debugln("Cast b failed:", b)
+		log.Debug("Cast b failed:", b)
 		err = ErrInternalError
 		return
 	}
@@ -51,20 +52,20 @@ func (m *Meta) GetBuckets() (buckets []*Bucket, err error) {
 func (m *Meta) UpdateUsage(bucketName string, size int64) error {
 	usage, err := m.Cache.HIncrBy(redis.BucketTable, BUCKET_CACHE_PREFIX, bucketName, FIELD_NAME_USAGE, size)
 	if err != nil {
-		helper.Logger.Println(2, fmt.Sprintf("failed to update bucket[%s] usage by %d, err: %v",
+		log.Error(fmt.Sprintf("failed to update bucket[%s] usage by %d, err: %v",
 			bucketName, size, err))
 		return err
 	}
 
 	AddBucketUsageSyncEvent(bucketName, usage)
-	helper.Logger.Println(15, "incr usage for bucket: ", bucketName, ", updated to ", usage)
+	log.Infof("incr usage for bucket: ", bucketName, ", updated to ", usage)
 	return nil
 }
 
 func (m *Meta) GetUsage(bucketName string) (int64, error) {
 	usage, err := m.Cache.HGetInt64(redis.BucketTable, BUCKET_CACHE_PREFIX, bucketName, FIELD_NAME_USAGE)
 	if err != nil {
-		helper.Logger.Println(2, "failed to get usage for bucket: ", bucketName, ", err: ", err)
+		log.Error("failed to get usage for bucket: ", bucketName, ", err: ", err)
 		return 0, err
 	}
 	return usage, nil
@@ -82,7 +83,7 @@ func (m *Meta) InitBucketUsageCache() error {
 	// the usage in buckets table is accurate now.
 	buckets, err := m.Db.GetBuckets()
 	if err != nil {
-		helper.Logger.Println(2, "failed to get buckets from db. err: ", err)
+		log.Error("failed to get buckets from db. err: ", err)
 		return err
 	}
 
@@ -95,7 +96,7 @@ func (m *Meta) InitBucketUsageCache() error {
 	pattern := fmt.Sprintf("%s*", BUCKET_CACHE_PREFIX)
 	bucketsInCache, err := m.Cache.Keys(redis.BucketTable, pattern)
 	if err != nil {
-		helper.Logger.Println(2, "failed to get bucket usage from cache, err: ", err)
+		log.Error("failed to get bucket usage from cache, err: ", err)
 		return err
 	}
 
@@ -104,7 +105,7 @@ func (m *Meta) InitBucketUsageCache() error {
 		for _, bic := range bucketsInCache {
 			usage, err := m.Cache.HGetInt64(redis.BucketTable, BUCKET_CACHE_PREFIX, bic, FIELD_NAME_USAGE)
 			if err != nil {
-				helper.Logger.Println(2, "failed to get usage for bucket: ", bic, " with err: ", err)
+				log.Error("failed to get usage for bucket: ", bic, " with err: ", err)
 				continue
 			}
 			// add the to be synced usage.
@@ -122,12 +123,12 @@ func (m *Meta) InitBucketUsageCache() error {
 		for _, bk := range bucketUsageMap {
 			fields, err := bk.Serialize()
 			if err != nil {
-				helper.Logger.Println(2, "failed to serialize for bucket: ", bk.Name, " with err: ", err)
+				log.Error("failed to serialize for bucket: ", bk.Name, " with err: ", err)
 				return err
 			}
 			_, err = m.Cache.HMSet(redis.BucketTable, BUCKET_CACHE_PREFIX, bk.Name, fields)
 			if err != nil {
-				helper.Logger.Println(2, "failed to set bucket to cache: ", bk.Name, " with err: ", err)
+				log.Error("failed to set bucket to cache: ", bk.Name, " with err: ", err)
 				return err
 			}
 		}
@@ -137,7 +138,7 @@ func (m *Meta) InitBucketUsageCache() error {
 	if len(bucketUsageCacheMap) > 0 {
 		err = m.Db.UpdateUsages(bucketUsageCacheMap, nil)
 		if err != nil {
-			helper.Logger.Println(2, "failed to sync usages to database, err: ", err)
+			log.Error("failed to sync usages to database, err: ", err)
 			return err
 		}
 	}
@@ -148,18 +149,18 @@ func (m *Meta) bucketUsageSync(event SyncEvent) error {
 	bu := &BucketUsageEvent{}
 	err := helper.MsgPackUnMarshal(event.Data.([]byte), bu)
 	if err != nil {
-		helper.Logger.Println(2, "failed to unpack from event data to BucketUsageEvent, err: %v", err)
+		log.Error("failed to unpack from event data to BucketUsageEvent, err: %v", err)
 		return err
 	}
 
 	err = m.Db.UpdateUsage(bu.BucketName, bu.Usage, nil)
 	if err != nil {
-		helper.Logger.Println(2, "failed to update bucket usage ", bu.Usage, " to bucket: ", bu.BucketName,
+		log.Error("failed to update bucket usage ", bu.Usage, " to bucket: ", bu.BucketName,
 			" err: ", err)
 		return err
 	}
 
-	helper.Logger.Println(15, "succeed to update bucket usage ", bu.Usage, " for bucket: ", bu.BucketName)
+	log.Infof("succeed to update bucket usage ", bu.Usage, " for bucket: ", bu.BucketName)
 	return nil
 }
 
@@ -170,7 +171,7 @@ func AddBucketUsageSyncEvent(bucketName string, usage int64) {
 	}
 	data, err := helper.MsgPackMarshal(bu)
 	if err != nil {
-		helper.Logger.Printf(2, "failed to package bucket usage event for bucket %s with usage %d, err: %v",
+		log.Errorf("failed to package bucket usage event for bucket %s with usage %d, err: %v",
 			bucketName, usage, err)
 		return
 	}

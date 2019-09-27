@@ -168,7 +168,7 @@ func (cluster *CephStorage) doSmallPut(poolname string, oid string, data io.Read
 	defer cluster.BufPool.Put(buffer)
 	written, err := buffer.ReadFrom(data)
 	if err != nil {
-		helper.Logger.Printf(2, "failed to read data for pool %s, oid %s, err: %v", poolname, oid, err)
+		log.Errorf("failed to read data for pool %s, oid %s, err: %v", poolname, oid, err)
 		return 0, err
 	}
 

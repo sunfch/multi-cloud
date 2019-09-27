@@ -6,7 +6,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/opensds/multi-cloud/api/pkg/s3"
 	. "github.com/opensds/multi-cloud/s3/error"
-	"github.com/opensds/multi-cloud/s3/pkg/helper"
 	"github.com/opensds/multi-cloud/s3/pkg/meta/types"
 	pb "github.com/opensds/multi-cloud/s3/proto"
 )
@@ -28,13 +27,13 @@ func (b *s3Service) CreateBucket(ctx context.Context, in *pb.Bucket, out *pb.Bas
 	//credential := ctx.Value(s3.RequestContextKey).(s3.RequestContext).Credential
 	processed, err := b.MetaStorage.Db.CheckAndPutBucket(&types.Bucket{Bucket: in})
 	if err != nil {
-		helper.Logger.Println(5, "Error making checkandput: ", err)
+		log.Error("Error making checkandput: ", err)
 		return err
 	}
 	if !processed { // bucket already exists, return accurate message
 		/*bucket*/ _, err := b.MetaStorage.GetBucket(bucketName, false)
 		if err != nil {
-			helper.Logger.Println(5, "Error get bucket: ", bucketName, ", with error", err)
+			log.Error("Error get bucket: ", bucketName, ", with error", err)
 			return ErrBucketAlreadyExists
 		}
 		/*if bucket.OwnerId == credential.UserId {
@@ -45,10 +44,10 @@ func (b *s3Service) CreateBucket(ctx context.Context, in *pb.Bucket, out *pb.Bas
 	}
 	/*err = b.MetaStorage.Db.AddBucketForUser(bucketName, in.OwnerId)
 	if err != nil { // roll back bucket table, i.e. remove inserted bucket
-		helper.Logger.Println(5, "Error AddBucketForUser: ", err)
+		log.Error("Error AddBucketForUser: ", err)
 		err = b.MetaStorage.Db.DeleteBucket(&types.Bucket{Bucket: in})
 		if err != nil {
-			helper.Logger.Println(5, "Error deleting: ", err)
+			log.Error("Error deleting: ", err)
 			helper.Logger.Println(5, "Leaving junk bucket unremoved: ", bucketName)
 			return err
 		}
@@ -66,7 +65,7 @@ func (b *s3Service) GetBucket(ctx context.Context, in *pb.BaseRequest, out *pb.B
 
 	bucket, err := b.MetaStorage.GetBucket(in.Id, false)
 	if err != nil {
-		helper.Logger.Println(5, "Error get bucket: ", in.Id, ", with error", err)
+		log.Error("Error get bucket: ", in.Id, ", with error", err)
 		return err
 	}
 

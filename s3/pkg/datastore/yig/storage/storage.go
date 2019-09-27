@@ -93,7 +93,7 @@ func (y *YigStorage) Close() error {
 	y.Stopping = true
 	helper.Logger.Print(2, "Stopping storage...")
 	y.WaitGroup.Wait()
-	helper.Logger.Println(2, "done")
+	log.Error("done")
 	helper.Logger.Print(2, "Stopping MetaStorage...")
 	y.MetaStorage.Stop()
 	y.logfile.Close()

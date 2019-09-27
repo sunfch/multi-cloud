@@ -32,7 +32,7 @@ func (ydf *YigDriverFactory) CreateDriver(backend *backendpb.BackendDetail) (dri
 		return driver.(*storage.YigStorage), nil
 	}
 
-	helper.Logger.Printf(2, "no storage driver for yig endpoint %s", backend.Endpoint)
+	log.Errorf("no storage driver for yig endpoint %s", backend.Endpoint)
 	return nil, errors.New(fmt.Sprintf("no storage driver for yig endpoint: %s", backend.Endpoint))
 }
 
@@ -56,7 +56,7 @@ func (ydf *YigDriverFactory) Init() error {
 	// init config watcher.
 	watcher, err := config.NewConfigWatcher(ydf.driverInit)
 	if err != nil {
-		helper.Logger.Printf(2, "failed to new config watcher, err: %v", err)
+		log.Errorf("failed to new config watcher, err: %v", err)
 		return err
 	}
 	ydf.cfgWatcher = watcher
@@ -64,7 +64,7 @@ func (ydf *YigDriverFactory) Init() error {
 	// read the config.
 	err = config.ReadConfigs("/etc/yig", ydf.driverInit)
 	if err != nil {
-		helper.Logger.Printf(2, "failed to read yig configs, err: %v", err)
+		log.Errorf("failed to read yig configs, err: %v", err)
 		return err
 	}
 
@@ -95,7 +95,7 @@ func (ydf *YigDriverFactory) Close() {
 func (ydf *YigDriverFactory) driverInit(cfg *config.Config) error {
 	yigStorage, err := storage.New(cfg)
 	if err != nil {
-		helper.Logger.Printf(2, "failed to create driver for %s, err: %v", cfg.Endpoint.Url, err)
+		log.Errorf("failed to create driver for %s, err: %v", cfg.Endpoint.Url, err)
 		return err
 	}
 

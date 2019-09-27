@@ -42,7 +42,7 @@ func removeFailed(yig *YigStorage) {
 			if err != nil {
 				object.triedTimes += 1
 				if object.triedTimes > MAX_TRY_TIMES {
-					helper.Logger.Println(5, "Failed to remove object in Ceph:",
+					log.Error("Failed to remove object in Ceph:",
 						object.location, object.pool, object.objectId,
 						"with error", err)
 					continue

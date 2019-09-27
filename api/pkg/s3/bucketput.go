@@ -39,7 +39,7 @@ func (s *APIService) BucketPut(request *restful.Request, response *restful.Respo
 	log.Infof("received request: PUT bucket[name=%s]\n", bucketName)
 
 	if len(request.HeaderParameter(common.REQUEST_HEADER_CONTENT_LENGTH)) == 0 {
-		log.Infof("missing content length")
+		log.Errorf("missing content length")
 		response.WriteError(http.StatusLengthRequired, s3error.ErrMissingContentLength)
 
 		return
@@ -72,14 +72,14 @@ func (s *APIService) BucketPut(request *restful.Request, response *restful.Respo
 		}
 	}
 	if flag == false {
-		log.Info("default backend is not provided or it is not exist.")
+		log.Errorf("default backend is not provided or it is not exist.")
 		response.WriteError(http.StatusInternalServerError, s3error.ErrGetBackendFailed)
 		return
 	}
 
 	res, err := s.s3Client.CreateBucket(ctx, &bucket)
 	if err != nil {
-		log.Infof("create bucket failed, err:%v\n", err)
+		log.Errorf("create bucket failed, err:%v\n", err)
 		response.WriteError(http.StatusInternalServerError, err)
 		return
 	}

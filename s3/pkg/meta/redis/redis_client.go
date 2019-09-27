@@ -4,9 +4,9 @@ import (
 	"errors"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/go-redis/redis"
 	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/config"
-	"github.com/opensds/multi-cloud/s3/pkg/helper"
 )
 
 const (
@@ -82,7 +82,7 @@ func (cli *RedisCli) Init(cfg *config.CommonConfig) {
 			options.Password = cfg.Cache.Password
 		}
 
-		helper.Logger.Println(2, "create redis for options: ", options)
+		log.Error("create redis for options: ", options)
 		cli.redisClient = redis.NewClient(options)
 		cli.clientType = REDIS_NORMAL_CLIENT
 	}
@@ -370,12 +370,12 @@ func (cli *RedisCli) HMGet(key string, fields []string) (map[string]interface{},
 	}
 
 	if err != nil {
-		helper.Logger.Println(2, "failed to HMGet for key ", key, " with err: ", err)
+		log.Error("failed to HMGet for key ", key, " with err: ", err)
 		return nil, err
 	}
 
 	if len(fields) != len(values) {
-		helper.Logger.Println(2, "panic HMGet, input fields number: ", len(fields), " got values number: ",
+		log.Error("panic HMGet, input fields number: ", len(fields), " got values number: ",
 			len(values))
 		return nil, errors.New("HMGet fields number is not equal to values number.")
 	}

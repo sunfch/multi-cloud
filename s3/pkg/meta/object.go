@@ -5,6 +5,7 @@ import (
 	"github.com/opensds/multi-cloud/s3/pkg/helper"
 	. "github.com/opensds/multi-cloud/s3/pkg/meta/types"
 	"github.com/opensds/multi-cloud/s3/pkg/meta/redis"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -13,12 +14,12 @@ const (
 
 func (m *Meta) GetObject(bucketName string, objectName string, willNeed bool) (object *Object, err error) {
 	getObject := func() (o helper.Serializable, err error) {
-		helper.Logger.Println(10, "GetObject CacheMiss. bucket:", bucketName, "object:", objectName)
+		log.Info("GetObject CacheMiss. bucket:", bucketName, "object:", objectName)
 		object, err := m.Db.GetObject(bucketName, objectName, "")
 		if err != nil {
 			return
 		}
-		helper.Debugln("GetObject object.Name:", object.Name)
+		log.Debug("GetObject object.Name:", object.Name)
 		if object.Name != objectName {
 			err = ErrNoSuchKey
 			return
