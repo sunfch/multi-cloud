@@ -19,7 +19,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/micro/go-log"
+	log "github.com/sirupsen/logrus"
 	"github.com/micro/go-micro/client"
 	"github.com/opensds/multi-cloud/backend/proto"
 	"github.com/opensds/multi-cloud/dataflow/pkg/utils"
@@ -50,7 +50,7 @@ func HandleMsg(msgData []byte) error {
 	var acReq datamover.LifecycleActionRequest
 	err := json.Unmarshal(msgData, &acReq)
 	if err != nil {
-		log.Infof("unmarshal lifecycle action request failed, err:%v\n", err)
+		log.Errorf("unmarshal lifecycle action request failed, err:%v\n", err)
 		return err
 	}
 
@@ -85,13 +85,13 @@ func getBackendInfo(backendName *string, force bool) (*BackendInfo, error) {
 	}
 
 	if *backendName == "" {
-		log.Log("get backend information failed, backendName is null.\n")
+		log.Info("get backend information failed, backendName is null.\n")
 		return nil, errors.New(DMERR_InternalError)
 	}
 
 	bk, err := db.DbAdapter.GetBackendByName(*backendName)
 	if err != nil {
-		log.Infof("get backend[%s] information failed, err:%v\n", backendName, err)
+		log.Errorf("get backend[%s] information failed, err:%v\n", backendName, err)
 		return nil, err
 	} else {
 		loca := &BackendInfo{bk.Type, bk.Region, bk.Endpoint, bk.BucketName,
@@ -131,7 +131,7 @@ func getBackendInfo(backendName *string, force bool) (*BackendInfo, error) {
 	}
 
 	if err != nil {
-		log.Infof("delete object[%s] from backend[type:%s,bucket:%s] failed.\n", objKey, loca.StorType, loca.BucketName)
+		log.Errorf("delete object[%s] from backend[type:%s,bucket:%s] failed.\n", objKey, loca.StorType, loca.BucketName)
 	} else {
 		log.Infof("delete object[%s] from backend[type:%s,bucket:%s] successfully.\n", objKey, loca.StorType, loca.BucketName)
 	}

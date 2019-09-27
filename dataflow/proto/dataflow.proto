@@ -207,6 +207,6 @@ message ListJobRequest {
 }
 
 message ListJobResponse {
-    repeated Job jobs = 1;
-	int32 next = 2;
+        repeated Job jobs = 1;
+        int32 next = 2;
 }

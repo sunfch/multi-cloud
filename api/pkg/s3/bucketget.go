@@ -15,7 +15,6 @@
 package s3
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -24,7 +23,7 @@ import (
 	"strings"
 
 	"github.com/emicklei/go-restful"
-	"github.com/micro/go-log"
+	log "github.com/sirupsen/logrus"
 	"github.com/opensds/multi-cloud/api/pkg/common"
 	"github.com/opensds/multi-cloud/s3/proto"
 )
@@ -37,7 +36,7 @@ func checkLastmodifiedFilter(fmap *map[string]string) error {
 		} else {
 			_, err := strconv.Atoi(v)
 			if err != nil {
-				log.Infof("invalid query parameter:k=%s,v=%s, err=%v\n", k, v, err)
+				log.Errorf("invalid query parameter:k=%s,v=%s, err=%v\n", k, v, err)
 				return errors.New("invalid query parameter")
 			}
 		}
@@ -55,7 +54,7 @@ func checkObjKeyFilter(val string) (string, error) {
 
 	vals := strings.Split(val, ":")
 	if len(vals) <= 1 {
-		log.Infof("invalid object key filter:%s\n", val)
+		log.Errorf("invalid object key filter:%s\n", val)
 		return "", fmt.Errorf("invalid object key filter:%s", val)
 	}
 
@@ -73,7 +72,7 @@ func (s *APIService) BucketGet(request *restful.Request, response *restful.Respo
 
 	limit, offset, err := common.GetPaginationParam(request)
 	if err != nil {
-		log.Infof("get pagination parameters failed: %v\n", err)
+		log.Errorf("get pagination parameters failed: %v\n", err)
 		response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
@@ -81,7 +80,7 @@ func (s *APIService) BucketGet(request *restful.Request, response *restful.Respo
 	filterOpts := []string{common.KObjKey, common.KLastModified}
 	filter, err := common.GetFilter(request, filterOpts)
 	if err != nil {
-		log.Infof("get filter failed: %v\n", err)
+		log.Errorf("get filter failed: %v\n", err)
 		response.WriteError(http.StatusBadRequest, err)
 		return
 	} else {
@@ -93,7 +92,7 @@ func (s *APIService) BucketGet(request *restful.Request, response *restful.Respo
 		// filter[common.KObjKey] should be like: like:parttern
 		ret, err := checkObjKeyFilter(filter[common.KObjKey])
 		if err != nil {
-			log.Infof("invalid objkey filter:%s\v", filter[common.KObjKey])
+			log.Errorf("invalid objkey:%s\v", filter[common.KObjKey])
 			response.WriteError(http.StatusBadRequest,
 				fmt.Errorf("invalid objkey filter, it should be like objkey=like:parttern"))
 			return
@@ -106,14 +105,14 @@ func (s *APIService) BucketGet(request *restful.Request, response *restful.Respo
 		var tmFilter map[string]string
 		err := json.Unmarshal([]byte(filter[common.KLastModified]), &tmFilter)
 		if err != nil {
-			log.Infof("invalid lastModified:%s\v", filter[common.KLastModified])
+			log.Errorf("invalid lastModified:%s\v", filter[common.KLastModified])
 			response.WriteError(http.StatusBadRequest,
 				fmt.Errorf("invalid lastmodified, it should be like lastmodified={\"lt\":\"numb\"}"))
 			return
 		}
 		err = checkLastmodifiedFilter(&tmFilter)
 		if err != nil {
-			log.Infof("invalid lastModified:%s\v", filter[common.KLastModified])
+			log.Errorf("invalid lastModified:%s\v", filter[common.KLastModified])
 			response.WriteError(http.StatusBadRequest,
 				fmt.Errorf("invalid lastmodified, it should be like lastmodified={\"lt\":\"numb\"}"))
 			return
@@ -127,7 +126,7 @@ func (s *APIService) BucketGet(request *restful.Request, response *restful.Respo
 		Limit:  limit,
 	}
 
-	ctx := context.Background()
+	ctx := common.InitCtxWithAuthInfo(request)
 	res, err := s.s3Client.ListObjects(ctx, &req)
 	log.Infof("list objects result: %v\n", res)
 	if err != nil {
@@ -135,6 +134,6 @@ func (s *APIService) BucketGet(request *restful.Request, response *restful.Respo
 		return
 	}
 
-	log.Log("Get bucket successfully.")
+	log.Info("Get bucket successfully.")
 	response.WriteEntity(res)
 }

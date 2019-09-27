@@ -19,13 +19,14 @@ import (
 	"strings"
 
 	"github.com/emicklei/go-restful"
-	"github.com/micro/go-log"
+	log "github.com/sirupsen/logrus"
 	. "github.com/opensds/multi-cloud/s3/pkg/exception"
 	"github.com/opensds/multi-cloud/s3/proto"
-	"golang.org/x/net/context"
+        "github.com/opensds/multi-cloud/api/pkg/common"
 )
 
 func (s *APIService) BucketLifecycleDelete(request *restful.Request, response *restful.Response) {
+	ctx := common.InitCtxWithAuthInfo(request)
 	bucketName := request.PathParameter("bucketName")
 	ruleID := request.Request.URL.Query()["ruleID"]
 	log.Infof("received request for deleting lifecycle rule[id=%s] for bucket[name=%s].\n", ruleID, bucketName)
@@ -38,7 +39,6 @@ func (s *APIService) BucketLifecycleDelete(request *restful.Request, response *r
 	//var foundID int
 	FoundIDArray := []string{}
 	NonFoundIDArray := []string{}
-	ctx := context.Background()
 
 	bucket, err := s.s3Client.GetBucket(ctx, &s3.BaseRequest{Id: bucketName})
 	if err != nil {
@@ -73,6 +73,5 @@ func (s *APIService) BucketLifecycleDelete(request *restful.Request, response *r
 		}
 		response.WriteEntity(res)
 	}
-
-	log.Log("delete bucket lifecycle successfully.")
+	log.Info("delete bucket lifecycle successful.")
 }

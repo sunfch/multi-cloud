@@ -147,11 +147,11 @@ func CopyObj(obj *osdss3.Object, srcLoca *LocationInfo, destLoca *LocationInfo) 
 			err = errors.New("not support source backend type")
 		}
 	}
-
 	if err != nil {
 		logger.Printf("download object[%s] failed.", obj.ObjectKey)
 		return err
 	}
+
 	logger.Printf("Download object[%s] succeed, size=%d\n", obj.ObjectKey, size)
 
 	//upload
@@ -399,12 +399,10 @@ func deleteRemoteObj(ctx context.Context, obj *osdss3.Object, loca *LocationInfo
 		SrcObject: obj.ObjectKey,
 		DstBucket: info.dstLoc.BucketName,
 	}
-
-	_, err := s3client.CopyObject(ctx, &copyRequest)
-	if err != nil {
-		log.Printf("osdss3Copy failed, err:%v\n", err)
-	}
-
+func move(ctx context.Context, obj *osdss3.Object, capa chan int64, th chan int, srcLoca *LocationInfo,
+	destLoca *LocationInfo, remainSource bool, locaMap map[string]*LocationInfo, job *flowtype.Job) {
+	logger.Printf("Obj[%s] is stored in the backend is [%s], default backend is [%s], target backend is [%s].\n",
+		obj.ObjectKey, obj.Backend, srcLoca.BakendName, destLoca.BakendName)
 	return err
 }*/
 
@@ -614,9 +612,8 @@ func runjob(in *pb.RunJobRequest) error {
 				if totalNum < 100 || count == totalNum || count%deci == 0 {
 					//update database
 					j.PassedCount = (int64(passedCount))
-					j.PassedCapacity = capacity
-					j.Progress = int64(capacity * 100 / j.TotalCapacity)
-					logger.Printf("capacity:%d,TotalCapacity:%d Progress:%d\n", capacity, j.TotalCapacity, j.Progress)
+					j.PassedCapacity=capacity
+					logger.Printf("ObjectMigrated:%d,TotalCapacity:%d Progress:%d\n", j.PassedCount, j.TotalCapacity, j.Progress)
 					db.DbAdapter.UpdateJob(&j)
 				}
 			}
@@ -636,3 +633,4 @@ func runjob(in *pb.RunJobRequest) error {
 
 	return updateJobFinalStatus(ctx, &j, passedCount, totalNum)
 }
+

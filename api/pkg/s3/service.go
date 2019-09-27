@@ -21,9 +21,9 @@ import (
 	"math"
 
 	"github.com/emicklei/go-restful"
-	"github.com/micro/go-log"
 	"github.com/micro/go-micro/client"
 	"github.com/opensds/multi-cloud/backend/proto"
+	log "github.com/sirupsen/logrus"
 	backendpb "github.com/opensds/multi-cloud/backend/proto"
 	"github.com/opensds/multi-cloud/s3/proto"
 	//"net/http"

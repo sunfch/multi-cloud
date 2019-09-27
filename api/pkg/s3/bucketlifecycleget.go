@@ -17,14 +17,13 @@ package s3
 import (
 	"fmt"
 	"net/http"
-
 	"github.com/emicklei/go-restful"
-	"github.com/micro/go-log"
+	log "github.com/sirupsen/logrus"
+	"github.com/opensds/multi-cloud/api/pkg/common"
 	. "github.com/opensds/multi-cloud/api/pkg/utils/constants"
 	. "github.com/opensds/multi-cloud/s3/pkg/exception"
 	"github.com/opensds/multi-cloud/s3/pkg/model"
 	"github.com/opensds/multi-cloud/s3/proto"
-	"golang.org/x/net/context"
 )
 
 //Convert function from storage tier to storage class for XML format output
@@ -35,7 +34,7 @@ func (s *APIService) tier2class(tier int32) (string, error) {
 		if len(ClassAndTier) == 0 {
 			err := s.loadStorageClassDefinition()
 			if err != nil {
-				log.Infof("load storage classes failed: %v.\n", err)
+				log.Errorf("load storage classes failed: %v.\n", err)
 				return "", err
 			}
 		}
@@ -58,10 +57,10 @@ func (s *APIService) BucketLifecycleGet(request *restful.Request, response *rest
 	bucketName := request.PathParameter("bucketName")
 	log.Infof("received request for getting lifecycle of bucket[name=%s].\n", bucketName)
 
-	ctx := context.Background()
+	ctx := common.InitCtxWithAuthInfo(request)
 	bucket, err := s.s3Client.GetBucket(ctx, &s3.BaseRequest{Id: bucketName})
 	if err != nil {
-		log.Infof("get bucket[name=%s] failed, err=%v.\n", bucketName, err)
+		log.Errorf("get bucket failed, err=%v\n", err)
 		response.WriteError(http.StatusInternalServerError, NoSuchBucket.Error())
 		return
 	}
@@ -110,7 +109,7 @@ func (s *APIService) BucketLifecycleGet(request *restful.Request, response *rest
 			bucket.LifecycleConfiguration, err)
 		response.WriteError(http.StatusInternalServerError, InternalError.Error())
 	}
-	log.Log("GET lifecycle successful.")
+	log.Info("GET lifecycle successful.")
 }
 
 func converts3FilterToRuleFilter(filter *s3.LifecycleFilter) model.Filter {

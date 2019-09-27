@@ -16,7 +16,8 @@ package lifecycle
 
 import (
 	"context"
-	"github.com/micro/go-log"
+
+	log "github.com/sirupsen/logrus"
 	"github.com/opensds/multi-cloud/datamover/proto"
 	osdss3 "github.com/opensds/multi-cloud/s3/proto"
 )

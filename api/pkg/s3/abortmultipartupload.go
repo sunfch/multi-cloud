@@ -5,7 +5,7 @@ import (
 	//"net/http"
 
 	"github.com/emicklei/go-restful"
-	"github.com/micro/go-log"
+	log "github.com/sirupsen/logrus"
 	//c "github.com/opensds/multi-cloud/api/pkg/context"
 	//. "github.com/opensds/multi-cloud/s3/pkg/exception"
 	//s3 "github.com/opensds/multi-cloud/s3/proto"
@@ -16,9 +16,9 @@ func (s *APIService) AbortMultipartUpload(request *restful.Request, response *re
 	objectKey := request.PathParameter("objectKey")
 	uploadId := request.QueryParameter("uploadId")
 
-	/*ctx := context.WithValue(request.Request.Context(), "operation", "multipartupload")
-	actx := request.Attribute(c.KContext).(*c.Context)
-	objectInput := s3.GetObjectInput{Context:actx.ToJson(), Bucket: bucketName, Key: objectKey}
+/*	md := map[string]string{common.REST_KEY_OPERATION: common.REST_VAL_MULTIPARTUPLOAD}
+	ctx := common.InitCtxWithVal(request, md)
+	objectInput := s3.GetObjectInput{Bucket: bucketName, Key: objectKey}
 	objectMD, _ := s.s3Client.GetObject(ctx, &objectInput)
 	multipartUpload := s3.MultipartUpload{}
 	multipartUpload.Key = objectKey
@@ -27,11 +27,11 @@ func (s *APIService) AbortMultipartUpload(request *restful.Request, response *re
 
 	var client datastore.DataStoreAdapter
 	if objectMD == nil {
-		log.Infof("No such object err\n")
+		log.Errorf("No such object err\n")
 		response.WriteError(http.StatusInternalServerError, NoSuchObject.Error())
 
 	}
-	client = getBackendByName(s, objectMD.Backend)
+	client = getBackendByName(ctx, s, objectMD.Backend)
 	if client == nil {
 		response.WriteError(http.StatusInternalServerError, NoSuchBackend.Error())
 		return

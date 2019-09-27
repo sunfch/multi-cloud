@@ -20,7 +20,7 @@ import (
 	"regexp"
 	"strings"
 
-	log "github.com/micro/go-log"
+	log "github.com/sirupsen/logrus"
 	"github.com/opensds/multi-cloud/api/pkg/utils"
 )
 

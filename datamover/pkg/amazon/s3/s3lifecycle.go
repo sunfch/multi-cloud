@@ -19,7 +19,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/micro/go-log"
+	log "github.com/sirupsen/logrus"
 	. "github.com/opensds/multi-cloud/datamover/pkg/utils"
 )
 
@@ -33,7 +33,7 @@ func (mover *S3Mover) ChangeStorageClass(objKey *string, newClass *string, loca 
 		Credentials: creds,
 	})
 	if err != nil {
-		log.Infof("[s3lifecycle] new session failed, err:%v\n", err)
+		log.Errorf("[s3lifecycle] new session failed, err:%v\n", err)
 		return handleAWSS3Errors(err)
 	}
 
@@ -46,7 +46,7 @@ func (mover *S3Mover) ChangeStorageClass(objKey *string, newClass *string, loca 
 	input.StorageClass = aws.String(*newClass)
 	_, err = svc.CopyObject(input)
 	if err != nil {
-		log.Infof("[s3lifecycle] Change storage class of object[%s] to %s failed: %v.\n", objKey, newClass, err)
+		log.Errorf("[s3lifecycle] Change storage class of object[%s] to %s failed: %v.\n", objKey, newClass, err)
 		e := handleAWSS3Errors(err)
 		return e
 	}
@@ -66,7 +66,7 @@ func (mover *S3Mover) DeleteIncompleteMultipartUpload(objKey, uploadId string, l
 		Credentials: creds,
 	})
 	if err != nil {
-		log.Infof("[s3lifecycle] new session failed, err:%v\n", err)
+		log.Errorf("[s3lifecycle] new session failed, err:%v\n", err)
 		return handleAWSS3Errors(err)
 	}
 

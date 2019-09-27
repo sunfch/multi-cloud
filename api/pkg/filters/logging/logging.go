@@ -16,7 +16,7 @@ package logging
 
 import (
 	"github.com/emicklei/go-restful"
-	"github.com/micro/go-log"
+	log "github.com/sirupsen/logrus"
 )
 
 func FilterFactory() restful.FilterFunction {

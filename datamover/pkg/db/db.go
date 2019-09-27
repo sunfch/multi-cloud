@@ -15,7 +15,7 @@
 package db
 
 import (
-	"github.com/micro/go-log"
+	log "github.com/sirupsen/logrus"
 	backend "github.com/opensds/multi-cloud/backend/pkg/model"
 	"github.com/opensds/multi-cloud/dataflow/pkg/model"
 	. "github.com/opensds/multi-cloud/dataflow/pkg/utils"

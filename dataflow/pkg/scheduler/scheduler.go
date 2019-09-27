@@ -20,7 +20,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/micro/go-log"
+	log "github.com/sirupsen/logrus"
 	"github.com/micro/go-micro/metadata"
 	"github.com/opensds/multi-cloud/api/pkg/common"
 	"github.com/opensds/multi-cloud/dataflow/pkg/db"
@@ -43,7 +43,7 @@ func LoadAllPlans() {
 	for offset == 0 || planNum > 0 {
 		plans, err := db.DbAdapter.ListPlan(ctx, limit, offset, nil)
 		if err != nil {
-			log.Infof("Get all plan faild, %v", err)
+			log.Errorf("Get all plan faild, %v", err)
 			break
 		}
 		log.Infof("scheduler: planNum=%d\n", planNum)
@@ -60,7 +60,7 @@ func LoadAllPlans() {
 			e := plan.NewPlanExecutor(&p)
 			err := trigger.GetTriggerMgr().Add(ctx, &p, e)
 			if err != nil {
-				log.Infof("Load plan(%s) to trigger failed, %v", p.Id.Hex(), err)
+				log.Errorf("Load plan(%s) to trigger failed, %v", p.Id.Hex(), err)
 				continue
 			}
 			log.Infof("Load plan(%s) to trigger success", p.Id.Hex())
@@ -77,11 +77,11 @@ func LoadLifecycleScheduler() error {
 	cn := cron.New()
 	//0 */10 * * * ?
 	if err := cn.AddFunc(spec, lifecycle.ScheduleLifecycle); err != nil {
-		log.Infof("add lifecyecle scheduler to cron trigger failed: %v.\n", err)
+		log.Errorf("add lifecyecle scheduler to cron trigger failed: %v.\n", err)
 		return fmt.Errorf("add lifecyecle scheduler to cron trigger failed: %v", err)
 	}
 	cn.Start()
 
-	log.Log("add lifecycle scheduler to cron trigger successfully.")
+	log.Info("add lifecycle scheduler to cron trigger successfully.")
 	return nil
 }

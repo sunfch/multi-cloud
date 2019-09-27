@@ -1,10 +1,10 @@
 package s3
 
 import (
-	"strconv"
+	//"strconv"
 
 	"github.com/emicklei/go-restful"
-	"github.com/micro/go-log"
+	log "github.com/sirupsen/logrus"
 	/*c "github.com/opensds/multi-cloud/api/pkg/context"
 	. "github.com/opensds/multi-cloud/s3/pkg/exception"
 	s3 "github.com/opensds/multi-cloud/s3/proto"
@@ -12,7 +12,7 @@ import (
 )
 
 func (s *APIService) UploadPart(request *restful.Request, response *restful.Response) {
-	bucketName := request.PathParameter("bucketName")
+/*	bucketName := request.PathParameter("bucketName")
 	objectKey := request.PathParameter("objectKey")
 	contentLenght := request.HeaderParameter("content-length")
 	size, _ := strconv.ParseInt(contentLenght, 10, 64)
@@ -20,9 +20,11 @@ func (s *APIService) UploadPart(request *restful.Request, response *restful.Resp
 	partNumber := request.QueryParameter("partNumber")
 	partNumberInt, _ := strconv.ParseInt(partNumber, 10, 64)
 
-/*	ctx := context.WithValue(request.Request.Context(), "operation", "multipartupload")
-	actx := request.Attribute(c.KContext).(*c.Context)
-	objectInput := s3.GetObjectInput{Context:actx.ToJson(), Bucket: bucketName, Key: objectKey}
+	log.Infof("upload part, partNum=#%s, object=%s, bucket=%s \n", partNumber, objectKey, bucketName)
+
+	md := map[string]string{common.REST_KEY_OPERATION: common.REST_VAL_MULTIPARTUPLOAD}
+	ctx := common.InitCtxWithVal(request, md)
+	objectInput := s3.GetObjectInput{Bucket: bucketName, Key: objectKey}
 	objectMD, _ := s.s3Client.GetObject(ctx, &objectInput)
 	lastModified := time.Now().Unix()
 	object := s3.Object{}
@@ -32,12 +34,12 @@ func (s *APIService) UploadPart(request *restful.Request, response *restful.Resp
 	object.Size = size
 	var client datastore.DataStoreAdapter
 	if objectMD == nil {
-		log.Infof("No such object err\n")
+		log.Errorf("no such object err\n")
 		response.WriteError(http.StatusInternalServerError, NoSuchObject.Error())
-
+		return
 	}
-	log.Infof("objectMD.Backend is %v\n", objectMD.Backend)
-	client = getBackendByName(s, objectMD.Backend)
+	log.Errorf("objectMD.Backend is %v\n", objectMD.Backend)
+	client = getBackendByName(ctx, s, objectMD.Backend)
 	if client == nil {
 		response.WriteError(http.StatusInternalServerError, NoSuchBackend.Error())
 		return
@@ -72,14 +74,15 @@ func (s *APIService) UploadPart(request *restful.Request, response *restful.Resp
 	result, _ := s.s3Client.GetObject(ctx, &objectInput)
 	log.Infof("result.size = %v", result.Size)
 	if err != nil {
-		log.Infof("err is %v\n", err)
+		log.Errorf("err is %v\n", err)
 		response.WriteError(http.StatusInternalServerError, err)
+		return
 	}
 
 	//return xml format
 	xmlstring, err := xml.MarshalIndent(res, "", "  ")
 	if err != nil {
-		log.Infof("Parse ListBuckets error: %v", err)
+		log.Errorf("Parse ListBuckets error: %v", err)
 		response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
@@ -87,6 +90,6 @@ func (s *APIService) UploadPart(request *restful.Request, response *restful.Resp
 	log.Infof("resp:\n%s", xmlstring)
 	response.Write(xmlstring)
 */
-	log.Infof("Init multipart upload[bucketName=%s, objectKey=%s, uploadId=%s, size=%d, partNumber=%s] successfully.\n",
-		bucketName, objectKey, uploadId, size, partNumberInt)
+
+	log.Info("Uploadpart successfully.")
 }

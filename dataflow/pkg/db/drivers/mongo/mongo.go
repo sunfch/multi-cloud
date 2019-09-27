@@ -22,7 +22,7 @@ import (
 
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
-	"github.com/micro/go-log"
+	log "github.com/sirupsen/logrus"
 	"github.com/micro/go-micro/metadata"
 	"github.com/opensds/multi-cloud/api/pkg/common"
 	. "github.com/opensds/multi-cloud/dataflow/pkg/model"
@@ -62,7 +62,7 @@ func setIndex(session *mgo.Session, colName string, keys []string, unique bool, 
 			}
 		}
 		if exist == true {
-			log.Log("index already exist")
+			log.Info("index already exist")
 			return
 		}
 	}
@@ -81,10 +81,10 @@ func setIndex(session *mgo.Session, colName string, keys []string, unique bool, 
 }
 
 func Init(host string) *adapter {
-	//log.Log("edps:", deps)
+	//log.Info("edps:", deps)
 	session, err := mgo.Dial(host)
 	if err != nil {
-		log.Log("Connect database failed.")
+		log.Info("Connect database failed.")
 		panic(err)
 	}
 
@@ -109,7 +109,7 @@ func UpdateContextFilter(ctx context.Context, m bson.M) error {
 	// if context is admin, no need filter by tenantId.
 	md, ok := metadata.FromContext(ctx)
 	if !ok {
-		log.Log("get context failed")
+		log.Error("get context failed")
 		return errors.New("get context failed")
 	}
 
@@ -117,7 +117,7 @@ func UpdateContextFilter(ctx context.Context, m bson.M) error {
 	if isAdmin != common.CTX_VAL_TRUE {
 		tenantId, ok := md[common.CTX_KEY_TENANT_ID]
 		if !ok {
-			log.Log("get tenantid failed")
+			log.Error("get tenantid failed")
 			return errors.New("get tenantid failed")
 		}
 		m["tenantId"] = tenantId
@@ -137,28 +137,28 @@ func TestClear() error {
 	c := ss.DB(DataBaseName).C(CollPlan)
 	err := c.Remove(bson.M{})
 	if err != nil && err != mgo.ErrNotFound {
-		log.Infof("clear plan err:%v\n", err)
+		log.Errorf("clear plan err:%v\n", err)
 		return err
 	}
 
 	c = ss.DB(DataBaseName).C(CollPolicy)
 	err = c.Remove(bson.M{})
 	if err != nil && err != mgo.ErrNotFound {
-		log.Infof("clear policy err:%v\n", err)
+		log.Errorf("clear policy err:%v\n", err)
 		return err
 	}
 
 	c = ss.DB(DataBaseName).C(CollConnector)
 	err = c.Remove(bson.M{})
 	if err != nil && err != mgo.ErrNotFound {
-		log.Infof("clear connector err:%v\n", err)
+		log.Errorf("clear connector err:%v\n", err)
 		return err
 	}
 
 	c = ss.DB(DataBaseName).C(lockColName)
 	err = c.Remove(bson.M{})
 	if err != nil && err != mgo.ErrNotFound {
-		log.Infof("clear mylock err:%v\n", err)
+		log.Errorf("clear mylock err:%v\n", err)
 		return err
 	}
 
@@ -178,7 +178,7 @@ func lock(ss *mgo.Session, lockObj string, maxLockTime float64) int {
 		log.Infof("Lock %s succeed.\n", lockObj)
 		return LockSuccess
 	} else {
-		log.Infof("Try lock %s failed, err:%v.\n", lockObj, err)
+		log.Errorf("Try lock %s failed, err:%v.\n", lockObj, err)
 		lk := MyLock{}
 		err1 := c.Find(bson.M{"lockobj": lockObj}).One(&lk)
 		if err1 == nil {
@@ -196,7 +196,7 @@ func lock(ss *mgo.Session, lockObj string, maxLockTime float64) int {
 						log.Infof("Lock %s succeed.\n", lockObj)
 						return LockSuccess
 					} else {
-						log.Infof("Lock %s failed.\n", lockObj)
+						log.Errorf("Lock %s failed.\n", lockObj)
 					}
 				}
 			} else {
@@ -216,7 +216,7 @@ func unlock(ss *mgo.Session, lockObj string) int {
 		log.Infof("Unlock %s succeed.\n", lockObj)
 		return LockSuccess
 	} else {
-		log.Infof("Unlock %s failed, err:%v.\n", lockObj, err)
+		log.Errorf("Unlock %s failed, err:%v.\n", lockObj, err)
 		return LockDbErr
 	}
 }
@@ -259,7 +259,7 @@ func (ad *adapter) CreatePolicy(ctx context.Context, pol *Policy) (*Policy, erro
 	pol.Id = bson.NewObjectId()
 	err := ss.DB(DataBaseName).C(CollPolicy).Insert(&pol)
 	if err != nil {
-		log.Infof("Add policy to database failed, err:%v\n", err)
+		log.Errorf("Add policy to database failed, err:%v\n", err)
 		return nil, ERR_DB_ERR
 	}
 
@@ -293,30 +293,30 @@ func (ad *adapter) DeletePolicy(ctx context.Context, id string) error {
 	}
 	err = c.Find(m).One(&po)
 	if err == mgo.ErrNotFound {
-		log.Log("Delete policy: the specified policy does not exist.")
+		log.Info("Delete policy: the specified policy does not exist.")
 		return ERR_POLICY_NOT_EXIST
 	} else if err != nil {
-		log.Log("Delete policy: DB error.")
+		log.Info("Delete policy: DB error.")
 		return ERR_DB_ERR
 	}
 	//Check if the policy is used by any plan, if it is used then it cannot be deleted
 	cc := ss.DB(DataBaseName).C(CollPlan)
 	count, erro := cc.Find(bson.M{"policy_ref:$ref": CollPolicy, "policy_ref:$id": po.Id, "policy_ref.$db": DataBaseName}).Count()
 	if erro != nil {
-		log.Infof("Delete policy failed, get related plan failed, err:%v.\n", erro)
+		log.Errorf("Delete policy failed, get related plan failed, err:%v.\n", erro)
 		return ERR_DB_ERR
 	} else if count > 0 {
-		log.Log("Delete policy failed, it is used by plan.")
+		log.Info("Delete policy failed, it is used by plan.")
 		return ERR_IS_USED_BY_PLAN
 	}
 
 	//Delete it from database
 	err = c.Remove(bson.M{"_id": po.Id})
 	if err == mgo.ErrNotFound {
-		log.Log("Delete policy: the specified policy does not exist.")
+		log.Info("Delete policy: the specified policy does not exist.")
 		return ERR_POLICY_NOT_EXIST
 	} else if err != nil {
-		log.Infof("Delete policy from database failed,err:%v.\n", err)
+		log.Errorf("Delete policy from database failed,err:%v.\n", err)
 		return ERR_DB_ERR
 	}
 	return nil
@@ -335,10 +335,10 @@ func (ad *adapter) ListPolicy(ctx context.Context) ([]Policy, error) {
 	}
 	err = ss.DB(DataBaseName).C(CollPolicy).Find(m).All(&pols)
 	if err == mgo.ErrNotFound || len(pols) == 0 {
-		log.Log("no policy found.")
+		log.Info("no policy found.")
 		return nil, nil
 	} else if err != nil {
-		log.Infof("list policy from database failed, err:%v\n", err)
+		log.Errorf("list policy from database failed, err:%v\n", err)
 		return nil, ERR_DB_ERR
 	}
 	return pols, nil
@@ -358,7 +358,7 @@ func (ad *adapter) GetPolicy(ctx context.Context, id string) (*Policy, error) {
 
 	err = ss.DB(DataBaseName).C(CollPolicy).Find(m).One(&pol)
 	if err == mgo.ErrNotFound {
-		log.Log("plan does not exist.")
+		log.Error("plan does not exist.")
 		return nil, ERR_POLICY_NOT_EXIST
 	}
 
@@ -391,16 +391,16 @@ func (ad *adapter) UpdatePolicy(ctx context.Context, newPol *Policy) (*Policy, e
 	}
 	err = ss.DB(DataBaseName).C(CollPolicy).Update(m, newPol)
 	if err == mgo.ErrNotFound {
-		//log.Log("Update policy failed, err: the specified policy does not exist.")
-		log.Infof("Update policy in database failed, err: %v.", err)
+		//log.Info("Update policy failed, err: the specified policy does not exist.")
+		log.Errorf("Update policy in database failed, err: %v.", err)
 		return nil, ERR_POLICY_NOT_EXIST
 	} else if err != nil {
-		//log.Infof("Update policy in database failed, err: %v.\n", err)
-		log.Infof("Update policy in database failed, err: %v.", err)
+		//log.Errorf("Update policy in database failed, err: %v.\n", err)
+		log.Errorf("Update policy in database failed, err: %v.", err)
 		return nil, ERR_DB_ERR
 	}
 
-	log.Log("Update policy succeefully.")
+	log.Info("Update policy succeefully.")
 	return newPol, nil
 }
 
@@ -446,7 +446,7 @@ func (ad *adapter) CreatePlan(ctx context.Context, plan *Plan) (*Plan, error) {
 		if bson.IsObjectIdHex(plan.PolicyId) {
 			plan.PolicyRef = mgo.DBRef{CollPolicy, bson.ObjectIdHex(plan.PolicyId), DataBaseName}
 		} else {
-			log.Infof("invalid policy:%s\n", plan.PolicyId)
+			log.Errorf("invalid policy:%s\n", plan.PolicyId)
 			return nil, ERR_POLICY_NOT_EXIST
 		}
 	}
@@ -456,7 +456,7 @@ func (ad *adapter) CreatePlan(ctx context.Context, plan *Plan) (*Plan, error) {
 		plan.Id = bson.NewObjectId()
 		err = c.Insert(plan)
 		if err != nil && mgo.IsDup(err) {
-			log.Infof("Add plan into database failed, duplicate id:%s\n", string(plan.Id.Hex()))
+			log.Errorf("Add plan into database failed, duplicate id:%s\n", string(plan.Id.Hex()))
 			continue
 		}
 		break
@@ -492,24 +492,24 @@ func (ad *adapter) DeletePlan(ctx context.Context, id string) error {
 	}
 	err = c.Find(m).One(&p)
 	if err == mgo.ErrNotFound {
-		log.Log("Delete plan failed, err:the specified p does not exist.")
+		log.Info("Delete plan failed, err:the specified p does not exist.")
 		return ERR_PLAN_NOT_EXIST
 	} else if err != nil {
-		log.Infof("Delete plan failed, err:%v.\n", err)
+		log.Errorf("Delete plan failed, err:%v.\n", err)
 		return ERR_DB_ERR
 	}
 
 	//Delete it from database
 	err = c.Remove(bson.M{"_id": p.Id})
 	if err == mgo.ErrNotFound {
-		log.Log("Delete plan failed, err:the specified p does not exist.")
+		log.Info("Delete plan failed, err:the specified p does not exist.")
 		return ERR_PLAN_NOT_EXIST
 	} else if err != nil {
-		log.Infof("Delete plan from database failed,err:%v.\n", err)
+		log.Errorf("Delete plan from database failed,err:%v.\n", err)
 		return ERR_DB_ERR
 	}
 
-	log.Log("Delete plan successfully.")
+	log.Info("Delete plan successfully.")
 	return nil
 }
 
@@ -524,7 +524,7 @@ func checkPlanRelateObj(ctx context.Context, ss *mgo.Session, plan *Plan) error 
 		pol := Policy{}
 		err = ss.DB(DataBaseName).C(CollPolicy).Find(m).One(&pol)
 		if err != nil {
-			log.Infof("Err: the specific policy[id:%s] not exist.\n", plan.PolicyId)
+			log.Errorf("Err: the specific policy[id:%s] not exist.\n", plan.PolicyId)
 			return ERR_POLICY_NOT_EXIST
 		}
 	}
@@ -560,7 +560,7 @@ func (ad *adapter) UpdatePlan(ctx context.Context, plan *Plan) (*Plan, error) {
 		if bson.IsObjectIdHex(plan.PolicyId) {
 			plan.PolicyRef = mgo.DBRef{CollPolicy, bson.ObjectIdHex(plan.PolicyId), DataBaseName}
 		} else {
-			log.Infof("invalid policy:%s\n", plan.PolicyId)
+			log.Errorf("invalid policy:%s\n", plan.PolicyId)
 			return nil, ERR_POLICY_NOT_EXIST
 		}
 	} else {
@@ -575,10 +575,10 @@ func (ad *adapter) UpdatePlan(ctx context.Context, plan *Plan) (*Plan, error) {
 	}
 	err = ss.DB(DataBaseName).C(CollPlan).Update(m, plan)
 	if err == mgo.ErrNotFound {
-		log.Infof("update plan: the specified plan[id=%v] does not exist.", plan.Id)
+		log.Errorf("update plan: the specified plan[id=%v] does not exist.", plan.Id)
 		return nil, ERR_PLAN_NOT_EXIST
 	} else if err != nil {
-		log.Infof("update plan in database failed, err: %v.\n", err)
+		log.Errorf("update plan in database failed, err: %v.\n", err)
 		return nil, ERR_DB_ERR
 	}
 	return plan, nil
@@ -619,10 +619,10 @@ func (ad *adapter) doListPlan(ctx context.Context, limit int, offset int, filter
 	plans := []Plan{}
 	err = ss.DB(DataBaseName).C(CollPlan).Find(filter).Skip(offset).Limit(limit).All(&plans)
 	if err == mgo.ErrNotFound || len(plans) == 0 {
-		log.Log("no plan found.")
+		log.Info("no plan found.")
 		return nil, nil
 	} else if err != nil {
-		log.Infof("get plan from database failed,err:%v.\n", err)
+		log.Errorf("get plan from database failed,err:%v.\n", err)
 		return nil, ERR_DB_ERR
 	}
 
@@ -633,7 +633,7 @@ func (ad *adapter) doListPlan(ctx context.Context, limit int, offset int, filter
 			log.Infof("PolicyRef:%+v\n", plans[i].PolicyRef)
 			err := ss.DB(DataBaseName).FindRef(&plans[i].PolicyRef).One(&pol)
 			if err != nil {
-				log.Infof("get PolicyRef failed,err:%v.\n", err)
+				log.Errorf("get PolicyRef failed,err:%v.\n", err)
 				return nil, ERR_DB_ERR
 			} else {
 				plans[i].PolicyName = pol.Name
@@ -658,7 +658,7 @@ func (ad *adapter) GetPlan(ctx context.Context, id string) (*Plan, error) {
 	p := Plan{}
 	err = ss.DB(DataBaseName).C(CollPlan).Find(m).One(&p)
 	if err == mgo.ErrNotFound {
-		log.Log("plan does not exist.")
+		log.Error("plan does not exist.")
 		return nil, ERR_PLAN_NOT_EXIST
 	}
 
@@ -667,7 +667,7 @@ func (ad *adapter) GetPlan(ctx context.Context, id string) (*Plan, error) {
 	if p.PolicyId != "" {
 		err := ss.DB(DataBaseName).FindRef(&p.PolicyRef).One(&pol)
 		if err != nil {
-			log.Infof("get PolicyRef failed,err:%v.\n", err)
+			log.Errorf("get PolicyRef failed,err:%v.\n", err)
 			return nil, ERR_DB_ERR
 		} else {
 			p.PolicyName = pol.Name
@@ -694,13 +694,13 @@ func (ad *adapter) CreateJob(ctx context.Context, job *Job) (*Job, error) {
 		job.Id = bson.NewObjectId()
 		err = ss.DB(DataBaseName).C(CollJob).Insert(&job)
 		if err != nil && mgo.IsDup(err) {
-			log.Infof("Add job into database failed, duplicate id:%s\n", string(job.Id.Hex()))
+			log.Errorf("Add job into database failed, duplicate id:%s\n", string(job.Id.Hex()))
 			continue
 		}
 		break
 	}
 	if i == 3 {
-		log.Log("add job to database failed too much times.")
+		log.Error("add job to database failed too much times.")
 	}
 
 	return job, err
@@ -718,7 +718,7 @@ func (ad *adapter) GetJob(ctx context.Context, id string) (*Job, error) {
 	job := Job{}
 	err = ss.DB(DataBaseName).C(CollJob).Find(m).One(&job)
 	if err == mgo.ErrNotFound {
-		log.Log("Job does not exist.")
+		log.Info("Job does not exist.")
 		return nil, ERR_JOB_NOT_EXIST
 	}
 	return &job, nil
@@ -738,11 +738,10 @@ func (ad *adapter) ListJob(ctx context.Context, limit int, offset int, query int
 	jobs := []Job{}
 	err = ss.DB(DataBaseName).C(CollJob).Find(m).Skip(offset).Limit(limit).All(&jobs)
 	if err == mgo.ErrNotFound || len(jobs) == 0 {
-		log.Log("no jobs found.")
+		log.Info("no jobs found.")
 		return nil, nil
 	} else if err != nil {
-		log.Infof("get jobs from database failed,err:%v.\n", err)
-		return nil, ERR_DB_ERR
+		log.Errorf("get jobs from database failed,err:%v.\n", err)
 	}
 	return jobs, nil
 }

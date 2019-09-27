@@ -16,7 +16,7 @@ package s3
 
 import (
 	"github.com/emicklei/go-restful"
-	"github.com/micro/go-log"
+	log "github.com/sirupsen/logrus"
 )
 
 func (s *APIService) ObjectDelete(request *restful.Request, response *restful.Response) {
@@ -28,12 +28,12 @@ func (s *APIService) ObjectDelete(request *restful.Request, response *restful.Re
 		objectKey = objectKey + "/"
 	}
 	deleteInput := s3.DeleteObjectInput{Key: objectKey, Bucket: bucketName}
-	ctx := context.Background()
-	actx := request.Attribute(c.KContext).(*c.Context)
-	objectInput := s3.GetObjectInput{Context: actx.ToJson(), Bucket: bucketName, Key: objectKey}
+
+	ctx := common.InitCtxWithAuthInfo(request)
+	objectInput := s3.GetObjectInput{Bucket: bucketName, Key: objectKey}
 	objectMD, _ := s.s3Client.GetObject(ctx, &objectInput)
 	if objectMD != nil {
-		client := getBackendByName(s, objectMD.Backend)
+		client := getBackendByName(ctx, s, objectMD.Backend)
 		s3err := client.DELETE(&deleteInput, ctx)
 		if s3err.Code != ERR_OK {
 			response.WriteError(http.StatusInternalServerError, s3err.Error())
@@ -41,14 +41,14 @@ func (s *APIService) ObjectDelete(request *restful.Request, response *restful.Re
 		}
 		res, err := s.s3Client.DeleteObject(ctx, &deleteInput)
 		if err != nil {
-			log.Infof("err is %v\n", err)
+			log.Errorf("err is %v\n", err)
 			response.WriteError(http.StatusInternalServerError, err)
 			return
 		}
 		log.Infof("Delete object %s successfully.", objectKey)
 		response.WriteEntity(res)
 	} else {
-		log.Infof("No such object")
+		log.Errorf("No such object")
 		return
 	}*/
 

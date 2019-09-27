@@ -7,7 +7,7 @@ import (
 	//"time"
 
 	"github.com/emicklei/go-restful"
-	"github.com/micro/go-log"
+	log "github.com/sirupsen/logrus"
 	//c "github.com/opensds/multi-cloud/api/pkg/context"
 	//. "github.com/opensds/multi-cloud/s3/pkg/exception"
 	//"github.com/opensds/multi-cloud/s3/pkg/model"
@@ -19,9 +19,9 @@ func (s *APIService) CompleteMultipartUpload(request *restful.Request, response 
 	objectKey := request.PathParameter("objectKey")
 	UploadId := request.QueryParameter("uploadId")
 
-/*	ctx := context.WithValue(request.Request.Context(), "operation", "multipartupload")
-	actx := request.Attribute(c.KContext).(*c.Context)
-	objectInput := s3.GetObjectInput{Context: actx.ToJson(), Bucket: bucketName, Key: objectKey}
+/*	md := map[string]string{common.REST_KEY_OPERATION: common.REST_VAL_MULTIPARTUPLOAD}
+	ctx := common.InitCtxWithVal(request, md)
+	objectInput := s3.GetObjectInput{Bucket: bucketName, Key: objectKey}
 	objectMD, _ := s.s3Client.GetObject(ctx, &objectInput)
 	//to insert object
 	object := s3.Object{}
@@ -39,11 +39,11 @@ func (s *APIService) CompleteMultipartUpload(request *restful.Request, response 
 	xml.Unmarshal(body, completeUpload)
 	var client datastore.DataStoreAdapter
 	if objectMD == nil {
-		log.Infof("No such object err\n")
+		log.Errorf("No such object err\n")
 		response.WriteError(http.StatusInternalServerError, NoSuchObject.Error())
 
 	}
-	client = getBackendByName(s, objectMD.Backend)
+	client = getBackendByName(ctx, s, objectMD.Backend)
 	if client == nil {
 		response.WriteError(http.StatusInternalServerError, NoSuchBackend.Error())
 		return
@@ -66,13 +66,13 @@ func (s *APIService) CompleteMultipartUpload(request *restful.Request, response 
 	//insert metadata
 	_, err := s.s3Client.CreateObject(ctx, objectMD)
 	if err != nil {
-		log.Infof("err is %v\n", err)
+		log.Errorf("err is %v\n", err)
 		response.WriteError(http.StatusInternalServerError, err)
 	}
 
 	xmlstring, err := xml.MarshalIndent(resp, "", "  ")
 	if err != nil {
-		log.Infof("Parse ListBuckets error: %v", err)
+		log.Errorf("Parse ListBuckets error: %v", err)
 		response.WriteError(http.StatusInternalServerError, err)
 		return
 	}

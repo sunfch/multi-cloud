@@ -22,10 +22,10 @@ import (
 	"time"
 
 	"github.com/emicklei/go-restful"
+	log "github.com/sirupsen/logrus"
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
 	"github.com/gophercloud/gophercloud/openstack/identity/v3/tokens"
-	"github.com/micro/go-log"
 	c "github.com/opensds/multi-cloud/api/pkg/context"
 	"github.com/opensds/multi-cloud/api/pkg/model"
 	"github.com/opensds/multi-cloud/api/pkg/utils"
@@ -60,13 +60,13 @@ func (k *Keystone) SetUp() error {
 	log.Infof("opts:%v", opts)
 	provider, err := openstack.AuthenticatedClient(opts)
 	if err != nil {
-		log.Infof("When get auth client:", err)
+		log.Errorf("When get auth client:", err)
 		return err
 	}
 	// Only support keystone v3
 	k.identity, err = openstack.NewIdentityV3(provider, gophercloud.EndpointOpts{})
 	if err != nil {
-		log.Infof("When get identity session:", err)
+		log.Errorf("When get identity session:", err)
 		return err
 	}
 	log.Infof("Service Token Info: %s", provider.TokenID)

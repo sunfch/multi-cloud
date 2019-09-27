@@ -22,8 +22,7 @@ import (
 	"reflect"
 
 	"github.com/emicklei/go-restful"
-	"github.com/golang/glog"
-	"github.com/micro/go-log"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -40,7 +39,7 @@ func NewAdminContext() *Context {
 	return &Context{
 		TenantId: NoAuthAdminTenantId,
 		IsAdmin:  true,
-		UserId:   "unkown",
+		UserId:   "unknown",
 	}
 }
 
@@ -56,7 +55,7 @@ func NewContextFromJson(s string) *Context {
 	ctx := &Context{}
 	err := json.Unmarshal([]byte(s), ctx)
 	if err != nil {
-		log.Infof("Unmarshal json to context failed, reason: %v", err)
+		log.Errorf("Unmarshal json to context failed, reason: %v", err)
 	}
 	return ctx
 }
@@ -122,7 +121,7 @@ func (ctx *Context) ToPolicyValue() map[string]interface{} {
 func (ctx *Context) ToJson() string {
 	b, err := json.Marshal(ctx)
 	if err != nil {
-		glog.Errorf("Context convert to json failed, reason: %v", err)
+		log.Errorf("Context convert to json failed, reason: %v", err)
 	}
 	return string(b)
 }

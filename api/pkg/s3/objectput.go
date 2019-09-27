@@ -23,7 +23,7 @@ import (
 	"strings"
 
 	"github.com/emicklei/go-restful"
-	"github.com/micro/go-log"
+        log "github.com/sirupsen/logrus"
 	"github.com/opensds/multi-cloud/api/pkg/common"
 	"github.com/opensds/multi-cloud/s3/error"
 	"github.com/opensds/multi-cloud/s3/proto"
@@ -116,7 +116,7 @@ func (s *APIService) ObjectPut(request *restful.Request, response *restful.Respo
 		response.WriteError(http.StatusInternalServerError, s3error.ErrInternalError)
 	}
 
-	log.Log("PUT object successfully.")
+	log.Info("PUT object successfully.")
 	response.WriteEntity(rsp)
 }
 
@@ -143,3 +143,4 @@ func getSize(request *restful.Request, response *restful.Response) (int64, error
 
 	return size, nil
 }
+

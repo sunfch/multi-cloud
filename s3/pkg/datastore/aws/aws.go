@@ -27,7 +27,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	awss3 "github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"github.com/micro/go-log"
+	log "github.com/sirupsen/logrus"
+	"github.com/micro/go-micro/metadata"
+	"github.com/opensds/multi-cloud/api/pkg/common"
 	"github.com/opensds/multi-cloud/api/pkg/utils/constants"
 	backendpb "github.com/opensds/multi-cloud/backend/proto"
 	. "github.com/opensds/multi-cloud/s3/error"
@@ -81,22 +83,26 @@ func (myc *s3Cred) IsExpired() bool {
 
 func (ad *AwsAdapter) Put(ctx context.Context, stream io.Reader, object *pb.Object) (dscommon.PutResult, error) {
 	bucket := ad.backend.BucketName
-	objectId := object.BucketName + "/" + object.ObjectKey
-	result := dscommon.PutResult{}
+	newObjectKey := object.BucketName + "/" + object.ObjectKey
 
-	uploader := s3manager.NewUploader(ad.session)
-	log.Infof("put object[AWS S3] begin, objectId:%s\n", objectId)
-	_, err := uploader.Upload(&s3manager.UploadInput{
-		Bucket: &bucket,
-		Key:    &objectId,
-		Body:   stream,
-		// Currently, only support STANDARD for PUT.
-		StorageClass: aws.String(constants.StorageClassAWSStandard),
-	})
-	log.Infof("put object[AWS S3] end, objectId:%s\n", objectId)
-	if err != nil {
-		log.Infof("put object[AWS S3] failed, objectId:%s, err:%v", objectId, err)
-		return result, ErrPutToBackendFailed
+	md, _ := metadata.FromContext(ctx)
+	if md[common.REST_KEY_OPERATION] == common.REST_VAL_UPLOAD {
+		uploader := s3manager.NewUploader(ad.session)
+		_, err := uploader.Upload(&s3manager.UploadInput{
+			Bucket: &bucket,
+			Key:    &newObjectKey,
+			Body:   stream,
+			// Currently, only support STANDARD for PUT.
+			StorageClass: aws.String(constants.StorageClassAWSStandard),
+		})
+
+		if err != nil {
+			log.Errorf("Upload to aws failed:%v", err)
+			return S3Error{Code: 500, Description: "Upload to aws failed"}
+		} else {
+			object.LastModified = time.Now().Unix()
+			log.Infof("LastModified is:%v\n", object.LastModified)
+		}
 	}
 
 	result.UpdateTime = time.Now().Unix()
@@ -116,7 +122,7 @@ func (ad *AwsAdapter) Get(ctx context.Context, object *pb.Object, start int64, e
 		Bucket: &bucket,
 		Key:    &objectId,
 	}
-	log.Infof("get object[AWS S3], objectId:%s, start = %d, end = %d\n", objectId, start, end)
+	log.Infof("start = %d, end = %d\n", start, end)
 	if start != 0 || end != 0 {
 		strStart := strconv.FormatInt(start, 10)
 		strEnd := strconv.FormatInt(end, 10)
@@ -124,11 +130,21 @@ func (ad *AwsAdapter) Get(ctx context.Context, object *pb.Object, start int64, e
 		getObjectInput.SetRange(rangestr)
 	}
 
-	downloader := s3manager.NewDownloader(ad.session)
-	numBytes, err := downloader.DownloadWithContext(ctx, writer, &getObjectInput)
-	if err != nil {
-		log.Infof("get object[AWS S3] failed, objectId:%s, err:%v", objectId, err)
-		return nil, ErrGetFromBackendFailed
+	if context.Value("operation") == "download" {
+		downloader := s3manager.NewDownloader(ad.session)
+		numBytes, err := downloader.DownloadWithContext(context, writer, &getObjectInput)
+		//numBytes,err:=downloader.Download(writer,&getObjectInput)
+		if err != nil {
+			log.Errorf("Download failed:%v", err)
+			return nil, S3Error{Code: 500, Description: "Download failed"}
+		} else {
+			log.Infof("Download succeed, bytes:%d\n", numBytes)
+			//log.Infof("writer.Bytes() is %v \n",writer.Bytes())
+			body := bytes.NewReader(writer.Bytes())
+			ioReaderClose := ioutil.NopCloser(body)
+			return ioReaderClose, NoError
+		}
+
 	}
 
 	log.Infof("get object[AWS S3] succeed, objectId:%s, numBytes:%d\n", objectId, numBytes)
@@ -148,7 +164,7 @@ func (ad *AwsAdapter) Delete(ctx context.Context, input *pb.DeleteObjectInput) e
 	svc := awss3.New(ad.session)
 	_, err := svc.DeleteObject(&deleteInput)
 	if err != nil {
-		log.Infof("delete object[AWS S3] failed, objectId:%s, err:%v.\n", objectId, err)
+		log.Errorf("delete object[AWS S3] failed, objectId:%s, err:%v.\n", objectId, err)
 		return ErrDeleteFromBackendFailed
 	}
 
@@ -238,14 +254,13 @@ func (ad *AwsAdapter) UploadPart(ctx context.Context, stream io.Reader, multipar
 		upRes, err := svc.UploadPart(upPartInput)
 		if err != nil {
 			if tries == 3 {
-				log.Infof("upload part[AWS S3] failed. err:%v\n", err)
+				log.Errorf("[ERROR]Upload part to aws failed. err:%v\n", err)
 				return nil, ErrPutToBackendFailed
 			}
-			log.Infof("retrying to upload[AWS S3] part#%d ,err:%s\n", partNumber, err)
+			log.Infof("Retrying to upload part#%d ,err:%s\n", partNumber, err)
 			tries++
 		} else {
 			log.Infof("upload object[AWS S3], objectId:%s, part #%d succeed, ETag:%s\n", multipartUpload.ObjectId,
-				partNumber, *upRes.ETag)
 			result := &model.UploadPartResult{
 				Xmlns:      model.Xmlns,
 				ETag:       *upRes.ETag,
@@ -284,7 +299,7 @@ func (ad *AwsAdapter) CompleteMultipartUpload(ctx context.Context, multipartUplo
 	svc := awss3.New(ad.session)
 	resp, err := svc.CompleteMultipartUpload(completeInput)
 	if err != nil {
-		log.Infof("complete multipart upload[AWS S3] failed, err:%v\n", err)
+		log.Errorf("complete multipart upload[AWS S3] failed, err:%v\n", err)
 		return nil, ErrBackendCompleteMultipartFailed
 	}
 	result := &model.CompleteMultipartUploadResult{
@@ -312,7 +327,7 @@ func (ad *AwsAdapter) AbortMultipartUpload(ctx context.Context, multipartUpload 
 	svc := awss3.New(ad.session)
 	rsp, err := svc.AbortMultipartUpload(abortInput)
 	if err != nil {
-		log.Infof("complete multipart upload[AWS S3] failed, err:%v\n", err)
+		log.Infof("abort multipart upload[AWS S3] failed, err:%v\n", err)
 		return ErrBackendAbortMultipartFailed
 	}
 

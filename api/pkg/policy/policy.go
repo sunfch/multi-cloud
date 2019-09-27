@@ -23,7 +23,7 @@ import (
 	"strings"
 
 	"github.com/emicklei/go-restful"
-	log "github.com/micro/go-log"
+	log "github.com/sirupsen/logrus"
 	"github.com/opensds/multi-cloud/api/pkg/context"
 	"github.com/opensds/multi-cloud/api/pkg/model"
 	"github.com/opensds/multi-cloud/api/pkg/utils"
@@ -162,13 +162,13 @@ func (r *Rules) Load(data []byte, defaultRules []DefaultRule) error {
 	rulesMap := map[string]string{}
 	err := json.Unmarshal(data, &rulesMap)
 	if err != nil {
-		log.Infof(err.Error())
+		log.Errorf(err.Error())
 		return err
 	}
 	// add default value
 	for _, r := range defaultRules {
 		if v, ok := rulesMap[r.Name]; ok {
-			log.Infof("policy rule (%s:%s) has conflict with default rule(%s:%s),abandon default value\n",
+			log.Errorf("policy rule (%s:%s) has conflict with default rule(%s:%s),abandon default value\n",
 				r.Name, v, r.Name, r.CheckStr)
 		} else {
 			rulesMap[r.Name] = r.CheckStr
@@ -205,7 +205,7 @@ func Authorize(req *restful.Request, res *restful.Response, action string) bool 
 	log.Infof("policy-Credentials: %v", credentials)
 	ok, err := enforcer.Authorize(action, target, credentials)
 	if err != nil {
-		log.Infof("authorize failed, %s", err)
+		log.Errorf("authorize failed, %s", err)
 	}
 	if !ok {
 		model.HttpError(res, http.StatusForbidden, "Operation is not permitted")

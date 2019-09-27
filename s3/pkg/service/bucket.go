@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 
-	"github.com/micro/go-log"
+	log "github.com/sirupsen/logrus"
 	"github.com/opensds/multi-cloud/api/pkg/s3"
 	. "github.com/opensds/multi-cloud/s3/error"
 	"github.com/opensds/multi-cloud/s3/pkg/helper"
@@ -12,13 +12,13 @@ import (
 )
 
 func (b *s3Service) ListBuckets(ctx context.Context, in *pb.BaseRequest, out *pb.ListBucketsResponse) error {
-	log.Log("ListBuckets is called in s3 service.")
+	log.Info("ListBuckets is called in s3 service.")
 
 	return nil
 }
 
 func (b *s3Service) CreateBucket(ctx context.Context, in *pb.Bucket, out *pb.BaseResponse) error {
-	log.Log("CreateBucket is called in s3 service.")
+	log.Info("CreateBucket is called in s3 service.")
 
 	bucketName := in.Name
 	if err := s3.CheckValidBucketName(bucketName); err != nil {
@@ -87,7 +87,7 @@ func (b *s3Service) GetBucket(ctx context.Context, in *pb.BaseRequest, out *pb.B
 }
 
 func (b *s3Service) DeleteBucket(ctx context.Context, in *pb.Bucket, out *pb.BaseResponse) error {
-	log.Log("DeleteBucket is called in s3 service.")
+	log.Info("DeleteBucket is called in s3 service.")
 
 	return nil
 }

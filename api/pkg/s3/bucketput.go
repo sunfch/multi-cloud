@@ -21,10 +21,9 @@ import (
 	"time"
 
 	"github.com/emicklei/go-restful"
-	"github.com/micro/go-log"
 	"github.com/opensds/multi-cloud/s3/pkg/model"
 	"github.com/opensds/multi-cloud/s3/proto"
-
+        log "github.com/sirupsen/logrus"
 	"github.com/opensds/multi-cloud/api/pkg/common"
 	c "github.com/opensds/multi-cloud/api/pkg/context"
 	"github.com/opensds/multi-cloud/s3/error"
@@ -73,7 +72,7 @@ func (s *APIService) BucketPut(request *restful.Request, response *restful.Respo
 		}
 	}
 	if flag == false {
-		log.Log("default backend is not provided or it is not exist.")
+		log.Info("default backend is not provided or it is not exist.")
 		response.WriteError(http.StatusInternalServerError, s3error.ErrGetBackendFailed)
 		return
 	}

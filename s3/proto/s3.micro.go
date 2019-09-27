@@ -162,7 +162,6 @@ func NewS3Service(name string, c client.Client) S3Service {
 }
 
 func (c *s3Service) ListBuckets(ctx context.Context, in *BaseRequest, opts ...client.CallOption) (*ListBucketsResponse, error) {
-	fmt.Print("s3.micro.go: ListBuckets\n")
 	req := c.c.NewRequest(c.name, "S3.ListBuckets", in)
 	out := new(ListBucketsResponse)
 	err := c.c.Call(ctx, req, out, opts...)

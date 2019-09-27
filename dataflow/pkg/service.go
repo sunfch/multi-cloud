@@ -22,7 +22,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/micro/go-log"
+	log "github.com/sirupsen/logrus"
 	"github.com/opensds/multi-cloud/dataflow/pkg/db"
 	"github.com/opensds/multi-cloud/dataflow/pkg/job"
 	"github.com/opensds/multi-cloud/dataflow/pkg/kafka"
@@ -46,7 +46,7 @@ func NewDataFlowService() pb.DataFlowHandler {
 	for i := 0; i < len(config); i++ {
 		addr := strings.Split(config[i], "//")
 		if len(addr) != 2 {
-			log.Log("Invalid addr:", config[i])
+			log.Info("Invalid addr:", config[i])
 		} else {
 			addrs = append(addrs, addr[1])
 		}
@@ -72,7 +72,7 @@ func policyModel2Resp(policy *model.Policy) *pb.Policy {
 }
 
 func (b *dataflowService) GetPolicy(ctx context.Context, in *pb.GetPolicyRequest, out *pb.GetPolicyResponse) error {
-	log.Log("Get policy is called in dataflow service.")
+	log.Info("Get policy is called in dataflow service.")
 
 	id := in.GetId()
 	if id == "" {
@@ -97,7 +97,7 @@ func (b *dataflowService) GetPolicy(ctx context.Context, in *pb.GetPolicyRequest
 }
 
 func (b *dataflowService) ListPolicy(ctx context.Context, in *pb.ListPolicyRequest, out *pb.ListPolicyResponse) error {
-	log.Log("List policy is called in dataflow service.")
+	log.Info("List policy is called in dataflow service.")
 
 	pols, err := policy.List(ctx)
 	if err != nil {
@@ -122,7 +122,7 @@ func (b *dataflowService) ListPolicy(ctx context.Context, in *pb.ListPolicyReque
 
 func (b *dataflowService) CreatePolicy(ctx context.Context, in *pb.CreatePolicyRequest,
 	out *pb.CreatePolicyResponse) error {
-	log.Log("Create policy is called in dataflow service.")
+	log.Info("Create policy is called in dataflow service.")
 	pol := model.Policy{}
 	pol.Name = in.Policy.GetName()
 	pol.Description = in.Policy.GetDescription()
@@ -153,7 +153,7 @@ func (b *dataflowService) CreatePolicy(ctx context.Context, in *pb.CreatePolicyR
 }
 
 func (b *dataflowService) DeletePolicy(ctx context.Context, in *pb.DeletePolicyRequest, out *pb.DeletePolicyResponse) error {
-	log.Log("Delete policy is called in dataflow service.")
+	log.Info("Delete policy is called in dataflow service.")
 	id := in.GetId()
 	if id == "" {
 		out.Err = "Get id failed."
@@ -172,7 +172,7 @@ func (b *dataflowService) DeletePolicy(ctx context.Context, in *pb.DeletePolicyR
 }
 
 func (b *dataflowService) UpdatePolicy(ctx context.Context, in *pb.UpdatePolicyRequest, out *pb.UpdatePolicyResponse) error {
-	log.Log("Update policy is called in dataflow service.")
+	log.Info("Update policy is called in dataflow service.")
 
 	policyId := in.GetPolicyId()
 	if policyId == "" {
@@ -241,7 +241,7 @@ func planModel2Resp(plan *model.Plan) *pb.Plan {
 }
 
 func (b *dataflowService) GetPlan(ctx context.Context, in *pb.GetPlanRequest, out *pb.GetPlanResponse) error {
-	log.Log("Get plan is called in dataflow service.")
+	log.Info("Get plan is called in dataflow service.")
 
 	id := in.GetId()
 	if id == "" {
@@ -270,11 +270,11 @@ func (b *dataflowService) GetPlan(ctx context.Context, in *pb.GetPlanRequest, ou
 }
 
 func (b *dataflowService) ListPlan(ctx context.Context, in *pb.ListPlanRequest, out *pb.ListPlanResponse) error {
-	log.Log("List plans is called in dataflow service.")
+	log.Info("List plans is called in dataflow service.")
 
 	if in.Limit < 0 || in.Offset < 0 {
 		msg := fmt.Sprintf("Invalid pagination parameter, limit = %d and offset = %d.", in.Limit, in.Offset)
-		log.Log(msg)
+		log.Info(msg)
 		return errors.New(msg)
 	}
 
@@ -306,7 +306,7 @@ func fillReqConnector(out *model.Connector, in *pb.Connector) error {
 		out.BucketName = in.BucketName
 		return nil
 	case model.STOR_TYPE_AWS_S3, model.STOR_TYPE_HW_OBS, model.STOR_TYPE_HW_FUSIONSTORAGE, model.STOR_TYPE_HW_FUSIONCLOUD,
-		model.STOR_TYPE_AZURE_BLOB, model.STOR_TYPE_CEPH_S3, model.STOR_TYPE_GCP_S3:
+		model.STOR_TYPE_AZURE_BLOB, model.STOR_TYPE_CEPH_S3, model.STOR_TYPE_GCP_S3, model.STOR_TYPE_IBM_COS:
 		for i := 0; i < len(in.ConnConfig); i++ {
 			out.ConnConfig = append(out.ConnConfig, model.KeyValue{Key: in.ConnConfig[i].Key, Value: in.ConnConfig[i].Value})
 		}
@@ -318,7 +318,7 @@ func fillReqConnector(out *model.Connector, in *pb.Connector) error {
 }
 
 func (b *dataflowService) CreatePlan(ctx context.Context, in *pb.CreatePlanRequest, out *pb.CreatePlanResponse) error {
-	log.Log("Create plan is called in dataflow service.")
+	log.Info("Create plan is called in dataflow service.")
 
 	pl := model.Plan{}
 	pl.Name = in.Plan.GetName()
@@ -383,7 +383,7 @@ func (b *dataflowService) CreatePlan(ctx context.Context, in *pb.CreatePlanReque
 }
 
 func (b *dataflowService) DeletePlan(ctx context.Context, in *pb.DeletePlanRequest, out *pb.DeletePlanResponse) error {
-	log.Log("Delete plan is called in dataflow service.")
+	log.Info("Delete plan is called in dataflow service.")
 
 	id := in.GetId()
 	if id == "" {
@@ -403,7 +403,7 @@ func (b *dataflowService) DeletePlan(ctx context.Context, in *pb.DeletePlanReque
 }
 
 func (b *dataflowService) UpdatePlan(ctx context.Context, in *pb.UpdatePlanRequest, out *pb.UpdatePlanResponse) error {
-	log.Log("Update plan is called in dataflow service.")
+	log.Info("Update plan is called in dataflow service.")
 
 	if in.GetPlanId() == "" {
 		return errors.New("No id provided.")
@@ -425,16 +425,16 @@ func (b *dataflowService) UpdatePlan(ctx context.Context, in *pb.UpdatePlanReque
 }
 
 func (b *dataflowService) RunPlan(ctx context.Context, in *pb.RunPlanRequest, out *pb.RunPlanResponse) error {
-	log.Log("Run plan is called in dataflow service.")
+	log.Info("Run plan is called in dataflow service.")
 
 	tenantId, err := utils.GetTenantId(ctx)
 	if err != nil {
-		log.Infof("run plan failed, err=%v\n", err)
+		log.Errorf("run plan failed, err=%v\n", err)
 		return err
 	}
 	userId, err := utils.GetUserId(ctx)
 	if err != nil {
-		log.Infof("run plan failed, err=%v\n", err)
+		log.Errorf("run plan failed, err=%v\n", err)
 		return err
 	}
 	jid, err := plan.Run(in.Id, tenantId, userId)
@@ -451,7 +451,7 @@ func (b *dataflowService) RunPlan(ctx context.Context, in *pb.RunPlanRequest, ou
 }
 
 func (b *dataflowService) GetJob(ctx context.Context, in *pb.GetJobRequest, out *pb.GetJobResponse) error {
-	log.Log("Get job is called in dataflow service.")
+	log.Info("Get job is called in dataflow service.")
 
 	if in.Id == "" {
 		errmsg := fmt.Sprint("No id specified.")
@@ -483,10 +483,10 @@ func (b *dataflowService) GetJob(ctx context.Context, in *pb.GetJobRequest, out 
 }
 
 func (b *dataflowService) ListJob(ctx context.Context, in *pb.ListJobRequest, out *pb.ListJobResponse) error {
-	log.Log("List job is called in dataflow service.")
+	log.Info("List job is called in dataflow service.")
 	if in.Limit < 0 || in.Offset < 0 {
 		msg := fmt.Sprintf("invalid pagination parameter, limit = %d and offset = %d.", in.Limit, in.Offset)
-		log.Log(msg)
+		log.Info(msg)
 		return errors.New(msg)
 	}
 

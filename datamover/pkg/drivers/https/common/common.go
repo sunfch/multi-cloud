@@ -2,7 +2,8 @@ package common
 
 import (
 	"context"
-	"github.com/micro/go-log"
+
+	log "github.com/sirupsen/logrus"
 	osdss3 "github.com/opensds/multi-cloud/s3/proto"
 )
 

@@ -20,18 +20,14 @@ import (
 	"net/http"
 
 	"github.com/emicklei/go-restful"
-	"github.com/micro/go-log"
+	log "github.com/sirupsen/logrus"
 	"github.com/micro/go-micro/client"
-	"golang.org/x/net/context"
-
-	"github.com/micro/go-micro/metadata"
 	"github.com/opensds/multi-cloud/api/pkg/common"
 	c "github.com/opensds/multi-cloud/api/pkg/context"
 	"github.com/opensds/multi-cloud/api/pkg/policy"
-	backend "github.com/opensds/multi-cloud/backend/proto"
-	dataflow "github.com/opensds/multi-cloud/dataflow/proto"
-	s3 "github.com/opensds/multi-cloud/s3/proto"
-	"strconv"
+	"github.com/opensds/multi-cloud/backend/proto"
+	"github.com/opensds/multi-cloud/dataflow/proto"
+	"github.com/opensds/multi-cloud/s3/proto"
 )
 
 const (
@@ -59,13 +55,7 @@ func (s *APIService) ListPolicy(request *restful.Request, response *restful.Resp
 		return
 	}
 
-	actx := request.Attribute(c.KContext).(*c.Context)
-	ctx := metadata.NewContext(context.Background(), map[string]string{
-		common.CTX_KEY_USER_ID:   actx.UserId,
-		common.CTX_KEY_TENANT_ID: actx.TenantId,
-		common.CTX_KEY_IS_ADMIN:  strconv.FormatBool(actx.IsAdmin),
-	})
-
+	ctx := common.InitCtxWithAuthInfo(request)
 	res, err := s.dataflowClient.ListPolicy(ctx, &dataflow.ListPolicyRequest{})
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, err)
@@ -76,13 +66,13 @@ func (s *APIService) ListPolicy(request *restful.Request, response *restful.Resp
 	log.Infof("Get policy reponse:%v", res)
 	jsons, errs := json.Marshal(res)
 	if errs != nil {
-		log.Infof(errs.Error())
+		log.Errorf(errs.Error())
 	} else {
 		log.Infof("res: %s.\n", jsons)
 	}
 	//For debug -- end
 
-	log.Log("List policy details successfully.")
+	log.Info("List policy details successfully.")
 	response.WriteEntity(res)
 }
 
@@ -93,13 +83,7 @@ func (s *APIService) GetPolicy(request *restful.Request, response *restful.Respo
 	id := request.PathParameter("id")
 	log.Infof("Received request for policy[id=%s] details.", id)
 
-	actx := request.Attribute(c.KContext).(*c.Context)
-	ctx := metadata.NewContext(context.Background(), map[string]string{
-		common.CTX_KEY_USER_ID:   actx.UserId,
-		common.CTX_KEY_TENANT_ID: actx.TenantId,
-		common.CTX_KEY_IS_ADMIN:  strconv.FormatBool(actx.IsAdmin),
-	})
-
+	ctx := common.InitCtxWithAuthInfo(request)
 	res, err := s.dataflowClient.GetPolicy(ctx, &dataflow.GetPolicyRequest{Id: id})
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, err)
@@ -110,13 +94,13 @@ func (s *APIService) GetPolicy(request *restful.Request, response *restful.Respo
 	log.Infof("Get policy reponse:%v", res)
 	jsons, errs := json.Marshal(res)
 	if errs != nil {
-		log.Infof(errs.Error())
+		log.Errorf(errs.Error())
 	} else {
 		log.Infof("res: %s.\n", jsons)
 	}
 	//For debug -- end
 
-	log.Log("Get policy details successfully.")
+	log.Info("Get policy details successfully.")
 	response.WriteEntity(res)
 }
 
@@ -130,35 +114,31 @@ func (s *APIService) CreatePolicy(request *restful.Request, response *restful.Re
 	err := request.ReadEntity(&pol)
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, err)
-		log.Infof("read request body failed, err:%v.\n", err)
+		log.Errorf("read request body failed, err:%v.\n", err)
 		return
 	}
 
 	//For debug --begin
 	jsons, errs := json.Marshal(pol)
 	if errs != nil {
-		log.Infof(errs.Error())
+		log.Errorf(errs.Error())
 	} else {
 		log.Infof("Req body: %s.\n", jsons)
 	}
 	//For debug --end
 
+	ctx := common.InitCtxWithAuthInfo(request)
 	actx := request.Attribute(c.KContext).(*c.Context)
-	ctx := metadata.NewContext(context.Background(), map[string]string{
-		common.CTX_KEY_USER_ID:   actx.UserId,
-		common.CTX_KEY_TENANT_ID: actx.TenantId,
-		common.CTX_KEY_IS_ADMIN:  strconv.FormatBool(actx.IsAdmin),
-	})
 	pol.TenantId = actx.TenantId
 	pol.UserId = actx.UserId
-	log.Infof("crate policy:%+v\n", pol)
+	log.Infof("create policy:%+v\n", pol)
 	res, err := s.dataflowClient.CreatePolicy(ctx, &dataflow.CreatePolicyRequest{Policy: &pol})
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
 
-	log.Log("Create policy successfully.")
+	log.Info("Get policy details successfully.")
 	response.WriteEntity(res)
 }
 
@@ -171,18 +151,12 @@ func (s *APIService) UpdatePolicy(request *restful.Request, response *restful.Re
 	body, err := ioutil.ReadAll(request.Request.Body)
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, err)
-		log.Infof("read request body failed, err:%v.\n", err)
+		log.Errorf("read request body failed, err:%v.\n", err)
 		return
 	}
 	log.Infof("Received request for update policy.body:%s\n", body)
 
-	actx := request.Attribute(c.KContext).(*c.Context)
-	ctx := metadata.NewContext(context.Background(), map[string]string{
-		common.CTX_KEY_USER_ID:   actx.UserId,
-		common.CTX_KEY_TENANT_ID: actx.TenantId,
-		common.CTX_KEY_IS_ADMIN:  strconv.FormatBool(actx.IsAdmin),
-	})
-
+	ctx := common.InitCtxWithAuthInfo(request)
 	req := &dataflow.UpdatePolicyRequest{PolicyId: policyId, Body: string(body)}
 	res, err := s.dataflowClient.UpdatePolicy(ctx, req)
 	if err != nil {
@@ -195,12 +169,12 @@ func (s *APIService) UpdatePolicy(request *restful.Request, response *restful.Re
 	//For debug --begin
 	jsons1, errs1 := json.Marshal(res)
 	if errs1 != nil {
-		log.Infof(errs1.Error())
+		log.Errorf(errs1.Error())
 	} else {
 		log.Infof("Rsp body: %s.\n", jsons1)
 	}
 	//For debug --end
-	log.Log("Update policy successfully.")
+	log.Info("Update policy successfully.")
 }
 
 func (s *APIService) DeletePolicy(request *restful.Request, response *restful.Response) {
@@ -211,20 +185,14 @@ func (s *APIService) DeletePolicy(request *restful.Request, response *restful.Re
 	id := request.PathParameter("id")
 	log.Infof("Received request for delete policy[id=%s] details.", id)
 
-	actx := request.Attribute(c.KContext).(*c.Context)
-	ctx := metadata.NewContext(context.Background(), map[string]string{
-		common.CTX_KEY_USER_ID:   actx.UserId,
-		common.CTX_KEY_TENANT_ID: actx.TenantId,
-		common.CTX_KEY_IS_ADMIN:  strconv.FormatBool(actx.IsAdmin),
-	})
-
+	ctx := common.InitCtxWithAuthInfo(request)
 	res, err := s.dataflowClient.DeletePolicy(ctx, &dataflow.DeletePolicyRequest{Id: id})
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
 
-	log.Log("Delete policy end, err = %d.", err)
+	log.Info("Delete policy end, err = %d.", err)
 	response.WriteEntity(res)
 }
 
@@ -232,12 +200,12 @@ func (s *APIService) ListPlan(request *restful.Request, response *restful.Respon
 	if !policy.Authorize(request, response, "plan:list") {
 		return
 	}
-	log.Log("Received request for list plan.")
+	log.Info("Received request for list plan.")
 
 	listPlanReq := &dataflow.ListPlanRequest{}
 	limit, offset, err := common.GetPaginationParam(request)
 	if err != nil {
-		log.Infof("get pagination parameters failed: %v\n", err)
+		log.Errorf("get pagination parameters failed: %v\n", err)
 		response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
@@ -246,7 +214,7 @@ func (s *APIService) ListPlan(request *restful.Request, response *restful.Respon
 
 	sortKeys, sortDirs, err := common.GetSortParam(request)
 	if err != nil {
-		log.Infof("get sort parameters failed: %v\n", err)
+		log.Errorf("get sort parameters failed: %v\n", err)
 		response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
@@ -256,7 +224,7 @@ func (s *APIService) ListPlan(request *restful.Request, response *restful.Respon
 	filterOpts := []string{"name", "type", "bucketname"}
 	filter, err := common.GetFilter(request, filterOpts)
 	if err != nil {
-		log.Infof("get filter failed: %v\n", err)
+		log.Errorf("get filter failed: %v\n", err)
 		response.WriteError(http.StatusInternalServerError, err)
 		return
 	} else {
@@ -264,12 +232,7 @@ func (s *APIService) ListPlan(request *restful.Request, response *restful.Respon
 	}
 	listPlanReq.Filter = filter
 
-	actx := request.Attribute(c.KContext).(*c.Context)
-	ctx := metadata.NewContext(context.Background(), map[string]string{
-		common.CTX_KEY_USER_ID:   actx.UserId,
-		common.CTX_KEY_TENANT_ID: actx.TenantId,
-		common.CTX_KEY_IS_ADMIN:  strconv.FormatBool(actx.IsAdmin),
-	})
+	ctx := common.InitCtxWithAuthInfo(request)
 	res, err := s.dataflowClient.ListPlan(ctx, listPlanReq)
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, err)
@@ -280,13 +243,13 @@ func (s *APIService) ListPlan(request *restful.Request, response *restful.Respon
 	log.Infof("List plans reponse:%v\n", res)
 	jsons, errs := json.Marshal(res)
 	if errs != nil {
-		log.Infof(errs.Error())
+		log.Errorf(errs.Error())
 	} else {
 		log.Infof("res: %s.\n", jsons)
 	}
 	//For debug -- end
 
-	log.Log("List plans successfully.")
+	log.Info("List plans successfully.")
 	response.WriteEntity(res)
 }
 
@@ -298,12 +261,7 @@ func (s *APIService) GetPlan(request *restful.Request, response *restful.Respons
 	id := request.PathParameter("id")
 	log.Infof("Received request for plan[id=%s] details.\n", id)
 
-	actx := request.Attribute(c.KContext).(*c.Context)
-	ctx := metadata.NewContext(context.Background(), map[string]string{
-		common.CTX_KEY_USER_ID:   actx.UserId,
-		common.CTX_KEY_TENANT_ID: actx.TenantId,
-		common.CTX_KEY_IS_ADMIN:  strconv.FormatBool(actx.IsAdmin),
-	})
+	ctx := common.InitCtxWithAuthInfo(request)
 	res, err := s.dataflowClient.GetPlan(ctx, &dataflow.GetPlanRequest{Id: id})
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, err)
@@ -314,13 +272,13 @@ func (s *APIService) GetPlan(request *restful.Request, response *restful.Respons
 	log.Infof("Get plan reponse:%v\n", res)
 	jsons, errs := json.Marshal(res)
 	if errs != nil {
-		log.Infof(errs.Error())
+		log.Errorf(errs.Error())
 	} else {
 		log.Infof("res: %s.\n", jsons)
 	}
 	//For debug -- end
 
-	log.Log("Get plan details successfully.")
+	log.Info("Get plan details successfully.")
 	response.WriteEntity(res)
 }
 
@@ -341,18 +299,14 @@ func (s *APIService) CreatePlan(request *restful.Request, response *restful.Resp
 	//For debug --begin
 	jsons, errs := json.Marshal(plan)
 	if errs != nil {
-		log.Infof(errs.Error())
+		log.Errorf(errs.Error())
 	} else {
 		log.Infof("Req body: %s.\n", jsons)
 	}
 	//For debug --end
 
+	ctx := common.InitCtxWithAuthInfo(request)
 	actx := request.Attribute(c.KContext).(*c.Context)
-	ctx := metadata.NewContext(context.Background(), map[string]string{
-		common.CTX_KEY_USER_ID:   actx.UserId,
-		common.CTX_KEY_TENANT_ID: actx.TenantId,
-		common.CTX_KEY_IS_ADMIN:  strconv.FormatBool(actx.IsAdmin),
-	})
 	plan.TenantId = actx.TenantId
 	plan.UserId = actx.UserId
 	resp, err := s.dataflowClient.CreatePlan(ctx, &dataflow.CreatePlanRequest{Plan: &plan})
@@ -361,7 +315,7 @@ func (s *APIService) CreatePlan(request *restful.Request, response *restful.Resp
 		return
 	}
 
-	log.Log("Create plan successfully.")
+	log.Info("Create plan successfully.")
 	response.WriteEntity(resp)
 }
 
@@ -380,12 +334,7 @@ func (s *APIService) UpdatePlan(request *restful.Request, response *restful.Resp
 	}
 	log.Infof("Req body: %s.\n", string(body))
 
-	actx := request.Attribute(c.KContext).(*c.Context)
-	ctx := metadata.NewContext(context.Background(), map[string]string{
-		common.CTX_KEY_USER_ID:   actx.UserId,
-		common.CTX_KEY_TENANT_ID: actx.TenantId,
-		common.CTX_KEY_IS_ADMIN:  strconv.FormatBool(actx.IsAdmin),
-	})
+	ctx := common.InitCtxWithAuthInfo(request)
 	req := &dataflow.UpdatePlanRequest{PlanId: planId, Body: string(body)}
 	resp, err := s.dataflowClient.UpdatePlan(ctx, req)
 	if err != nil {
@@ -393,13 +342,13 @@ func (s *APIService) UpdatePlan(request *restful.Request, response *restful.Resp
 		return
 	}
 
-	log.Log("Update plan successfully.")
+	log.Info("Update plan successfully.")
 	response.WriteEntity(resp)
 
 	//For debug --begin
 	jsons1, errs1 := json.Marshal(resp)
 	if errs1 != nil {
-		log.Infof(errs1.Error())
+		log.Errorf(errs1.Error())
 	} else {
 		log.Infof("Rsp body: %s.\n", jsons1)
 	}
@@ -414,12 +363,7 @@ func (s *APIService) DeletePlan(request *restful.Request, response *restful.Resp
 	id := request.PathParameter("id")
 	log.Infof("Received request for delete plan[id=%s] details.\n", id)
 
-	actx := request.Attribute(c.KContext).(*c.Context)
-	ctx := metadata.NewContext(context.Background(), map[string]string{
-		common.CTX_KEY_USER_ID:   actx.UserId,
-		common.CTX_KEY_TENANT_ID: actx.TenantId,
-		common.CTX_KEY_IS_ADMIN:  strconv.FormatBool(actx.IsAdmin),
-	})
+	ctx := common.InitCtxWithAuthInfo(request)
 	res, err := s.dataflowClient.DeletePlan(ctx, &dataflow.DeletePlanRequest{Id: id})
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, err)
@@ -437,13 +381,7 @@ func (s *APIService) RunPlan(request *restful.Request, response *restful.Respons
 	id := request.PathParameter("id")
 	log.Infof("Received request for run plan[id=%s] details.\n", id)
 
-	actx := request.Attribute(c.KContext).(*c.Context)
-	ctx := metadata.NewContext(context.Background(), map[string]string{
-		common.CTX_KEY_USER_ID:   actx.UserId,
-		common.CTX_KEY_TENANT_ID: actx.TenantId,
-		common.CTX_KEY_IS_ADMIN:  strconv.FormatBool(actx.IsAdmin),
-	})
-
+	ctx := common.InitCtxWithAuthInfo(request)
 	res, err := s.dataflowClient.RunPlan(ctx, &dataflow.RunPlanRequest{Id: id})
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, err)
@@ -461,13 +399,7 @@ func (s *APIService) GetJob(request *restful.Request, response *restful.Response
 	id := request.PathParameter("id")
 	log.Infof("Received request jobs [id=%s] details.\n", id)
 
-	actx := request.Attribute(c.KContext).(*c.Context)
-	ctx := metadata.NewContext(context.Background(), map[string]string{
-		common.CTX_KEY_USER_ID:   actx.UserId,
-		common.CTX_KEY_TENANT_ID: actx.TenantId,
-		common.CTX_KEY_IS_ADMIN:  strconv.FormatBool(actx.IsAdmin),
-	})
-
+	ctx := common.InitCtxWithAuthInfo(request)
 	res, err := s.dataflowClient.GetJob(ctx, &dataflow.GetJobRequest{Id: id})
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, err)
@@ -478,13 +410,13 @@ func (s *APIService) GetJob(request *restful.Request, response *restful.Response
 	log.Infof("Get jobs reponse:%v\n", res)
 	jsons, errs := json.Marshal(res)
 	if errs != nil {
-		log.Infof(errs.Error())
+		log.Errorf(errs.Error())
 	} else {
 		log.Infof("res: %s.\n", jsons)
 	}
 	//For debug -- end
 
-	log.Log("Get job details successfully.")
+	log.Info("Get job details successfully.")
 	response.WriteEntity(res)
 }
 
@@ -497,7 +429,7 @@ func (s *APIService) ListJob(request *restful.Request, response *restful.Respons
 	listJobReq := &dataflow.ListJobRequest{}
 	limit, offset, err := common.GetPaginationParam(request)
 	if err != nil {
-		log.Infof("get pagination parameters failed: %v\n", err)
+		log.Errorf("get pagination parameters failed: %v\n", err)
 		response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
@@ -506,7 +438,7 @@ func (s *APIService) ListJob(request *restful.Request, response *restful.Respons
 
 	sortKeys, sortDirs, err := common.GetSortParam(request)
 	if err != nil {
-		log.Infof("get sort parameters failed: %v\n", err)
+		log.Errorf("get sort parameters failed: %v\n", err)
 		response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
@@ -516,7 +448,7 @@ func (s *APIService) ListJob(request *restful.Request, response *restful.Respons
 	filterOpts := []string{"planName", "type"}
 	filter, err := common.GetFilter(request, filterOpts)
 	if err != nil {
-		log.Infof("get filter failed: %v\n", err)
+		log.Errorf("get filter failed: %v\n", err)
 		response.WriteError(http.StatusInternalServerError, err)
 		return
 	} else {
@@ -524,13 +456,7 @@ func (s *APIService) ListJob(request *restful.Request, response *restful.Respons
 	}
 	listJobReq.Filter = filter
 
-	actx := request.Attribute(c.KContext).(*c.Context)
-	ctx := metadata.NewContext(context.Background(), map[string]string{
-		common.CTX_KEY_USER_ID:   actx.UserId,
-		common.CTX_KEY_TENANT_ID: actx.TenantId,
-		common.CTX_KEY_IS_ADMIN:  strconv.FormatBool(actx.IsAdmin),
-	})
-
+	ctx := common.InitCtxWithAuthInfo(request)
 	res, err := s.dataflowClient.ListJob(ctx, listJobReq)
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, err)
@@ -541,12 +467,12 @@ func (s *APIService) ListJob(request *restful.Request, response *restful.Respons
 	log.Infof("List jobs reponse:%v\n", res)
 	jsons, errs := json.Marshal(res)
 	if errs != nil {
-		log.Infof(errs.Error())
+		log.Errorf(errs.Error())
 	} else {
 		log.Infof("res: %s.\n", jsons)
 	}
 	//For debug -- end
 
-	log.Log("List jobs successfully.")
+	log.Info("List jobs successfully.")
 	response.WriteEntity(res)
 }

@@ -20,7 +20,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	log "github.com/micro/go-log"
+	log "github.com/sirupsen/logrus"
 	"github.com/gophercloud/gophercloud"
 	creds "github.com/gophercloud/gophercloud/openstack/identity/v3/credentials"
 	"github.com/opensds/multi-cloud/api/pkg/filters/auth"
@@ -101,7 +101,7 @@ func (p *KeystoneProvider) getCredentials(accessKeyID string) (*GetCredentialOut
 
 	credentials, err := creds.ExtractCredentials(allPages)
 	if err != nil {
-		log.Infof("getCredentials failed, err: %+v", err)
+		log.Errorf("getCredentials failed, err: %+v", err)
 		return nil, err
 	}
 	log.Infof("provider-Credentials: %+v", credentials)

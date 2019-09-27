@@ -19,7 +19,7 @@ import (
 	"errors"
 
 	"github.com/Azure/azure-storage-blob-go/azblob"
-	"github.com/go-log/log"
+	log "github.com/sirupsen/logrus"
 	. "github.com/opensds/multi-cloud/datamover/pkg/utils"
 )
 
@@ -40,7 +40,7 @@ func (mover *BlobMover) setTier(objKey *string, newClass *string) error {
 		return errors.New("Invalid storage class")
 	}
 	if err != nil {
-		log.Infof("[blobmover]set tier of object[%s] to %s failed, err:%v\n", objKey, newClass, err)
+		log.Errorf("[blobmover]set tier of object[%s] to %s failed, err:%v\n", objKey, newClass, err)
 	} else {
 		log.Infof("[blobmover]set tier of object[%s] to %s succeed, res:%v\n", objKey, newClass, res.Response())
 	}
@@ -59,7 +59,7 @@ func (mover *BlobMover) ChangeStorageClass(objKey *string, newClass *string, bke
 }
 
 func (mover *BlobMover) DeleteIncompleteMultipartUpload(objKey, uploadId string, destLoca *LocationInfo) error {
-	log.Log("Azure blob does not support to delete incomplete multipart upload.")
+	log.Info("Azure blob does not support to delete incomplete multipart upload.")
 
 	return errors.New(DMERR_InternalError)
 }
