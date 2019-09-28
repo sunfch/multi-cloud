@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	//"github.com/opensds/multi-cloud/api/pkg/s3/datatype"
 	. "github.com/opensds/multi-cloud/s3/pkg/meta/types"
 )
@@ -12,23 +13,23 @@ type DBAdapter interface {
 	AbortTrans(tx interface{}) error
 	CommitTrans(tx interface{}) error
 	//object
-	GetObject(bucketName, objectName, version string) (object *Object, err error)
+	GetObject(ctx context.Context, bucketName, objectName, version string) (object *Object, err error)
 	//GetAllObject(bucketName, objectName, version string) (object []*Object, err error)
-	PutObject(object *Object, tx interface{}) error
+	PutObject(ctx context.Context, object *Object, tx interface{}) error
 	/*UpdateAppendObject(object *Object) error
 	UpdateObjectAttrs(object *Object) error
 	DeleteObject(object *Object, tx interface{}) error
 	UpdateObjectAcl(object *Object) error
 	*/
 	//bucket
-	GetBucket(bucketName string) (bucket *Bucket, err error)
-	GetBuckets() (buckets []*Bucket, err error)
-	PutBucket(bucket *Bucket) error
-	CheckAndPutBucket(bucket *Bucket) (bool, error)
-	DeleteBucket(bucket *Bucket) error
+	GetBucket(ctx context.Context, bucketName string) (bucket *Bucket, err error)
+	GetBuckets(ctx context.Context) (buckets []*Bucket, err error)
+	PutBucket(ctx context.Context, bucket *Bucket) error
+	CheckAndPutBucket(ctx context.Context, bucket *Bucket) (bool, error)
+	DeleteBucket(ctx context.Context, bucket *Bucket) error
 	//ListObjects(bucketName, marker, verIdMarker, prefix, delimiter string, versioned bool, maxKeys int) (retObjects []*Object, prefixes []string, truncated bool, nextMarker, nextVerIdMarker string, err error)
-	UpdateUsage(bucketName string, size int64, tx interface{}) error
-	UpdateUsages(usages map[string]int64, tx interface{}) error
+	UpdateUsage(ctx context.Context, bucketName string, size int64, tx interface{}) error
+	UpdateUsages(ctx context.Context, usages map[string]int64, tx interface{}) error
 
 	//multipart
 	//GetMultipart(bucketName, objectName, uploadId string) (multipart Multipart, err error)

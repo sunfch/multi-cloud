@@ -49,8 +49,10 @@ func (s *APIService) BucketPut(request *restful.Request, response *restful.Respo
 	actx := request.Attribute(c.KContext).(*c.Context)
 	bucket := s3.Bucket{Name: bucketName}
 	bucket.TenantId = actx.TenantId
+	bucket.UserId = actx.UserId
 	bucket.Deleted = false
 	bucket.CreateTime = time.Now().Unix()
+	log.Infof("Bucket PUT: TenantId=%s, UserId=%s\n", bucket.TenantId, bucket.UserId)
 
 	body := ReadBody(request)
 	flag := false

@@ -6,7 +6,6 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"errors"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -14,8 +13,7 @@ import (
 
 	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/config"
 	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/crypto"
-	"github.com/opensds/multi-cloud/s3/pkg/helper"
-	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/log"
+	log "github.com/sirupsen/logrus"
 	"github.com/opensds/multi-cloud/s3/pkg/meta"
 )
 
@@ -42,20 +40,11 @@ type YigStorage struct {
 }
 
 func New(cfg *config.Config) (*YigStorage, error) {
-	//yig log
-	filePath := filepath.Join(cfg.Log.Path, "yig.log")
-	logf, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		return nil, err
-	}
-	logger := log.New(logf, fmt.Sprintf("[yig-%s]", cfg.Endpoint.Url), log.LstdFlags, cfg.Log.Level)
 	kms := crypto.NewKMS()
 	yig := YigStorage{
 		DataStorage: make(map[string]*CephStorage),
-		MetaStorage: meta.New(logger, meta.EnableCache),
+		MetaStorage: meta.New(meta.EnableCache),
 		KMS:         kms,
-		logfile:     logf,
-		Logger:      logger,
 		Stopping:    false,
 		WaitGroup:   new(sync.WaitGroup),
 	}
@@ -65,22 +54,22 @@ func New(cfg *config.Config) (*YigStorage, error) {
 	}
 
 	cephConfs, err := filepath.Glob(CephConfigPattern)
-	logger.Printf(5, "Reading Ceph conf files from %+v\n", cephConfs)
+	log.Infof("Reading Ceph conf files from %+v\n", cephConfs)
 	if err != nil || len(cephConfs) == 0 {
-		logger.Printf(0, "PANIC: No ceph conf found")
+		log.Error("PANIC: No ceph conf found")
 		err = errors.New("no ceph conf found")
 		return nil, err
 	}
 
 	for _, conf := range cephConfs {
-		c := NewCephStorage(conf, logger)
+		c := NewCephStorage(conf)
 		if c != nil {
 			yig.DataStorage[c.Name] = c
 		}
 	}
 
 	if len(yig.DataStorage) == 0 {
-		logger.Printf(0, "PANIC: No data storage can be used!")
+		log.Error("PANIC: No data storage can be used!")
 		err = errors.New("no working data storage")
 		return nil, err
 	}
@@ -91,10 +80,10 @@ func New(cfg *config.Config) (*YigStorage, error) {
 
 func (y *YigStorage) Close() error {
 	y.Stopping = true
-	helper.Logger.Print(2, "Stopping storage...")
+	log.Info("Stopping storage...")
 	y.WaitGroup.Wait()
 	log.Error("done")
-	helper.Logger.Print(2, "Stopping MetaStorage...")
+	log.Info("Stopping MetaStorage...")
 	y.MetaStorage.Stop()
 	y.logfile.Close()
 

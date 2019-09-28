@@ -6,16 +6,17 @@ import (
 	. "github.com/opensds/multi-cloud/s3/pkg/meta/types"
 	"github.com/opensds/multi-cloud/s3/pkg/meta/redis"
 	log "github.com/sirupsen/logrus"
+	"context"
 )
 
 const (
 	OBJECT_CACHE_PREFIX = "object:"
 )
 
-func (m *Meta) GetObject(bucketName string, objectName string, willNeed bool) (object *Object, err error) {
+func (m *Meta) GetObject(ctx context.Context, bucketName string, objectName string, willNeed bool) (object *Object, err error) {
 	getObject := func() (o helper.Serializable, err error) {
 		log.Info("GetObject CacheMiss. bucket:", bucketName, "object:", objectName)
-		object, err := m.Db.GetObject(bucketName, objectName, "")
+		object, err := m.Db.GetObject(ctx, bucketName, objectName, "")
 		if err != nil {
 			return
 		}
@@ -87,7 +88,7 @@ func (m *Meta) GetObjectVersion(bucketName, objectName, version string, willNeed
 }
 */
 
-func (m *Meta) PutObject(object *Object, multipart *Multipart, objMap *ObjMap, updateUsage bool) error {
+func (m *Meta) PutObject(ctx context.Context, object *Object, multipart *Multipart, objMap *ObjMap, updateUsage bool) error {
 	tx, err := m.Db.NewTrans()
 	defer func() {
 		if err != nil {
@@ -95,7 +96,7 @@ func (m *Meta) PutObject(object *Object, multipart *Multipart, objMap *ObjMap, u
 		}
 	}()
 
-	err = m.Db.PutObject(object, tx)
+	err = m.Db.PutObject(ctx, object, tx)
 	if err != nil {
 		return err
 	}
@@ -115,7 +116,7 @@ func (m *Meta) PutObject(object *Object, multipart *Multipart, objMap *ObjMap, u
 	}*/
 
 	if updateUsage {
-		err = m.UpdateUsage(object.BucketName, object.Size)
+		err = m.UpdateUsage(ctx, object.BucketName, object.Size)
 		if err != nil {
 			return err
 		}
@@ -124,12 +125,12 @@ func (m *Meta) PutObject(object *Object, multipart *Multipart, objMap *ObjMap, u
 	return nil
 }
 
+/*
 func (m *Meta) PutObjectEntry(object *Object) error {
 	err := m.Db.PutObject(object, nil)
 	return err
 }
 
-/*
 func (m *Meta) UpdateObjectAcl(object *Object) error {
 	err := m.Client.UpdateObjectAcl(object)
 	return err

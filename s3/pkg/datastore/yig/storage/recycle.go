@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"github.com/opensds/multi-cloud/s3/pkg/helper"
+	log "github.com/sirupsen/logrus"
 	"time"
 )
 
@@ -52,7 +52,7 @@ func removeFailed(yig *YigStorage) {
 			}
 		default:
 			if yig.Stopping {
-				helper.Logger.Print(5, ".")
+				log.Info(".")
 				if len(RecycleQueue) == 0 {
 					return
 				}

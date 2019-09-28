@@ -9,9 +9,10 @@ import (
 	"encoding/hex"
 	"github.com/xxtea/xxtea-go/xxtea"
 	. "github.com/opensds/multi-cloud/s3/error"
+	"context"
 )
 
-func (t *TidbClient) GetObject(bucketName, objectName, version string) (object *Object, err error) {
+func (t *TidbClient) GetObject(ctx context.Context, bucketName, objectName, version string) (object *Object, err error) {
 	var ibucketname, iname, customattributes, acl, lastModifiedTime string
 	var iversion uint64
 	var sqltext string
@@ -131,7 +132,7 @@ func (t *TidbClient) UpdateAppendObject(o *Object) (err error) {
 }
 */
 
-func (t *TidbClient) PutObject(object *Object, tx interface{}) (err error) {
+func (t *TidbClient) PutObject(ctx context.Context, object *Object, tx interface{}) (err error) {
 	var sqlTx *sql.Tx
 	if tx == nil {
 		tx, err = t.Client.Begin()
@@ -161,7 +162,7 @@ func (t *TidbClient) PutObject(object *Object, tx interface{}) (err error) {
 	return err
 }
 
-func (t *TidbClient) DeleteObject(object *Object, tx interface{}) (err error) {
+func (t *TidbClient) DeleteObject(ctx context.Context, object *Object, tx interface{}) (err error) {
 	var sqlTx *sql.Tx
 	if tx == nil {
 		tx, err = t.Client.Begin()

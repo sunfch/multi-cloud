@@ -23,7 +23,7 @@ import (
 
 	"io"
 	"io/ioutil"
-	"github.com/micro/go-log"
+	log "github.com/sirupsen/logrus"
 	backendpb "github.com/opensds/multi-cloud/backend/proto"
 	"github.com/opensds/multi-cloud/s3/pkg/model"
 	pb "github.com/opensds/multi-cloud/s3/proto"
@@ -205,7 +205,7 @@ func (ad *CephAdapter) UploadPart(ctx context.Context, stream io.Reader, multipa
 		}
 	}
 
-	log.Log("upload part[Ceph S3]: should not be here.")
+	log.Error("upload part[Ceph S3]: should not be here.")
 	return nil, ErrInternalError
 }
 

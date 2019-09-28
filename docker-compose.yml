@@ -59,8 +59,8 @@ services:
     image: opensdsio/multi-cloud-s3
     environment:
       - MICRO_REGISTRY=mdns
-      - DB_HOST=datastore:27017
-      #- DB_HOST=tidb:4000
+      #- DB_HOST=datastore:27017
+      - DB_HOST=tidb:4000
       # 0 means use user defined storage class, otherwise use default storage class.
       - USE_DEFAULT_STORAGE_CLASS=1
     volumes:
@@ -121,7 +121,7 @@ services:
       - "4000:4000"
       - "10080:10080"
     volumes:
-      - ./s3/tidbconf/tidb.toml:/tidb.toml:ro
+      - /etc/tidb/tidb.toml:/tidb.toml:ro
     command:
       - --store=mocktikv
       - --config=/tidb.toml

@@ -3,20 +3,17 @@ package yig
 import (
 	"errors"
 	"fmt"
-	"math/rand"
 	"os"
-	"path/filepath"
 	"sync"
-	"time"
-
 	"github.com/opensds/multi-cloud/backend/pkg/utils/constants"
 	backendpb "github.com/opensds/multi-cloud/backend/proto"
 	"github.com/opensds/multi-cloud/s3/pkg/datastore/driver"
 	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/config"
 	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/storage"
-	"github.com/opensds/multi-cloud/s3/pkg/helper"
-	"github.com/opensds/multi-cloud/s3/pkg/log"
+	log "github.com/sirupsen/logrus"
 	"github.com/opensds/multi-cloud/s3/pkg/meta/redis"
+	"math/rand"
+	"time"
 )
 
 type YigDriverFactory struct {
@@ -42,13 +39,7 @@ func (ydf *YigDriverFactory) Init() error {
 	if err != nil {
 		return err
 	}
-	// init common log file handler.
-	filename := filepath.Join(cc.Log.Path, "common.log")
-	logf, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		return err
-	}
-	helper.Logger = log.New(logf, "[yig]", log.LstdFlags, cc.Log.Level)
+
 	// create the driver.
 	rand.Seed(time.Now().UnixNano())
 	redis.Initialize(cc)

@@ -2,6 +2,7 @@ package crypto
 
 import (
 	"github.com/opensds/multi-cloud/s3/pkg/helper"
+	log "github.com/sirupsen/logrus"
 )
 
 func NewKMS() KMS {

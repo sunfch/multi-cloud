@@ -19,7 +19,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/micro/go-log"
+	log "github.com/sirupsen/logrus"
 	"github.com/opensds/multi-cloud/api/pkg/utils/obs"
 	backendpb "github.com/opensds/multi-cloud/backend/proto"
 	dscommon "github.com/opensds/multi-cloud/s3/pkg/datastore/common"
@@ -139,7 +139,7 @@ func (ad *OBSAdapter) InitMultipartUpload(ctx context.Context, object *pb.Object
 	multipartUpload.Bucket = out.Bucket
 	multipartUpload.Key = out.Key
 	multipartUpload.UploadId = out.UploadId
-	log.Log("init multipart upload[OBS] succeed, objectId:%s\n", objectId)
+	log.Infof("init multipart upload[OBS] succeed, objectId:%s\n", objectId)
 	return multipartUpload, nil
 }
 

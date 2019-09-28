@@ -8,6 +8,7 @@ import (
 	"github.com/opensds/multi-cloud/s3/pkg/helper"
 	. "github.com/opensds/multi-cloud/s3/pkg/meta/types"
 	"github.com/opensds/multi-cloud/s3/pkg/meta/redis"
+	"context"
 )
 
 const (
@@ -17,9 +18,9 @@ const (
 
 // Note the usage info got from this method is possibly not accurate because we don't
 // invalid cache when updating usage. For accurate usage info, use `GetUsage()`
-func (m *Meta) GetBucket(bucketName string, willNeed bool) (bucket *Bucket, err error) {
+func (m *Meta) GetBucket(ctx context.Context, bucketName string, willNeed bool) (bucket *Bucket, err error) {
 	getBucket := func() (b helper.Serializable, err error) {
-		bt, err := m.Db.GetBucket(bucketName)
+		bt, err := m.Db.GetBucket(ctx, bucketName)
 		log.Info("GetBucket CacheMiss. bucket:", bucketName)
 		return bt, err
 	}
@@ -49,7 +50,7 @@ func (m *Meta) GetBuckets() (buckets []*Bucket, err error) {
 }
 */
 
-func (m *Meta) UpdateUsage(bucketName string, size int64) error {
+func (m *Meta) UpdateUsage(ctx context.Context, bucketName string, size int64) error {
 	usage, err := m.Cache.HIncrBy(redis.BucketTable, BUCKET_CACHE_PREFIX, bucketName, FIELD_NAME_USAGE, size)
 	if err != nil {
 		log.Error(fmt.Sprintf("failed to update bucket[%s] usage by %d, err: %v",
@@ -62,7 +63,7 @@ func (m *Meta) UpdateUsage(bucketName string, size int64) error {
 	return nil
 }
 
-func (m *Meta) GetUsage(bucketName string) (int64, error) {
+func (m *Meta) GetUsage(ctx context.Context, bucketName string) (int64, error) {
 	usage, err := m.Cache.HGetInt64(redis.BucketTable, BUCKET_CACHE_PREFIX, bucketName, FIELD_NAME_USAGE)
 	if err != nil {
 		log.Error("failed to get usage for bucket: ", bucketName, ", err: ", err)
@@ -81,7 +82,8 @@ func (m *Meta) InitBucketUsageCache() error {
 	// the map contains the bucket usage which are in cache and will be synced into database.
 	bucketUsageCacheMap := make(map[string]int64)
 	// the usage in buckets table is accurate now.
-	buckets, err := m.Db.GetBuckets()
+
+	buckets, err := m.Db.GetBuckets(context.Background())
 	if err != nil {
 		log.Error("failed to get buckets from db. err: ", err)
 		return err
@@ -136,7 +138,7 @@ func (m *Meta) InitBucketUsageCache() error {
 	}
 	// sync the buckets usage in cache into database.
 	if len(bucketUsageCacheMap) > 0 {
-		err = m.Db.UpdateUsages(bucketUsageCacheMap, nil)
+		err = m.Db.UpdateUsages(context.Background(), bucketUsageCacheMap, nil)
 		if err != nil {
 			log.Error("failed to sync usages to database, err: ", err)
 			return err
@@ -145,7 +147,7 @@ func (m *Meta) InitBucketUsageCache() error {
 	return nil
 }
 
-func (m *Meta) bucketUsageSync(event SyncEvent) error {
+/*func (m *Meta) bucketUsageSync(event SyncEvent) error {
 	bu := &BucketUsageEvent{}
 	err := helper.MsgPackUnMarshal(event.Data.([]byte), bu)
 	if err != nil {
@@ -162,7 +164,7 @@ func (m *Meta) bucketUsageSync(event SyncEvent) error {
 
 	log.Infof("succeed to update bucket usage ", bu.Usage, " for bucket: ", bu.BucketName)
 	return nil
-}
+}*/
 
 func AddBucketUsageSyncEvent(bucketName string, usage int64) {
 	bu := &BucketUsageEvent{

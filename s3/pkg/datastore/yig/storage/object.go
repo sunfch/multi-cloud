@@ -15,6 +15,7 @@ import (
 	dscommon "github.com/opensds/multi-cloud/s3/pkg/datastore/common"
 	"github.com/opensds/multi-cloud/s3/pkg/helper"
 	pb "github.com/opensds/multi-cloud/s3/proto"
+	log "github.com/sirupsen/logrus"
 )
 
 var latestQueryTime [2]time.Time // 0 is for SMALL_FILE_POOLNAME, 1 is for BIG_FILE_POOLNAME
@@ -57,11 +58,11 @@ func (yig *YigStorage) PickOneClusterAndPool(bucket string, object string, size 
 		if needCheck {
 			pct, err := yig.DataStorage[fsid].GetUsedSpacePercent()
 			if err != nil {
-				helper.Logger.Println(0, "Error getting used space: ", err, "fsid: ", fsid)
+				log.Errorf("Error getting used space: ", err, "fsid: ", fsid)
 				continue
 			}
 			if pct > CLUSTER_MAX_USED_SPACE_PERCENT {
-				helper.Logger.Println(0, "Cluster used space exceed ", CLUSTER_MAX_USED_SPACE_PERCENT, fsid)
+				log.Infof("Cluster used space exceed ", CLUSTER_MAX_USED_SPACE_PERCENT, fsid)
 				continue
 			}
 		}
@@ -69,7 +70,7 @@ func (yig *YigStorage) PickOneClusterAndPool(bucket string, object string, size 
 		clusterWeights[fsid] = cluster.Weight
 	}
 	if len(clusterWeights) == 0 || totalWeight == 0 {
-		helper.Logger.Println(20, "Error picking cluster from table cluster in DB! Use first cluster in config to write.")
+		log.Warn("Error picking cluster from table cluster in DB! Use first cluster in config to write.")
 		for _, c := range yig.DataStorage {
 			cluster = c
 			break
@@ -390,7 +391,7 @@ func (yig *YigStorage) Put(ctx context.Context, stream io.Reader, obj *pb.Object
 	}
 
 	calculatedMd5 := hex.EncodeToString(md5Writer.Sum(nil))
-	helper.Logger.Println(20, "### calculatedMd5:", calculatedMd5, "userMd5:", userMd5)
+	log.Infof("### calculatedMd5:", calculatedMd5, "userMd5:", userMd5)
 	if userMd5 != "" && userMd5 != calculatedMd5 {
 		RecycleQueue <- maybeObjectToRecycle
 		return result, ErrBadDigest

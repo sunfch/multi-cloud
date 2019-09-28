@@ -5,13 +5,33 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/opensds/multi-cloud/api/pkg/s3"
-	. "github.com/opensds/multi-cloud/s3/error"
 	"github.com/opensds/multi-cloud/s3/pkg/meta/types"
 	pb "github.com/opensds/multi-cloud/s3/proto"
+	. "github.com/opensds/multi-cloud/s3/error"
 )
 
 func (b *s3Service) ListBuckets(ctx context.Context, in *pb.BaseRequest, out *pb.ListBucketsResponse) error {
 	log.Info("ListBuckets is called in s3 service.")
+	//buckets := []pb.Bucket{}
+	buckets, err := b.MetaStorage.Db.GetBuckets(ctx)
+	if err != nil {
+		log.Errorf("list buckets failed, err:%v\n", err)
+		return err
+	}
+
+	// TODO: paging list
+	for j := 0; j < len(buckets); j++ {
+		if buckets[j].Deleted != true {
+			out.Buckets = append(out.Buckets, &pb.Bucket{
+				Name: buckets[j].Name,
+				TenantId: buckets[j].TenantId,
+				CreateTime: buckets[j].CreateTime,
+				Usages: buckets[j].Usages,
+				Tier: buckets[j].Tier,
+				DefaultLocation: buckets[j].DefaultLocation,
+			})
+		}
+	}
 
 	return nil
 }
@@ -25,13 +45,14 @@ func (b *s3Service) CreateBucket(ctx context.Context, in *pb.Bucket, out *pb.Bas
 	}
 
 	//credential := ctx.Value(s3.RequestContextKey).(s3.RequestContext).Credential
-	processed, err := b.MetaStorage.Db.CheckAndPutBucket(&types.Bucket{Bucket: in})
+	processed, err := b.MetaStorage.Db.CheckAndPutBucket(ctx, &types.Bucket{Bucket: in})
 	if err != nil {
 		log.Error("Error making checkandput: ", err)
 		return err
 	}
+	log.Infof("create bucket[%s] in database successfully.\n", in.Name)
 	if !processed { // bucket already exists, return accurate message
-		/*bucket*/ _, err := b.MetaStorage.GetBucket(bucketName, false)
+		/*bucket*/ _, err := b.MetaStorage.GetBucket(ctx, bucketName, false)
 		if err != nil {
 			log.Error("Error get bucket: ", bucketName, ", with error", err)
 			return ErrBucketAlreadyExists
@@ -63,7 +84,7 @@ func (b *s3Service) CreateBucket(ctx context.Context, in *pb.Bucket, out *pb.Bas
 func (b *s3Service) GetBucket(ctx context.Context, in *pb.BaseRequest, out *pb.Bucket) error {
 	log.Infof("GetBucket %s is called in s3 service.", in.Id)
 
-	bucket, err := b.MetaStorage.GetBucket(in.Id, false)
+	bucket, err := b.MetaStorage.GetBucket(ctx, in.Id, false)
 	if err != nil {
 		log.Error("Error get bucket: ", in.Id, ", with error", err)
 		return err

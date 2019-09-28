@@ -24,7 +24,7 @@ import (
 	"io/ioutil"
 	"time"
 
-	"github.com/micro/go-log"
+	log "github.com/sirupsen/logrus"
 	backendpb "github.com/opensds/multi-cloud/backend/proto"
 	dscommon "github.com/opensds/multi-cloud/s3/pkg/datastore/common"
 	"github.com/opensds/multi-cloud/s3/pkg/model"
@@ -221,7 +221,7 @@ func (ad *GcsAdapter) UploadPart(ctx context.Context, stream io.Reader, multipar
 		}
 	}
 
-	log.Log("upload part[GCS]: should not be here.")
+	log.Error("upload part[GCS]: should not be here.")
 	return nil, ErrInternalError
 }
 

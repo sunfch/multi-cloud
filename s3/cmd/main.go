@@ -16,18 +16,20 @@ package main
 
 import (
 	"fmt"
-	micro "github.com/micro/go-micro"
+	"github.com/micro/go-micro"
+	"github.com/opensds/multi-cloud/api/pkg/utils/obs"
 	//_ "github.com/opensds/multi-cloud/s3/pkg/datastore"
 	handler "github.com/opensds/multi-cloud/s3/pkg/service"
 	pb "github.com/opensds/multi-cloud/s3/proto"
-	"github.com/opensds/multi-cloud/api/pkg/utils/obs"
-	//"github.com/micro/go-log"
-	//"github.com/opensds/multi-cloud/s3/pkg/datastore/driver"
-	//"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/config"
 	//"github.com/opensds/multi-cloud/s3/pkg/helper"
 	//"github.com/opensds/multi-cloud/s3/pkg/meta/redis"
-	//"os"
+	//log "github.com/sirupsen/logrus"
+
+	"github.com/opensds/multi-cloud/s3/pkg/helper"
+	"github.com/opensds/multi-cloud/s3/pkg/meta/redis"
+	log "github.com/sirupsen/logrus"
 	"github.com/opensds/multi-cloud/s3/pkg/datastore/driver"
+	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/config"
 )
 
 func main() {
@@ -43,33 +45,14 @@ func main() {
 		driver.FreeCloser()
 		return nil
 	}))
-/*
+
 	helper.SetupConfig()
 	//fmt.Printf("CONFIG:%+v\n", helper.CONFIG)
 
-	//yig log
-	f, err := os.OpenFile(helper.CONFIG.LogPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		panic("Failed to open log file " + helper.CONFIG.LogPath + ", err:" + err.Error())
-	}
-	defer f.Close()
-
-	logger = log.New(f, "[yig]", log.LstdFlags, helper.CONFIG.LogLevel)
-	helper.Logger = logger
-	logger.Printf(20, "YIG conf: %+v \n", helper.CONFIG)
-	logger.Println(5, "YIG instance ID:", helper.CONFIG.InstanceId)
-
-	//access log
-	a, err := os.OpenFile(helper.CONFIG.AccessLogPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
-	if err != nil {
-		panic("Failed to open access log file " + helper.CONFIG.AccessLogPath)
-	}
-	defer a.Close()
-	accessLogger := log.New(a, "", 0, helper.CONFIG.LogLevel)
-	helper.AccessLogger = accessLogger
+	log.Infof("YIG conf: %+v \n", helper.CONFIG)
+	log.Infof("YIG instance ID:", helper.CONFIG.InstanceId)
 
 	if helper.CONFIG.MetaCacheType > 0 || helper.CONFIG.EnableDataCache {
-		//redis.Initialize()
 		// read common config settings
 		cc, err := config.ReadCommonConfig("/etc/yig")
 		if err != nil {
@@ -77,7 +60,7 @@ func main() {
 		}
 		redis.Initialize(cc)
 	}
-*/
+
 	pb.RegisterS3Handler(service.Server(), handler.NewS3Service())
 	if err := service.Run(); err != nil {
 		fmt.Println(err)

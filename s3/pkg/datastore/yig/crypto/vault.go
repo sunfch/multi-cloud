@@ -24,6 +24,7 @@ import (
 
 	vault "github.com/hashicorp/vault/api"
 	"github.com/opensds/multi-cloud/s3/pkg/helper"
+	"github.com/go-log/log"
 )
 
 const (
@@ -171,14 +172,14 @@ func NewVault(kmsConf KMSConfig) (KMS, error) {
 		leaseDuration = DEBUG_LEASE_DURATION
 	} else {
 		accessToken, leaseDuration, err = getVaultAccessToken(c, config.Auth.AppRole.ID, config.Auth.AppRole.Secret)
-		helper.Logger.Println(1, "get access token:", accessToken, "lease duration:")
+		log.Logf("get access token:", accessToken, "lease duration:")
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	// authenticate and get the access token
-	helper.Logger.Println(5, "Get vault token:", accessToken, "leaseDuration", leaseDuration)
+	log.Logf("Get vault token:", accessToken, "leaseDuration", leaseDuration)
 	c.SetToken(accessToken)
 	v := vaultService{client: c, config: &config, leaseDuration: time.Duration(leaseDuration)}
 	v.renewToken(c)

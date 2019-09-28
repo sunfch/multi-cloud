@@ -10,9 +10,13 @@ import (
 	. "github.com/opensds/multi-cloud/s3/error"
 	. "github.com/opensds/multi-cloud/s3/pkg/meta/types"
 	pb "github.com/opensds/multi-cloud/s3/proto"
+	"context"
+	"github.com/globalsign/mgo/bson"
+	"github.com/opensds/multi-cloud/api/pkg/common"
 )
 
-func (t *TidbClient) GetBucket(bucketName string) (bucket *Bucket, err error) {
+func (t *TidbClient) GetBucket(ctx context.Context, bucketName string) (bucket *Bucket, err error) {
+	log.Infof("get bucket[%s] from tidb ...\n", bucketName)
 	var acl, cors, lc, policy, createTime string
 	var updateTime sql.NullString
 	sqltext := "select bucketname,acl,cors,lc,uid,policy,createtime,usages,versioning,update_time from buckets where bucketname=?;"
@@ -61,9 +65,27 @@ func (t *TidbClient) GetBucket(bucketName string) (bucket *Bucket, err error) {
 	return
 }
 
-func (t *TidbClient) GetBuckets() (buckets []*Bucket, err error) {
+func (t *TidbClient) GetBuckets(ctx context.Context) (buckets []*Bucket, err error) {
+	log.Info("list buckets from tidb ...")
+	m := bson.M{}
+	err = UpdateContextFilter(ctx, m)
+	if err != nil {
+		return nil, ErrInternalError
+	}
+
+	var rows *sql.Rows
 	sqltext := "select bucketname,acl,cors,lc,uid,policy,createtime,usages,versioning,update_time from buckets;"
-	rows, err := t.Client.Query(sqltext)
+
+	tenantId, ok := m[common.CTX_KEY_TENANT_ID]
+	if ok {
+		sqltext = "select bucketname,acl,cors,lc,uid,policy,createtime,usages,versioning,update_time from buckets " +
+			"where uid=?;"
+		rows, err = t.Client.Query(sqltext, tenantId)
+	} else {
+		sqltext = "select bucketname,acl,cors,lc,uid,policy,createtime,usages,versioning,update_time from buckets;"
+		rows, err = t.Client.Query(sqltext)
+	}
+
 	if err == sql.ErrNoRows {
 		err = nil
 		return
@@ -74,7 +96,7 @@ func (t *TidbClient) GetBuckets() (buckets []*Bucket, err error) {
 
 	for rows.Next() {
 		tmp := Bucket{Bucket:&pb.Bucket{}}
-		var acl, cors, lc, policy string
+		var acl, cors, lc, policy, createTime string
 		var updateTime sql.NullString
 		err = rows.Scan(
 			&tmp.Name,
@@ -83,13 +105,19 @@ func (t *TidbClient) GetBuckets() (buckets []*Bucket, err error) {
 			&lc,
 			&tmp.TenantId,
 			&policy,
-			&tmp.CreateTime,
+			&createTime,
 			&tmp.Usages,
 			&tmp.Versioning,
 			&updateTime)
 		if err != nil {
 			return
 		}
+		var ctime time.Time
+		ctime, err = time.Parse(TIME_LAYOUT_TIDB, createTime)
+		if err != nil {
+			return
+		}
+		tmp.CreateTime = ctime.Unix()
 		err = json.Unmarshal([]byte(acl), &tmp.Acl)
 		if err != nil {
 			return
@@ -112,7 +140,8 @@ func (t *TidbClient) GetBuckets() (buckets []*Bucket, err error) {
 }
 
 //Actually this method is used to update bucket
-func (t *TidbClient) PutBucket(bucket *Bucket) error {
+func (t *TidbClient) PutBucket(ctx context.Context, bucket *Bucket) error {
+	log.Infof("put bucket[%s] into tidb ...\n", bucket.Name)
 	acl, _ := json.Marshal(bucket.Acl)
 	cors, _ := json.Marshal(bucket.Cors)
 	lc, _ := json.Marshal(bucket.LifecycleConfiguration)
@@ -128,9 +157,9 @@ func (t *TidbClient) PutBucket(bucket *Bucket) error {
 	return nil
 }
 
-func (t *TidbClient) CheckAndPutBucket(bucket *Bucket) (bool, error) {
+func (t *TidbClient) CheckAndPutBucket(ctx context.Context, bucket *Bucket) (bool, error) {
 	var processed bool
-	_, err := t.GetBucket(bucket.Name)
+	_, err := t.GetBucket(ctx, bucket.Name)
 	if err == nil {
 		processed = false
 		return processed, err
@@ -265,7 +294,7 @@ func (t *TidbClient) ListObjects(bucketName, marker, verIdMarker, prefix, delimi
 	return
 }
 */
-func (t *TidbClient) DeleteBucket(bucket *Bucket) error {
+func (t *TidbClient) DeleteBucket(ctx context.Context, bucket *Bucket) error {
 	sqltext := "delete from buckets where bucketname=?;"
 	_, err := t.Client.Exec(sqltext, bucket.Name)
 	if err != nil {
@@ -274,7 +303,7 @@ func (t *TidbClient) DeleteBucket(bucket *Bucket) error {
 	return nil
 }
 
-func (t *TidbClient) UpdateUsage(bucketName string, size int64, tx interface{}) (err error) {
+func (t *TidbClient) UpdateUsage(ctx context.Context, bucketName string, size int64, tx interface{}) (err error) {
 	var sqlTx *sql.Tx
 	if tx == nil {
 		tx, err = t.Client.Begin()
@@ -295,7 +324,7 @@ func (t *TidbClient) UpdateUsage(bucketName string, size int64, tx interface{}) 
 	return
 }
 
-func (t *TidbClient) UpdateUsages(usages map[string]int64, tx interface{}) error {
+func (t *TidbClient) UpdateUsages(ctx context.Context, usages map[string]int64, tx interface{}) error {
 	var sqlTx *sql.Tx
 	var err error
 	if nil == tx {

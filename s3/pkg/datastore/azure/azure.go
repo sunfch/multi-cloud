@@ -26,7 +26,7 @@ import (
 	"time"
 
 	"github.com/Azure/azure-storage-blob-go/azblob"
-	"github.com/micro/go-log"
+	log "github.com/sirupsen/logrus"
 	backendpb "github.com/opensds/multi-cloud/backend/proto"
 	. "github.com/opensds/multi-cloud/s3/error"
 	dscommon "github.com/opensds/multi-cloud/s3/pkg/datastore/common"
@@ -152,7 +152,7 @@ func (ad *AzureAdapter) Get(ctx context.Context, object *pb.Object, start int64,
 		return ioReaderClose, nil
 	}
 
-	log.Log("get object[Azure Blob]: should not be here")
+	log.Error("get object[Azure Blob]: should not be here")
 	return nil, ErrInternalError
 }
 

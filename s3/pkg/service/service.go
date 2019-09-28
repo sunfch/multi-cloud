@@ -56,7 +56,7 @@ func NewS3Service() pb.S3Handler {
 
 	initStorageClass()
 
-	return &s3Service{MetaStorage: meta.New(nil, meta.CacheType(helper.CONFIG.MetaCacheType)),}
+	return &s3Service{MetaStorage: meta.New(meta.CacheType(helper.CONFIG.MetaCacheType)),}
 }
 
 func getNameFromTier(tier int32) (string, error) {
