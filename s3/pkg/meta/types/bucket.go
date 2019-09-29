@@ -12,6 +12,7 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/opensds/multi-cloud/s3/pkg/helper"
 	pb "github.com/opensds/multi-cloud/s3/proto"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -106,10 +107,14 @@ func (b Bucket) GetCreateSql() (string, []interface{}) {
 	cors, _ := json.Marshal(b.Cors)
 	lc, _ := json.Marshal(b.LifecycleConfiguration)
 	bucket_policy, _ := json.Marshal(b.BucketPolicy)
+	replia, _ := json.Marshal(b.ReplicationConfiguration)
 	createTime := time.Unix(b.CreateTime, 0).Format(TIME_LAYOUT_TIDB)
+	//createTime := time.Now().Format(TIME_LAYOUT_TIDB)
+	log.Infof("createTime=%v\n", createTime)
 
-	sql := "insert into buckets(bucketname,acl,cors,lc,uid,policy,createtime,usages,versioning) " +
-		"values(?,?,?,?,?,?,?,?,?);"
-	args := []interface{}{b.Name, acl, cors, lc, b.TenantId, bucket_policy, createTime, b.Usages, b.Versioning}
+	sql := "insert into buckets(bucketname,tenantid,userid,createtime,usages,location,acl,cors,lc,policy,versioning," +
+		"replication) values(?,?,?,?,?,?,?,?,?,?,?,?);"
+	args := []interface{}{b.Name, b.TenantId, b.UserId, createTime, b.Usages, b.DefaultLocation, acl, cors, lc,
+		bucket_policy, b.Versioning, replia}
 	return sql, args
 }

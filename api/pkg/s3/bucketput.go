@@ -16,17 +16,16 @@ package s3
 
 import (
 	"encoding/xml"
-	"net/http"
-	"strings"
-	"time"
-
 	"github.com/emicklei/go-restful"
-	"github.com/opensds/multi-cloud/s3/pkg/model"
-	"github.com/opensds/multi-cloud/s3/proto"
-        log "github.com/sirupsen/logrus"
 	"github.com/opensds/multi-cloud/api/pkg/common"
 	c "github.com/opensds/multi-cloud/api/pkg/context"
 	"github.com/opensds/multi-cloud/s3/error"
+	"github.com/opensds/multi-cloud/s3/pkg/model"
+	"github.com/opensds/multi-cloud/s3/proto"
+	log "github.com/sirupsen/logrus"
+	"net/http"
+	"strings"
+	"time"
 )
 
 func (s *APIService) BucketPut(request *restful.Request, response *restful.Response) {
@@ -56,7 +55,7 @@ func (s *APIService) BucketPut(request *restful.Request, response *restful.Respo
 
 	body := ReadBody(request)
 	flag := false
-	if body != nil && len(body) != 0{
+	if body != nil && len(body) != 0 {
 		log.Infof("request body is not empty")
 		createBucketConf := model.CreateBucketConfiguration{}
 		err := xml.Unmarshal(body, &createBucketConf)

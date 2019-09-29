@@ -17,20 +17,22 @@ import (
 
 func (t *TidbClient) GetBucket(ctx context.Context, bucketName string) (bucket *Bucket, err error) {
 	log.Infof("get bucket[%s] from tidb ...\n", bucketName)
-	var acl, cors, lc, policy, createTime string
+	var acl, cors, lc, policy, replication, createTime string
 	var updateTime sql.NullString
-	sqltext := "select bucketname,acl,cors,lc,uid,policy,createtime,usages,versioning,update_time from buckets where bucketname=?;"
+	sqltext := "select bucketname,tenantid,createtime,usages,acl,cors,lc,policy,versioning,replication,update_time " +
+		"from buckets where bucketname=?;"
 	tmp := &Bucket{Bucket:&pb.Bucket{}}
 	err = t.Client.QueryRow(sqltext, bucketName).Scan(
 		&tmp.Name,
+		&tmp.TenantId,
+		&createTime,
+		&tmp.Usages,
 		&acl,
 		&cors,
 		&lc,
-		&tmp.TenantId,
 		&policy,
-		&createTime,
-		&tmp.Usages,
 		&tmp.Versioning,
+		&replication,
 		&updateTime,
 	)
 	if err != nil && err == sql.ErrNoRows {
@@ -61,6 +63,10 @@ func (t *TidbClient) GetBucket(ctx context.Context, bucketName string) (bucket *
 	if err != nil {
 		return
 	}
+	err = json.Unmarshal([]byte(replication), &tmp.ReplicationConfiguration)
+	if err != nil {
+		return
+	}
 	bucket = tmp
 	return
 }
@@ -74,15 +80,15 @@ func (t *TidbClient) GetBuckets(ctx context.Context) (buckets []*Bucket, err err
 	}
 
 	var rows *sql.Rows
-	sqltext := "select bucketname,acl,cors,lc,uid,policy,createtime,usages,versioning,update_time from buckets;"
+	sqltext := "select bucketname,tenantid,userid,createtime,usages,location,deleted,acl,cors,lc,policy," +
+		"versioning,replication,update_time from buckets;"
 
 	tenantId, ok := m[common.CTX_KEY_TENANT_ID]
 	if ok {
-		sqltext = "select bucketname,acl,cors,lc,uid,policy,createtime,usages,versioning,update_time from buckets " +
-			"where uid=?;"
+		sqltext = "select bucketname,tenantid,userid,createtime,usages,location,deleted,acl,cors,lc,policy," +
+			"versioning,replication,update_time from buckets where tenantid=?;"
 		rows, err = t.Client.Query(sqltext, tenantId)
 	} else {
-		sqltext = "select bucketname,acl,cors,lc,uid,policy,createtime,usages,versioning,update_time from buckets;"
 		rows, err = t.Client.Query(sqltext)
 	}
 
@@ -96,24 +102,28 @@ func (t *TidbClient) GetBuckets(ctx context.Context) (buckets []*Bucket, err err
 
 	for rows.Next() {
 		tmp := Bucket{Bucket:&pb.Bucket{}}
-		var acl, cors, lc, policy, createTime string
+		var acl, cors, lc, policy, createTime, replication string
 		var updateTime sql.NullString
 		err = rows.Scan(
 			&tmp.Name,
+			&tmp.TenantId,
+			&tmp.UserId,
+			&createTime,
+			&tmp.Usages,
+			&tmp.DefaultLocation,
+			&tmp.Deleted,
 			&acl,
 			&cors,
 			&lc,
-			&tmp.TenantId,
 			&policy,
-			&createTime,
-			&tmp.Usages,
 			&tmp.Versioning,
+			&replication,
 			&updateTime)
 		if err != nil {
 			return
 		}
 		var ctime time.Time
-		ctime, err = time.Parse(TIME_LAYOUT_TIDB, createTime)
+		ctime, err = time.ParseInLocation(TIME_LAYOUT_TIDB, createTime, time.Local)
 		if err != nil {
 			return
 		}
@@ -134,6 +144,10 @@ func (t *TidbClient) GetBuckets(ctx context.Context) (buckets []*Bucket, err err
 		if err != nil {
 			return
 		}
+		err = json.Unmarshal([]byte(replication), &tmp.ReplicationConfiguration)
+		if err != nil {
+			return
+		}
 		buckets = append(buckets, &tmp)
 	}
 	return
@@ -146,7 +160,7 @@ func (t *TidbClient) PutBucket(ctx context.Context, bucket *Bucket) error {
 	cors, _ := json.Marshal(bucket.Cors)
 	lc, _ := json.Marshal(bucket.LifecycleConfiguration)
 	bucket_policy, _ := json.Marshal(bucket.BucketPolicy)
-	sql := "update buckets set bucketname=?,acl=?,policy=?,cors=?,lc=?,uid=?,versioning=? where bucketname=?"
+	sql := "update buckets set bucketname=?,acl=?,policy=?,cors=?,lc=?,tenantid=?,versioning=? where bucketname=?"
 	args := []interface{}{bucket.Name, acl, bucket_policy, cors, lc, bucket.TenantId, bucket.Versioning, bucket.Name}
 
 	_, err := t.Client.Exec(sql, args...)
