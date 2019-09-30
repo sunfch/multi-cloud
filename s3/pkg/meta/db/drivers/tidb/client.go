@@ -2,15 +2,17 @@ package tidbclient
 
 import (
 	"context"
-	"errors"
 	"database/sql"
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/opensds/multi-cloud/s3/pkg/helper"
+	"errors"
 	"os"
-	log "github.com/sirupsen/logrus"
+
 	"github.com/globalsign/mgo/bson"
-	"github.com/opensds/multi-cloud/api/pkg/common"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/micro/go-micro/metadata"
+	"github.com/opensds/multi-cloud/api/pkg/common"
+	. "github.com/opensds/multi-cloud/s3/error"
+	"github.com/opensds/multi-cloud/s3/pkg/helper"
+	log "github.com/sirupsen/logrus"
 )
 
 const MAX_OPEN_CONNS = 1024
@@ -53,4 +55,17 @@ func UpdateContextFilter(ctx context.Context, m bson.M) error {
 	}
 
 	return nil
+}
+
+func handleDBError(in error) (out error) {
+	if in == nil {
+		return nil
+	}
+	log.Errorf("db error:%v\n", in)
+	if in == sql.ErrNoRows {
+		out = ErrNoSuchKey
+	} else {
+		out = ErrDBError
+	}
+	return
 }

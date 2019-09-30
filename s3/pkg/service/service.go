@@ -22,14 +22,14 @@ import (
 	"strconv"
 
 	"github.com/Azure/azure-storage-blob-go/azblob"
-	log "github.com/sirupsen/logrus"
+	"github.com/opensds/multi-cloud/api/pkg/utils/obs"
+	. "github.com/opensds/multi-cloud/s3/error"
+	"github.com/opensds/multi-cloud/s3/pkg/db"
 	"github.com/opensds/multi-cloud/s3/pkg/helper"
 	"github.com/opensds/multi-cloud/s3/pkg/meta"
-	"github.com/opensds/multi-cloud/api/pkg/utils/obs"
-	"github.com/opensds/multi-cloud/s3/pkg/db"
-	//. "github.com/opensds/multi-cloud/s3/pkg/exception"
 	. "github.com/opensds/multi-cloud/s3/pkg/utils"
 	pb "github.com/opensds/multi-cloud/s3/proto"
+	log "github.com/sirupsen/logrus"
 )
 
 type Int2String map[int32]string
@@ -45,7 +45,7 @@ var Ext2IntTierMap map[string]*String2Int
 var TransitionMap map[int32][]int32
 var SupportedClasses []pb.StorageClass
 
-type s3Service struct{
+type s3Service struct {
 	MetaStorage *meta.Meta
 }
 
@@ -56,7 +56,7 @@ func NewS3Service() pb.S3Handler {
 
 	initStorageClass()
 
-	return &s3Service{MetaStorage: meta.New(meta.CacheType(helper.CONFIG.MetaCacheType)),}
+	return &s3Service{MetaStorage: meta.New(meta.CacheType(helper.CONFIG.MetaCacheType))}
 }
 
 func getNameFromTier(tier int32) (string, error) {
@@ -254,7 +254,7 @@ func initStorageClass() {
 	}
 }
 
-func (b *s3Service) GetStorageClasses(ctx context.Context, in *pb.BaseRequest, out *pb.GetStorageClassesResponse) error {
+func (s *s3Service) GetStorageClasses(ctx context.Context, in *pb.BaseRequest, out *pb.GetStorageClassesResponse) error {
 	classes := []*pb.StorageClass{}
 	for _, v := range SupportedClasses {
 		classes = append(classes, &pb.StorageClass{Name: v.Name, Tier: v.Tier})
@@ -265,7 +265,7 @@ func (b *s3Service) GetStorageClasses(ctx context.Context, in *pb.BaseRequest, o
 	return nil
 }
 
-func (b *s3Service) GetTierMap(ctx context.Context, in *pb.BaseRequest, out *pb.GetTierMapResponse) error {
+func (s *s3Service) GetTierMap(ctx context.Context, in *pb.BaseRequest, out *pb.GetTierMapResponse) error {
 	log.Info("GetTierMap ...")
 
 	// Get map from internal tier to external class name.
@@ -291,172 +291,169 @@ func (b *s3Service) GetTierMap(ctx context.Context, in *pb.BaseRequest, out *pb.
 	return nil
 }
 
-
-func (b *s3Service) DeleteBucketLifecycle(ctx context.Context, in *pb.DeleteLifecycleInput, out *pb.BaseResponse) error {
+func (s *s3Service) DeleteBucketLifecycle(ctx context.Context, in *pb.DeleteLifecycleInput, out *pb.BaseResponse) error {
 	log.Info("DeleteBucketlifecycle is called in s3 service.")
 
 	return nil
 }
 
-
-func (b *s3Service) UpdateBucket(ctx context.Context, in *pb.Bucket, out *pb.BaseResponse) error {
+func (s *s3Service) UpdateBucket(ctx context.Context, in *pb.Bucket, out *pb.BaseResponse) error {
 	log.Info("UpdateBucket is called in s3 service.")
 
 	return nil
 }
 
-func (b *s3Service) ListBucketUploadRecords(ctx context.Context, in *pb.ListBucketPartsRequest, out *pb.ListBucketPartsResponse) error {
+func (s *s3Service) ListBucketUploadRecords(ctx context.Context, in *pb.ListBucketPartsRequest, out *pb.ListBucketPartsResponse) error {
 	log.Info("UpdateBucket is called in s3 service.")
 
 	return nil
 }
 
-func (b *s3Service) InitMultipartUpload(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
+func (s *s3Service) InitMultipartUpload(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
 	log.Info("UpdateBucket is called in s3 service.")
 
 	return nil
 }
 
-func (b *s3Service) AbortMultipartUpload(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
+func (s *s3Service) AbortMultipartUpload(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
 	log.Info("UpdateBucket is called in s3 service.")
 
 	return nil
 }
 
-func (b *s3Service) CompleteMultipartUpload(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
+func (s *s3Service) CompleteMultipartUpload(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
 	log.Info("UpdateBucket is called in s3 service.")
 
 	return nil
 }
 
-func (b *s3Service) UploadPart(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
+func (s *s3Service) UploadPart(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
 	log.Info("UpdateBucket is called in s3 service.")
 
 	return nil
 }
 
-func (b *s3Service) ListObjectParts(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
+func (s *s3Service) ListObjectParts(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
 	log.Info("UpdateBucket is called in s3 service.")
 
 	return nil
 }
 
-func (b *s3Service) AppendObject(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
+func (s *s3Service) AppendObject(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
 	log.Info("UpdateBucket is called in s3 service.")
 
 	return nil
 }
 
-func (b *s3Service) PostObject(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
+func (s *s3Service) PostObject(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
 	log.Info("UpdateBucket is called in s3 service.")
 
 	return nil
 }
 
-func (b *s3Service) HeadObject(ctx context.Context, in *pb.BaseObjRequest, out *pb.Object) error {
+func (s *s3Service) HeadObject(ctx context.Context, in *pb.BaseObjRequest, out *pb.Object) error {
 	log.Info("UpdateBucket is called in s3 service.")
 
 	return nil
 }
 
-func (b *s3Service) CopyObject(ctx context.Context, in *pb.CopyObjectRequest, out *pb.BaseResponse) error {
+func (s *s3Service) CopyObject(ctx context.Context, in *pb.CopyObjectRequest, out *pb.BaseResponse) error {
 	log.Info("UpdateBucket is called in s3 service.")
 
 	return nil
 }
 
-func (b *s3Service) CopyObjPart(ctx context.Context, in *pb.CopyObjPartRequest, out *pb.CopyObjPartResponse) error {
+func (s *s3Service) CopyObjPart(ctx context.Context, in *pb.CopyObjPartRequest, out *pb.CopyObjPartResponse) error {
 	log.Info("UpdateBucket is called in s3 service.")
 
 	return nil
 }
 
-func (b *s3Service) PutObjACL(ctx context.Context, in *pb.PutObjACLRequest, out *pb.BaseResponse) error {
+func (s *s3Service) PutObjACL(ctx context.Context, in *pb.PutObjACLRequest, out *pb.BaseResponse) error {
 	log.Info("UpdateBucket is called in s3 service.")
 
 	return nil
 }
 
-func (b *s3Service) GetObjACL(ctx context.Context, in *pb.BaseObjRequest, out *pb.ObjACL) error {
+func (s *s3Service) GetObjACL(ctx context.Context, in *pb.BaseObjRequest, out *pb.ObjACL) error {
 	log.Info("UpdateBucket is called in s3 service.")
 
 	return nil
 }
 
-func (b *s3Service) GetBucketLocation(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
+func (s *s3Service) GetBucketLocation(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
 	log.Info("UpdateBucket is called in s3 service.")
 
 	return nil
 }
 
-func (b *s3Service) GetBucketVersioning(ctx context.Context, in *pb.BaseBucketRequest, out *pb.BucketVersioning) error {
+func (s *s3Service) GetBucketVersioning(ctx context.Context, in *pb.BaseBucketRequest, out *pb.BucketVersioning) error {
 	log.Info("UpdateBucket is called in s3 service.")
 
 	return nil
 }
 
-func (b *s3Service) PutBucketVersioning(ctx context.Context, in *pb.PutBucketVersioningRequest, out *pb.BaseResponse) error {
+func (s *s3Service) PutBucketVersioning(ctx context.Context, in *pb.PutBucketVersioningRequest, out *pb.BaseResponse) error {
 	log.Info("UpdateBucket is called in s3 service.")
 
 	return nil
 }
 
-func (b *s3Service) PutBucketACL(ctx context.Context, in *pb.PutBucketACLRequest, out *pb.BaseResponse) error {
+func (s *s3Service) PutBucketACL(ctx context.Context, in *pb.PutBucketACLRequest, out *pb.BaseResponse) error {
 	log.Info("UpdateBucket is called in s3 service.")
 
 	return nil
 }
 
-func (b *s3Service) GetBucketACL(ctx context.Context, in *pb.BaseBucketRequest, out *pb.BucketACL) error {
+func (s *s3Service) GetBucketACL(ctx context.Context, in *pb.BaseBucketRequest, out *pb.BucketACL) error {
 	log.Info("UpdateBucket is called in s3 service.")
 
 	return nil
 }
 
-func (b *s3Service) PutBucketCORS(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
+func (s *s3Service) PutBucketCORS(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
 	log.Info("UpdateBucket is called in s3 service.")
 
 	return nil
 }
 
-func (b *s3Service) GetBucketCORS(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
+func (s *s3Service) GetBucketCORS(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
 	log.Info("UpdateBucket is called in s3 service.")
 
 	return nil
 }
 
-func (b *s3Service) DeleteBucketCORS(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
+func (s *s3Service) DeleteBucketCORS(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
 	log.Info("UpdateBucket is called in s3 service.")
 
 	return nil
 }
 
-func (b *s3Service) PutBucketPolicy(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
+func (s *s3Service) PutBucketPolicy(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
 	log.Info("UpdateBucket is called in s3 service.")
 
 	return nil
 }
 
-func (b *s3Service) GetBucketPolicy(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
+func (s *s3Service) GetBucketPolicy(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
 	log.Info("UpdateBucket is called in s3 service.")
 
 	return nil
 }
 
-func (b *s3Service) DeleteBucketPolicy(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
+func (s *s3Service) DeleteBucketPolicy(ctx context.Context, in *pb.BaseRequest, out *pb.BaseResponse) error {
 	log.Info("UpdateBucket is called in s3 service.")
 
 	return nil
 }
 
-func (b *s3Service) HeadBucket(ctx context.Context, in *pb.BaseRequest, out *pb.Bucket) error {
+func (s *s3Service) HeadBucket(ctx context.Context, in *pb.BaseRequest, out *pb.Bucket) error {
 	log.Info("UpdateBucket is called in s3 service.")
 
 	return nil
 }
 
-
-func (b *s3Service) UpdateObjMeta(ctx context.Context, in *pb.UpdateObjMetaRequest, out *pb.BaseResponse) error {
+func (s *s3Service) UpdateObjMeta(ctx context.Context, in *pb.UpdateObjMetaRequest, out *pb.BaseResponse) error {
 	log.Infof("Update meatadata, objkey:%s, lastmodified:%d, setting:%v\n", in.ObjKey, in.LastModified, in.Setting)
 	/*valid := make(map[string]struct{})
 	valid["tier"] = struct{}{}
@@ -476,44 +473,44 @@ func (b *s3Service) UpdateObjMeta(ctx context.Context, in *pb.UpdateObjMetaReque
 	}
 
 	out.Msg = "update object meta data successfully."
-*/
+	*/
 	return nil
 }
 
 func CheckReqObjMeta(req map[string]string, valid map[string]struct{}) (map[string]interface{}, error) {
-/*	ret := make(map[string]interface{})
-	for k, v := range req {
-		if _, ok := valid[k]; !ok {
-			log.Errorf("s3 service check object metadata failed, invalid key: %s.\n", k)
-			return nil, BadRequest
-		}
-		if k == "tier" {
-			v1, err := strconv.Atoi(v)
-			if err != nil {
-				log.Errorf("s3 service check object metadata failed, invalid tier: %s.\n", v)
+	/*	ret := make(map[string]interface{})
+		for k, v := range req {
+			if _, ok := valid[k]; !ok {
+				log.Errorf("s3 service check object metadata failed, invalid key: %s.\n", k)
 				return nil, BadRequest
 			}
-			ret[k] = v1
+			if k == "tier" {
+				v1, err := strconv.Atoi(v)
+				if err != nil {
+					log.Errorf("s3 service check object metadata failed, invalid tier: %s.\n", v)
+					return nil, BadRequest
+				}
+				ret[k] = v1
 
-			// update storage class accordingly
-			name, err := getNameFromTier(int32(v1))
-			if err != nil {
+				// update storage class accordingly
+				name, err := getNameFromTier(int32(v1))
+				if err != nil {
 
-				return nil, InternalError
+					return nil, InternalError
+				} else {
+					ret["storageclass"] = name
+				}
 			} else {
-				ret["storageclass"] = name
+				ret[k] = v
 			}
-		} else {
-			ret[k] = v
 		}
-	}
 
-	return ret, NoError
-*/
-        return nil, nil
+		return ret, NoError
+	*/
+	return nil, nil
 }
 
-func (b *s3Service) GetBackendTypeByTier(ctx context.Context, in *pb.GetBackendTypeByTierRequest, out *pb.GetBackendTypeByTierResponse) error {
+func (s *s3Service) GetBackendTypeByTier(ctx context.Context, in *pb.GetBackendTypeByTierRequest, out *pb.GetBackendTypeByTierResponse) error {
 	for k, v := range Int2ExtTierMap {
 		for k1, _ := range *v {
 			if k1 == in.Tier {
@@ -527,19 +524,19 @@ func (b *s3Service) GetBackendTypeByTier(ctx context.Context, in *pb.GetBackendT
 	return nil
 }
 
-func (b *s3Service) AddUploadRecord(ctx context.Context, record *pb.MultipartUploadRecord, out *pb.BaseResponse) error {
+func (s *s3Service) AddUploadRecord(ctx context.Context, record *pb.MultipartUploadRecord, out *pb.BaseResponse) error {
 	log.Infof("add multipart upload record")
 
 	return nil
 }
 
-func (b *s3Service) DeleteUploadRecord(ctx context.Context, record *pb.MultipartUploadRecord, out *pb.BaseResponse) error {
+func (s *s3Service) DeleteUploadRecord(ctx context.Context, record *pb.MultipartUploadRecord, out *pb.BaseResponse) error {
 	log.Infof("delete multipart upload record")
 
 	return nil
 }
 
-func (b *s3Service) CountObjects(ctx context.Context, in *pb.ListObjectsRequest, out *pb.CountObjectsResponse) error {
+func (s *s3Service) CountObjects(ctx context.Context, in *pb.ListObjectsRequest, out *pb.CountObjectsResponse) error {
 	log.Info("Count objects is called in s3 service.")
 
 	countInfo := ObjsCountInfo{}
@@ -551,4 +548,13 @@ func (b *s3Service) CountObjects(ctx context.Context, in *pb.ListObjectsRequest,
 	out.Size = countInfo.Size
 
 	return nil
+}
+
+func HandleS3Error(err error, out *pb.BaseResponse) {
+	s3err, ok := err.(S3ErrorCode)
+	if ok {
+		out.ErrorCode = int32(ErrorCodeResponse[s3err].HttpStatusCode)
+	} else {
+		out.ErrorCode = int32(ErrorCodeResponse[ErrInternalError].HttpStatusCode)
+	}
 }

@@ -156,6 +156,7 @@ const (
 	ErrGetBackendFailed
 	ErrUnmarshalFailed
 	ErrGetBucketFailed
+	ErrDBError
 )
 
 // error code to APIError structure, these fields carry respective
@@ -705,6 +706,11 @@ var ErrorCodeResponse = map[S3ErrorCode]S3ErrorStruct{
 	ErrGetBucketFailed: {
 		AwsErrorCode: "GetBucketFailed",
 		Description: "Bucket is not exist, or get it failed.",
+		HttpStatusCode: http.StatusInternalServerError,
+	},
+	ErrDBError: {
+		AwsErrorCode: "InternalError",
+		Description: "DB error.",
 		HttpStatusCode: http.StatusInternalServerError,
 	},
 }

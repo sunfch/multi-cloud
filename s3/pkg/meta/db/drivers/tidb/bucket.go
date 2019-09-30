@@ -1,27 +1,31 @@
 package tidbclient
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
+	"strconv"
+	"strings"
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/globalsign/mgo/bson"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/opensds/multi-cloud/api/pkg/common"
 	. "github.com/opensds/multi-cloud/s3/error"
+	helper "github.com/opensds/multi-cloud/s3/pkg/helper"
 	. "github.com/opensds/multi-cloud/s3/pkg/meta/types"
 	pb "github.com/opensds/multi-cloud/s3/proto"
-	"context"
-	"github.com/globalsign/mgo/bson"
-	"github.com/opensds/multi-cloud/api/pkg/common"
+	log "github.com/sirupsen/logrus"
 )
 
 func (t *TidbClient) GetBucket(ctx context.Context, bucketName string) (bucket *Bucket, err error) {
 	log.Infof("get bucket[%s] from tidb ...\n", bucketName)
 	var acl, cors, lc, policy, replication, createTime string
 	var updateTime sql.NullString
+
 	sqltext := "select bucketname,tenantid,createtime,usages,acl,cors,lc,policy,versioning,replication,update_time " +
 		"from buckets where bucketname=?;"
-	tmp := &Bucket{Bucket:&pb.Bucket{}}
+	tmp := &Bucket{Bucket: &pb.Bucket{}}
 	err = t.Client.QueryRow(sqltext, bucketName).Scan(
 		&tmp.Name,
 		&tmp.TenantId,
@@ -35,40 +39,45 @@ func (t *TidbClient) GetBucket(ctx context.Context, bucketName string) (bucket *
 		&replication,
 		&updateTime,
 	)
-	if err != nil && err == sql.ErrNoRows {
-		err = ErrNoSuchBucket
-		return
-	} else if err != nil {
+	if err != nil {
+		err = handleDBError(err)
 		return
 	}
+
 	ct, err := time.Parse(TIME_LAYOUT_TIDB, createTime)
 	if err != nil {
+		err = handleDBError(err)
 		return
 	}
 	tmp.CreateTime = ct.Unix()
 
 	err = json.Unmarshal([]byte(acl), &tmp.Acl)
 	if err != nil {
+		err = handleDBError(err)
 		return
 	}
 	err = json.Unmarshal([]byte(cors), &tmp.Cors)
 	if err != nil {
+		err = handleDBError(err)
 		return
 	}
 	err = json.Unmarshal([]byte(lc), &tmp.LifecycleConfiguration)
 	if err != nil {
+		err = handleDBError(err)
 		return
 	}
 	err = json.Unmarshal([]byte(policy), &tmp.BucketPolicy)
 	if err != nil {
+		err = handleDBError(err)
 		return
 	}
 	err = json.Unmarshal([]byte(replication), &tmp.ReplicationConfiguration)
 	if err != nil {
+		err = handleDBError(err)
 		return
 	}
-	bucket = tmp
-	return
+
+	return tmp, nil
 }
 
 func (t *TidbClient) GetBuckets(ctx context.Context) (buckets []*Bucket, err error) {
@@ -96,12 +105,13 @@ func (t *TidbClient) GetBuckets(ctx context.Context) (buckets []*Bucket, err err
 		err = nil
 		return
 	} else if err != nil {
+		err = handleDBError(err)
 		return
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		tmp := Bucket{Bucket:&pb.Bucket{}}
+		tmp := Bucket{Bucket: &pb.Bucket{}}
 		var acl, cors, lc, policy, createTime, replication string
 		var updateTime sql.NullString
 		err = rows.Scan(
@@ -120,32 +130,39 @@ func (t *TidbClient) GetBuckets(ctx context.Context) (buckets []*Bucket, err err
 			&replication,
 			&updateTime)
 		if err != nil {
+			err = handleDBError(err)
 			return
 		}
 		var ctime time.Time
 		ctime, err = time.ParseInLocation(TIME_LAYOUT_TIDB, createTime, time.Local)
 		if err != nil {
+			err = handleDBError(err)
 			return
 		}
 		tmp.CreateTime = ctime.Unix()
 		err = json.Unmarshal([]byte(acl), &tmp.Acl)
 		if err != nil {
+			err = handleDBError(err)
 			return
 		}
 		err = json.Unmarshal([]byte(cors), &tmp.Cors)
 		if err != nil {
+			err = handleDBError(err)
 			return
 		}
 		err = json.Unmarshal([]byte(lc), &tmp.LifecycleConfiguration)
 		if err != nil {
+			err = handleDBError(err)
 			return
 		}
 		err = json.Unmarshal([]byte(policy), &tmp.BucketPolicy)
 		if err != nil {
+			err = handleDBError(err)
 			return
 		}
 		err = json.Unmarshal([]byte(replication), &tmp.ReplicationConfiguration)
 		if err != nil {
+			err = handleDBError(err)
 			return
 		}
 		buckets = append(buckets, &tmp)
@@ -165,7 +182,7 @@ func (t *TidbClient) PutBucket(ctx context.Context, bucket *Bucket) error {
 
 	_, err := t.Client.Exec(sql, args...)
 	if err != nil {
-		return err
+		return handleDBError(err)
 	}
 
 	return nil
@@ -177,18 +194,24 @@ func (t *TidbClient) CheckAndPutBucket(ctx context.Context, bucket *Bucket) (boo
 	if err == nil {
 		processed = false
 		return processed, err
-	} else if err != nil && err != ErrNoSuchBucket {
+	} else if err != ErrNoSuchKey {
 		processed = false
 		return processed, err
 	} else {
 		processed = true
 	}
+	log.Infof("insert bucket[%s] into database.\n", bucket.Name)
 	sql, args := bucket.GetCreateSql()
 	_, err = t.Client.Exec(sql, args...)
+	if err != nil {
+		err = handleDBError(err)
+	}
 	return processed, err
 }
-/*
-func (t *TidbClient) ListObjects(bucketName, marker, verIdMarker, prefix, delimiter string, versioned bool, maxKeys int) (retObjects []*Object, prefixes []string, truncated bool, nextMarker, nextVerIdMarker string, err error) {
+
+func (t *TidbClient) ListObjects(ctx context.Context, bucketName, marker, verIdMarker, prefix, delimiter string,
+	versioned bool, maxKeys int) (retObjects []*Object, prefixes []string, truncated bool, nextMarker,
+	nextVerIdMarker string, err error) {
 	if versioned {
 		return
 	}
@@ -203,13 +226,16 @@ func (t *TidbClient) ListObjects(bucketName, marker, verIdMarker, prefix, delimi
 		var sqltext string
 		var rows *sql.Rows
 		if marker == "" {
-			sqltext = "select bucketname,name,version,nullversion,deletemarker from objects where bucketName=? order by bucketname,name,version limit ?;"
+			sqltext = "select bucketname,name,version,nullversion,deletemarker from objects where bucketName=? " +
+				"order by bucketname,name,version limit ?;"
 			rows, err = t.Client.Query(sqltext, bucketName, maxKeys)
 		} else {
-			sqltext = "select bucketname,name,version,nullversion,deletemarker from objects where bucketName=? and name >=? order by bucketname,name,version limit ?,?;"
+			sqltext = "select bucketname,name,version,nullversion,deletemarker from objects where bucketName=? " +
+				"and name >=? order by bucketname,name,version limit ?,?;"
 			rows, err = t.Client.Query(sqltext, bucketName, marker, objectNum[marker], objectNum[marker]+maxKeys)
 		}
 		if err != nil {
+			err = handleDBError(err)
 			return
 		}
 		defer rows.Close()
@@ -227,6 +253,7 @@ func (t *TidbClient) ListObjects(bucketName, marker, verIdMarker, prefix, delimi
 				&deletemarker,
 			)
 			if err != nil {
+				err = handleDBError(err)
 				return
 			}
 			//prepare next marker
@@ -279,8 +306,9 @@ func (t *TidbClient) ListObjects(bucketName, marker, verIdMarker, prefix, delimi
 			}
 			var o *Object
 			Strver := strconv.FormatUint(version, 10)
-			o, err = t.GetObject(bucketname, name, Strver)
+			o, err = t.GetObject(ctx, bucketname, name, Strver)
 			if err != nil {
+				err = handleDBError(err)
 				return
 			}
 			count += 1
@@ -307,12 +335,12 @@ func (t *TidbClient) ListObjects(bucketName, marker, verIdMarker, prefix, delimi
 	prefixes = helper.Keys(commonPrefixes)
 	return
 }
-*/
+
 func (t *TidbClient) DeleteBucket(ctx context.Context, bucket *Bucket) error {
 	sqltext := "delete from buckets where bucketname=?;"
 	_, err := t.Client.Exec(sqltext, bucket.Name)
 	if err != nil {
-		return err
+		return handleDBError(err)
 	}
 	return nil
 }
@@ -335,6 +363,9 @@ func (t *TidbClient) UpdateUsage(ctx context.Context, bucketName string, size in
 
 	sql := "update buckets set usages=? where bucketname=?;"
 	_, err = sqlTx.Exec(sql, size, bucketName)
+	if err != nil {
+		err = handleDBError(err)
+	}
 	return
 }
 
@@ -356,7 +387,7 @@ func (t *TidbClient) UpdateUsages(ctx context.Context, usages map[string]int64, 
 	st, err := sqlTx.Prepare(sqlStr)
 	if err != nil {
 		log.Error("failed to prepare statment with sql: ", sqlStr, ", err: ", err)
-		return err
+		return ErrDBError
 	}
 	defer st.Close()
 
@@ -364,7 +395,7 @@ func (t *TidbClient) UpdateUsages(ctx context.Context, usages map[string]int64, 
 		_, err = st.Exec(usage, bucket)
 		if err != nil {
 			log.Error("failed to update usage for bucket: ", bucket, " with usage: ", usage, ", err: ", err)
-			return err
+			return ErrDBError
 		}
 	}
 	return nil

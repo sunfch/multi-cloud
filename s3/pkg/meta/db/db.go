@@ -2,11 +2,12 @@ package db
 
 import (
 	"context"
-	//"github.com/opensds/multi-cloud/api/pkg/s3/datatype"
+
 	. "github.com/opensds/multi-cloud/s3/pkg/meta/types"
 )
 
 //DB Adapter Interface
+//Error returned by those functions should be ErrDBError, ErrNoSuchKey or ErrInternalError
 type DBAdapter interface {
 	//Transaction
 	NewTrans() (tx interface{}, err error)
@@ -27,7 +28,9 @@ type DBAdapter interface {
 	PutBucket(ctx context.Context, bucket *Bucket) error
 	CheckAndPutBucket(ctx context.Context, bucket *Bucket) (bool, error)
 	DeleteBucket(ctx context.Context, bucket *Bucket) error
-	//ListObjects(bucketName, marker, verIdMarker, prefix, delimiter string, versioned bool, maxKeys int) (retObjects []*Object, prefixes []string, truncated bool, nextMarker, nextVerIdMarker string, err error)
+	ListObjects(ctx context.Context, bucketName, marker, verIdMarker, prefix, delimiter string, versioned bool,
+		maxKeys int) (retObjects []*Object, prefixes []string, truncated bool, nextMarker, nextVerIdMarker string,
+		err error)
 	UpdateUsage(ctx context.Context, bucketName string, size int64, tx interface{}) error
 	UpdateUsages(ctx context.Context, usages map[string]int64, tx interface{}) error
 
@@ -47,18 +50,18 @@ type DBAdapter interface {
 	GetCluster(fsid, pool string) (cluster Cluster, err error)
 	//lc
 	/*
-		PutBucketToLifeCycle(lifeCycle LifeCycle) error
-		RemoveBucketFromLifeCycle(bucket *Bucket) error
-		ScanLifeCycle(limit int, marker string) (result ScanLifeCycleResult, err error)
-		//user
-		GetUserBuckets(userId string) (buckets []string, err error)
-		AddBucketForUser(bucketName, userId string) (err error)
-		RemoveBucketForUser(bucketName string, userId string) (err error)
-		//gc
-		PutObjectToGarbageCollection(object *Object, tx interface{}) error
-		ScanGarbageCollection(limit int, startRowKey string) ([]GarbageCollection, error)
-		RemoveGarbageCollection(garbage GarbageCollection) error
+			PutBucketToLifeCycle(lifeCycle LifeCycle) error
+			RemoveBucketFromLifeCycle(bucket *Bucket) error
+			ScanLifeCycle(limit int, marker string) (result ScanLifeCycleResult, err error)
+			//user
+			GetUserBuckets(userId string) (buckets []string, err error)
+			AddBucketForUser(bucketName, userId string) (err error)
+			RemoveBucketForUser(bucketName string, userId string) (err error)
+			//gc
+			PutObjectToGarbageCollection(object *Object, tx interface{}) error
+			ScanGarbageCollection(limit int, startRowKey string) ([]GarbageCollection, error)
+			RemoveGarbageCollection(garbage GarbageCollection) error
 
-	AddBucketForUser(bucketName, userId string) (err error)
+		AddBucketForUser(bucketName, userId string) (err error)
 	*/
 }

@@ -2,13 +2,13 @@ package meta
 
 import (
 	"fmt"
-
-	log "github.com/sirupsen/logrus"
+	"context"
+	
 	. "github.com/opensds/multi-cloud/s3/error"
 	"github.com/opensds/multi-cloud/s3/pkg/helper"
-	. "github.com/opensds/multi-cloud/s3/pkg/meta/types"
 	"github.com/opensds/multi-cloud/s3/pkg/meta/redis"
-	"context"
+	. "github.com/opensds/multi-cloud/s3/pkg/meta/types"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -32,11 +32,16 @@ func (m *Meta) GetBucket(ctx context.Context, bucketName string, willNeed bool) 
 
 	b, err := m.Cache.Get(redis.BucketTable, BUCKET_CACHE_PREFIX, bucketName, getBucket, toBucket, willNeed)
 	if err != nil {
+		if err == ErrNoSuchKey {
+			err = ErrNoSuchBucket
+		} else if err != ErrDBError {
+			err = ErrInternalError
+		}
 		return
 	}
 	bucket, ok := b.(*Bucket)
 	if !ok {
-		log.Debug("Cast b failed:", b)
+		log.Error("Cast b failed:", b)
 		err = ErrInternalError
 		return
 	}

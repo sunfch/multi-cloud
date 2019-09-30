@@ -108,8 +108,8 @@ func (b Bucket) GetCreateSql() (string, []interface{}) {
 	lc, _ := json.Marshal(b.LifecycleConfiguration)
 	bucket_policy, _ := json.Marshal(b.BucketPolicy)
 	replia, _ := json.Marshal(b.ReplicationConfiguration)
-	createTime := time.Unix(b.CreateTime, 0).Format(TIME_LAYOUT_TIDB)
-	//createTime := time.Now().Format(TIME_LAYOUT_TIDB)
+	//createTime := time.Unix(b.CreateTime, 0).Format(TIME_LAYOUT_TIDB)
+	createTime := time.Now().Format(TIME_LAYOUT_TIDB)
 	log.Infof("createTime=%v\n", createTime)
 
 	sql := "insert into buckets(bucketname,tenantid,userid,createtime,usages,location,acl,cors,lc,policy,versioning," +

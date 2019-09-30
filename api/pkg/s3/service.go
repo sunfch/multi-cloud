@@ -23,10 +23,9 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/micro/go-micro/client"
 	"github.com/opensds/multi-cloud/backend/proto"
-	log "github.com/sirupsen/logrus"
 	backendpb "github.com/opensds/multi-cloud/backend/proto"
 	"github.com/opensds/multi-cloud/s3/proto"
-	//"net/http"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -116,9 +115,9 @@ func (s *APIService) isBackendExist(ctx context.Context, backendName string) boo
 	flag := false
 
 	backendRep, backendErr := s.backendClient.ListBackend(ctx, &backendpb.ListBackendRequest{
-		Offset:  0,
-		Limit:   math.MaxInt32,
-		Filter:  map[string]string{"name": backendName}})
+		Offset: 0,
+		Limit:  math.MaxInt32,
+		Filter: map[string]string{"name": backendName}})
 	log.Infof("backendErr is %v:", backendErr)
 	if backendErr != nil {
 		log.Infof("Get backend[name=%s] failed.", backendName)

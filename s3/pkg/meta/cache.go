@@ -1,11 +1,11 @@
 package meta
 
 import (
-	"database/sql"
 	"errors"
-	log "github.com/sirupsen/logrus"
+
 	"github.com/opensds/multi-cloud/s3/pkg/helper"
 	"github.com/opensds/multi-cloud/s3/pkg/meta/redis"
+	log "github.com/sirupsen/logrus"
 )
 
 type CacheType int
@@ -118,9 +118,6 @@ func (m *enabledSimpleMetaCache) Get(
 	if onCacheMiss != nil {
 		obj, err := onCacheMiss()
 		if err != nil {
-			if err != sql.ErrNoRows {
-				log.Errorf("exec onCacheMiss() err:%v\n", err)
-			}
 			return nil, err
 		}
 
