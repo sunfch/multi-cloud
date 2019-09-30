@@ -156,7 +156,7 @@ func (cluster *CephStorage) doSmallPut(poolname string, oid string, data io.Read
 	tpool := time.Now()
 	dur := tpool.Sub(tstart).Nanoseconds() / 1000000
 	if dur >= 10 {
-		log.Infof("slow log: doSmallPut OpenPool(%s, %s) spent %d", poolname, oid, dur)
+		log.Warnf("slow log: doSmallPut OpenPool(%s, %s) spent %d", poolname, oid, dur)
 	}
 
 	buffer := cluster.BufPool.Get().(*bytes.Buffer)
@@ -173,7 +173,7 @@ func (cluster *CephStorage) doSmallPut(poolname string, oid string, data io.Read
 	tread := time.Now()
 	dur = tread.Sub(tpool).Nanoseconds() / 1000000
 	if dur >= 10 {
-		log.Infof("slow log: doSmallPut read body(%s, %s) spent %d", poolname, oid, dur)
+		log.Warnf("slow log: doSmallPut read body(%s, %s) spent %d", poolname, oid, dur)
 	}
 
 	err = pool.WriteSmallObject(oid, buffer.Bytes())
@@ -183,12 +183,12 @@ func (cluster *CephStorage) doSmallPut(poolname string, oid string, data io.Read
 	twrite := time.Now()
 	dur = twrite.Sub(tread).Nanoseconds() / 1000000
 	if dur >= 50 {
-		log.Infof("slow log: doSmallPut ceph write(%s, %s) spent %d", poolname, oid, dur)
+		log.Warnf("slow log: doSmallPut ceph write(%s, %s) spent %d", poolname, oid, dur)
 	}
 
 	dur = twrite.Sub(tstart).Nanoseconds() / 1000000
 	if dur >= 100 {
-		log.Infof("slow log: doSmallPut fin(%s, %s) spent %d", poolname, oid, dur)
+		log.Warnf("slow log: doSmallPut fin(%s, %s) spent %d", poolname, oid, dur)
 	}
 
 	return size, nil

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
-	"os"
 	"sync"
 	"time"
 
@@ -20,8 +19,6 @@ import (
 type YigDriverFactory struct {
 	Drivers    sync.Map
 	cfgWatcher *config.ConfigWatcher
-	// for common log file.
-	logfile *os.File
 }
 
 func (ydf *YigDriverFactory) CreateDriver(backend *backendpb.BackendDetail) (driver.StorageDriver, error) {
@@ -30,7 +27,7 @@ func (ydf *YigDriverFactory) CreateDriver(backend *backendpb.BackendDetail) (dri
 		return driver.(*storage.YigStorage), nil
 	}
 
-	log.Errorf("no storage driver for yig endpoint %s", backend.Endpoint)
+	log.Infof("no storage driver for yig endpoint %s", backend.Endpoint)
 	return nil, errors.New(fmt.Sprintf("no storage driver for yig endpoint: %s", backend.Endpoint))
 }
 
@@ -80,8 +77,6 @@ func (ydf *YigDriverFactory) Close() {
 	for _, k := range keys {
 		ydf.Drivers.Delete(k)
 	}
-
-	ydf.logfile.Close()
 }
 
 func (ydf *YigDriverFactory) driverInit(cfg *config.Config) error {

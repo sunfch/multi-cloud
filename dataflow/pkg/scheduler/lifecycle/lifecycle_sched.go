@@ -322,9 +322,7 @@ func schedSortedActionsRules(inRules *InterRules) {
 					log.Infof("lifecycle action: object=[%s] type=[%d] source-tier=[%d] target-tier=[%d] " +
 						"source-backend=[%s] target-backend=[%s].\n", obj.ObjectKey, r.ActionType, obj.Tier, r.Tier,
 						obj.Location, r.Backend)
-					//actx := c.Context{TenantId: obj.TenantId, UserId: obj.UserId}
 					acreq := datamover.LifecycleActionRequest{
-						//Actx: actx.ToJson(),
 						ObjKey:        obj.ObjectKey,
 						BucketName:    obj.BucketName,
 						Action:        action,

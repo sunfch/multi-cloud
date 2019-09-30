@@ -742,6 +742,7 @@ func (ad *adapter) ListJob(ctx context.Context, limit int, offset int, query int
 		return nil, nil
 	} else if err != nil {
 		log.Errorf("get jobs from database failed,err:%v.\n", err)
+		return nil, ERR_DB_ERR
 	}
 	return jobs, nil
 }

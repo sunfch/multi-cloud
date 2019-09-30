@@ -382,5 +382,5 @@ func (p *TriggerExecutor) Run() {
 	jobId, err := Run(p.planId, p.tenantId, p.userId)
 	if err != nil {
 		log.Errorf("PlanExcutor run plan(%s) error, jobid:%s, error:%v", p.planId, jobId, err)
-}
+	}
 }

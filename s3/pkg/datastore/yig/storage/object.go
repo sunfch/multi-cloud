@@ -58,11 +58,11 @@ func (yig *YigStorage) PickOneClusterAndPool(bucket string, object string, size 
 		if needCheck {
 			pct, err := yig.DataStorage[fsid].GetUsedSpacePercent()
 			if err != nil {
-				log.Errorf("Error getting used space: ", err, "fsid: ", fsid)
+				log.Error("Error getting used space: ", err, "fsid: ", fsid)
 				continue
 			}
 			if pct > CLUSTER_MAX_USED_SPACE_PERCENT {
-				log.Infof("Cluster used space exceed ", CLUSTER_MAX_USED_SPACE_PERCENT, fsid)
+				log.Error("Cluster used space exceed ", CLUSTER_MAX_USED_SPACE_PERCENT, fsid)
 				continue
 			}
 		}
@@ -391,7 +391,7 @@ func (yig *YigStorage) Put(ctx context.Context, stream io.Reader, obj *pb.Object
 	}
 
 	calculatedMd5 := hex.EncodeToString(md5Writer.Sum(nil))
-	log.Infof("### calculatedMd5:", calculatedMd5, "userMd5:", userMd5)
+	log.Info("### calculatedMd5:", calculatedMd5, "userMd5:", userMd5)
 	if userMd5 != "" && userMd5 != calculatedMd5 {
 		RecycleQueue <- maybeObjectToRecycle
 		return result, ErrBadDigest

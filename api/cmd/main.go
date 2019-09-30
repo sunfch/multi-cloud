@@ -20,8 +20,9 @@ import (
 	"github.com/micro/go-web"
 	"github.com/opensds/multi-cloud/api/pkg/backend"
 	"github.com/opensds/multi-cloud/api/pkg/dataflow"
-	"github.com/opensds/multi-cloud/api/pkg/filters/auth"
 	"github.com/opensds/multi-cloud/api/pkg/filters/context"
+	"github.com/opensds/multi-cloud/api/pkg/filters/signature/signer"
+	"github.com/opensds/multi-cloud/api/pkg/filters/auth"
 	"github.com/opensds/multi-cloud/api/pkg/filters/logging"
 	"github.com/opensds/multi-cloud/api/pkg/s3"
 	"github.com/opensds/multi-cloud/api/pkg/utils/obs"
@@ -52,16 +53,16 @@ func main() {
 	ws.Filter(logging.FilterFactory())
 	ws.Filter(context.FilterFactory())
 	ws.Filter(auth.FilterFactory())
-	
+
 	s3ws := new(restful.WebService)
 	s3ws.Path("/v1/s3")
 	s3ws.Doc("OpenSDS Multi-Cloud API")
-	//s3ws.Consumes(restful.MIME_XML)
+	s3ws.Consumes(restful.MIME_XML)
 	s3ws.Produces(restful.MIME_XML)
 
 	s3ws.Filter(logging.FilterFactory())
 	s3ws.Filter(context.FilterFactory())
-	//s3ws.Filter(signer.FilterFactory())
+	s3ws.Filter(signer.FilterFactory())
 	s3.RegisterRouter(s3ws)
 
 	wc.Add(ws)

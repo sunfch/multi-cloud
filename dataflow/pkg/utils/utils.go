@@ -84,18 +84,17 @@ func GetTenantId(ctx context.Context) (string, error) {
 }
 
 func GetUserId(ctx context.Context) (string, error) {
-	// if context is admin, no need filter by tenantId.
 	md, ok := metadata.FromContext(ctx)
 	if !ok {
 		log.Log("get context failed")
 		return "", errors.New("get context failed")
 	}
 
-	tenantId, ok := md[common.CTX_KEY_USER_ID]
+	userId, ok := md[common.CTX_KEY_USER_ID]
 	if !ok {
 		log.Log("get userid failed")
 		return "", errors.New("get userid failed")
 	}
 
-	return tenantId, nil
+	return userId, nil
 }

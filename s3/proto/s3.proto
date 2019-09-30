@@ -8,7 +8,6 @@ service S3 {
 	rpc GetBucket(BaseRequest) returns (Bucket) {}
 	rpc ListObjects(ListObjectsRequest) returns (ListObjectResponse) {}
 	rpc CountObjects(ListObjectsRequest) returns (CountObjectsResponse) {}
-	//rpc CreateObject(Object) returns (BaseResponse) {}
 	rpc PutObject(stream PutObjectRequest) returns (PutObjectResponse) {}
 	rpc UpdateObject(Object) returns (BaseResponse) {}
 	rpc GetObject(GetObjectInput) returns (Object) {}
@@ -415,13 +414,14 @@ message DeleteLifecycleInput {
 	string ruleID = 2;
 }
 
-// TODO: Define parameter refer to data body
 message MultipartUploadRecord {
 	string objectKey = 1;
 	string bucket	= 2;
 	string backend	= 3;
 	string uploadId	= 4;
 	int64 initTime	= 5;
+	string tenantId = 6;
+	string userId = 7;
 }
 
 message ListBucketPartsRequest {

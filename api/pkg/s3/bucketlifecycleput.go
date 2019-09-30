@@ -134,7 +134,7 @@ func (s *APIService) BucketLifecyclePut(request *restful.Request, response *rest
 			return
 		} else {
 			dupIdCheck := make(map[string]interface{})
-			s3RuleArr := make([]*s3.LifecycleRule, 0)
+			s3RulePtrArr := make([]*s3.LifecycleRule, 0)
 			for _, rule := range createLifecycleConf.Rule {
 				s3Rule := s3.LifecycleRule{}
 
@@ -203,10 +203,10 @@ func (s *APIService) BucketLifecyclePut(request *restful.Request, response *rest
 				s3Rule.AbortIncompleteMultipartUpload = convertRuleUploadToS3Upload(rule.AbortIncompleteMultipartUpload)
 
 				// add to the s3 array
-				s3RuleArr = append(s3RuleArr, &s3Rule)
+				s3RulePtrArr = append(s3RulePtrArr, &s3Rule)
 			}
 			// assign lifecycle rules to s3 bucket
-			bucket.LifecycleConfiguration = s3RuleArr
+			bucket.LifecycleConfiguration = s3RulePtrArr
 		}
 	} else {
 		log.Info("no request body provided for creating lifecycle configuration")
