@@ -37,6 +37,7 @@ It has these top-level messages:
 	AbortMultipartUpload
 	LifecycleRule
 	ReplicationInfo
+	Acl
 	Bucket
 	Partion
 	Version

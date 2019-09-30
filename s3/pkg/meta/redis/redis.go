@@ -37,7 +37,7 @@ const (
 var MetadataTables = []RedisDatabase{UserTable, BucketTable, ObjectTable, ClusterTable}
 var DataTables = []RedisDatabase{FileTable}
 
-func Initialize(cfg *config.CommonConfig) {
+func Initialize(cfg *config.CacheConfig) {
 	redisClient = NewRedisCli()
 	redisClient.Init(cfg)
 }

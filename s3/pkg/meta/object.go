@@ -1,12 +1,13 @@
 package meta
 
 import (
+	"context"
+
 	. "github.com/opensds/multi-cloud/s3/error"
 	"github.com/opensds/multi-cloud/s3/pkg/helper"
-	. "github.com/opensds/multi-cloud/s3/pkg/meta/types"
 	"github.com/opensds/multi-cloud/s3/pkg/meta/redis"
+	. "github.com/opensds/multi-cloud/s3/pkg/meta/types"
 	log "github.com/sirupsen/logrus"
-	"context"
 )
 
 const (
@@ -20,8 +21,8 @@ func (m *Meta) GetObject(ctx context.Context, bucketName string, objectName stri
 		if err != nil {
 			return
 		}
-		log.Debug("GetObject object.Name:", object.Name)
-		if object.Name != objectName {
+		log.Infoln("GetObject object.Name:", object.ObjectKey)
+		if object.ObjectKey != objectName {
 			err = ErrNoSuchKey
 			return
 		}
@@ -115,12 +116,12 @@ func (m *Meta) PutObject(ctx context.Context, object *Object, multipart *Multipa
 		}
 	}*/
 
-	if updateUsage {
+	/*if updateUsage {
 		err = m.UpdateUsage(ctx, object.BucketName, object.Size)
 		if err != nil {
 			return err
 		}
-	}
+	}*/
 	err = m.Db.CommitTrans(tx)
 	return nil
 }

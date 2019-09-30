@@ -11,7 +11,6 @@ import (
 	"github.com/micro/go-micro/metadata"
 	"github.com/opensds/multi-cloud/api/pkg/common"
 	. "github.com/opensds/multi-cloud/s3/error"
-	"github.com/opensds/multi-cloud/s3/pkg/helper"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -21,10 +20,9 @@ type TidbClient struct {
 	Client *sql.DB
 }
 
-func NewTidbClient() *TidbClient {
-	log.Infof("TidbInfo:%+v\n", helper.CONFIG.TidbInfo)
+func NewTidbClient(dbInfo string) *TidbClient {
 	cli := &TidbClient{}
-	conn, err := sql.Open("mysql", helper.CONFIG.TidbInfo)
+	conn, err := sql.Open("mysql", dbInfo)
 	if err != nil {
 		log.Errorf("connect to tidb failed, err:%v\n", err)
 		os.Exit(1)

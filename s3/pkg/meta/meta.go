@@ -10,6 +10,11 @@ const (
 	ENCRYPTION_KEY_LENGTH = 32 // 32 bytes for AES-"256"
 )
 
+type MetaConfig struct {
+	CacheType     CacheType
+	TidbInfo      string
+}
+
 type Meta struct {
 	Db db.DBAdapter
 	Logger *log.Logger
@@ -22,10 +27,10 @@ func (m *Meta) Stop() {
 	}
 }
 
-func New(myCacheType CacheType) *Meta {
+func New(cfg MetaConfig) *Meta {
 	meta := Meta{
-		Cache:  newMetaCache(myCacheType),
+		Cache:  newMetaCache(cfg.CacheType),
 	}
-	meta.Db = tidbclient.NewTidbClient()
+	meta.Db = tidbclient.NewTidbClient(cfg.TidbInfo)
 	return &meta
 }

@@ -5,7 +5,6 @@ import (
 	. "github.com/opensds/multi-cloud/s3/pkg/meta/types"
 	"math"
 	"strconv"
-	"time"
 	"encoding/hex"
 	"github.com/xxtea/xxtea-go/xxtea"
 	. "github.com/opensds/multi-cloud/s3/error"
@@ -30,8 +29,7 @@ func (t *TidbClient) GetObject(ctx context.Context, bucketName, objectName, vers
 		&iname,
 		&iversion,
 		&object.Location,
-		&object.Pool,
-		&object.OwnerId,
+		&object.TenantId,
 		&object.Size,
 		&object.ObjectId,
 		&lastModifiedTime,
@@ -41,9 +39,9 @@ func (t *TidbClient) GetObject(ctx context.Context, bucketName, objectName, vers
 		&acl,
 		&object.NullVersion,
 		&object.DeleteMarker,
-		&object.SseType,
-		&object.EncryptionKey,
-		&object.InitializationVector,
+		&object.ServerSideEncryption.SseType,
+		&object.ServerSideEncryption.EncryptionKey,
+		&object.ServerSideEncryption.InitilizationVector,
 		&object.Type,
 	)
 	if err == sql.ErrNoRows {
@@ -53,11 +51,9 @@ func (t *TidbClient) GetObject(ctx context.Context, bucketName, objectName, vers
 		return
 	}
 	rversion := math.MaxUint64 - iversion
-	s := int64(rversion) / 1e9
-	ns := int64(rversion) % 1e9
-	object.LastModifiedTime = time.Unix(s, ns)
+	object.LastModified = int64(rversion)
 	object.GetRowkey()
-	object.Name = objectName
+	object.ObjectKey = objectName
 	object.BucketName = bucketName
 
 	/*err = json.Unmarshal([]byte(acl), &object.ACL)
@@ -145,14 +141,14 @@ func (t *TidbClient) PutObject(ctx context.Context, object *Object, tx interface
 			}
 		}()
 	}
-	/*sqlTx, _ = tx.(*sql.Tx)
+	sqlTx, _ = tx.(*sql.Tx)
 	sql, args := object.GetCreateSql()
 	_, err = sqlTx.Exec(sql, args...)
-	if object.Parts != nil {
-		v := math.MaxUint64 - uint64(object.LastModifiedTime.UnixNano())
+	/*if object.Parts != nil {
+		v := math.MaxUint64 - uint64(object.LastModified)
 		version := strconv.FormatUint(v, 10)
 		for _, p := range object.Parts {
-			psql, args := p.GetCreateSql(object.BucketName, object.Name, version)
+			psql, args := p.GetCreateSql(object.BucketName, object.ObjectKey, version)
 			_, err = sqlTx.Exec(psql, args...)
 			if err != nil {
 				return err
@@ -177,15 +173,15 @@ func (t *TidbClient) DeleteObject(ctx context.Context, object *Object, tx interf
 	}
 	sqlTx, _ = tx.(*sql.Tx)
 
-	v := math.MaxUint64 - uint64(object.LastModifiedTime.UnixNano())
+	v := math.MaxUint64 - uint64(object.LastModified)
 	version := strconv.FormatUint(v, 10)
 	sqltext := "delete from objects where name=? and bucketname=? and version=?;"
-	_, err = sqlTx.Exec(sqltext, object.Name, object.BucketName, version)
+	_, err = sqlTx.Exec(sqltext, object.ObjectKey, object.BucketName, version)
 	if err != nil {
 		return err
 	}
 	sqltext = "delete from objectpart where objectname=? and bucketname=? and version=?;"
-	_, err = sqlTx.Exec(sqltext, object.Name, object.BucketName, version)
+	_, err = sqlTx.Exec(sqltext, object.ObjectKey, object.BucketName, version)
 	if err != nil {
 		return err
 	}

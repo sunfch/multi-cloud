@@ -16,8 +16,10 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/micro/go-micro"
 	"github.com/opensds/multi-cloud/api/pkg/utils/obs"
+	_ "github.com/opensds/multi-cloud/s3/pkg/datastore"
 	//_ "github.com/opensds/multi-cloud/s3/pkg/datastore"
 	handler "github.com/opensds/multi-cloud/s3/pkg/service"
 	pb "github.com/opensds/multi-cloud/s3/proto"
@@ -25,11 +27,11 @@ import (
 	//"github.com/opensds/multi-cloud/s3/pkg/meta/redis"
 	//log "github.com/sirupsen/logrus"
 
+	"github.com/opensds/multi-cloud/s3/pkg/datastore/driver"
+	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/config"
 	"github.com/opensds/multi-cloud/s3/pkg/helper"
 	"github.com/opensds/multi-cloud/s3/pkg/meta/redis"
 	log "github.com/sirupsen/logrus"
-	"github.com/opensds/multi-cloud/s3/pkg/datastore/driver"
-	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/config"
 )
 
 func main() {
@@ -53,12 +55,11 @@ func main() {
 	log.Infof("YIG instance ID:", helper.CONFIG.InstanceId)
 
 	if helper.CONFIG.MetaCacheType > 0 || helper.CONFIG.EnableDataCache {
-		// read common config settings
-		cc, err := config.ReadCommonConfig("/etc/yig")
-		if err != nil {
-			return
+		cfg := config.CacheConfig{
+			Mode:    helper.CONFIG.RedisMode,
+			Address: helper.CONFIG.RedisAddress,
 		}
-		redis.Initialize(cc)
+		redis.Initialize(&cfg)
 	}
 
 	pb.RegisterS3Handler(service.Server(), handler.NewS3Service())

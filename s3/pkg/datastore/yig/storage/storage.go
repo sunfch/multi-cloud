@@ -41,9 +41,13 @@ type YigStorage struct {
 
 func New(cfg *config.Config) (*YigStorage, error) {
 	kms := crypto.NewKMS()
+	metaCfg := meta.MetaConfig{
+		CacheType: meta.SimpleCache,
+		TidbInfo: cfg.Database.DbUrl,
+	}
 	yig := YigStorage{
 		DataStorage: make(map[string]*CephStorage),
-		MetaStorage: meta.New(meta.EnableCache),
+		MetaStorage: meta.New(metaCfg),
 		KMS:         kms,
 		Stopping:    false,
 		WaitGroup:   new(sync.WaitGroup),
@@ -52,7 +56,6 @@ func New(cfg *config.Config) (*YigStorage, error) {
 	if CephConfigPattern == "" {
 		CephConfigPattern = DEFAULT_CEPHCONFIG_PATTERN
 	}
-
 	cephConfs, err := filepath.Glob(CephConfigPattern)
 	log.Infof("Reading Ceph conf files from %+v\n", cephConfs)
 	if err != nil || len(cephConfs) == 0 {

@@ -90,7 +90,7 @@ func (b *Bucket) GetValues() (values map[string]map[string][]byte, err error) {
 	values = map[string]map[string][]byte{
 		BUCKET_COLUMN_FAMILY: map[string][]byte{
 			"UID":        []byte(b.TenantId),
-			"ACL":        []byte(b.Acl),
+			"ACL":        []byte(b.Acl.CannedAcl),
 			"CORS":       cors,
 			"LC":         lc,
 			"createTime": []byte(time.Unix(b.CreateTime, 0).Format(CREATE_TIME_LAYOUT)),

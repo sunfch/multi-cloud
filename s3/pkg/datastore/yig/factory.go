@@ -3,17 +3,18 @@ package yig
 import (
 	"errors"
 	"fmt"
+	"math/rand"
 	"os"
 	"sync"
+	"time"
+
 	"github.com/opensds/multi-cloud/backend/pkg/utils/constants"
 	backendpb "github.com/opensds/multi-cloud/backend/proto"
 	"github.com/opensds/multi-cloud/s3/pkg/datastore/driver"
 	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/config"
 	"github.com/opensds/multi-cloud/s3/pkg/datastore/yig/storage"
-	log "github.com/sirupsen/logrus"
 	"github.com/opensds/multi-cloud/s3/pkg/meta/redis"
-	"math/rand"
-	"time"
+	log "github.com/sirupsen/logrus"
 )
 
 type YigDriverFactory struct {
@@ -42,7 +43,7 @@ func (ydf *YigDriverFactory) Init() error {
 
 	// create the driver.
 	rand.Seed(time.Now().UnixNano())
-	redis.Initialize(cc)
+	redis.Initialize(&cc.Cache)
 
 	// init config watcher.
 	watcher, err := config.NewConfigWatcher(ydf.driverInit)

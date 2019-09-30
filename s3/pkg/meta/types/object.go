@@ -18,37 +18,12 @@ import (
 	"github.com/opensds/multi-cloud/s3/pkg/helper"
 	"github.com/opensds/multi-cloud/s3/pkg/meta/util"
 	"github.com/xxtea/xxtea-go/xxtea"
+	pb "github.com/opensds/multi-cloud/s3/proto"
 )
 
 type Object struct {
+	*pb.Object
 	Rowkey           []byte // Rowkey cache
-	Name             string
-	BucketName       string
-	Location         string // which Ceph cluster this object locates
-	Pool             string // which Ceph pool this object locates
-	OwnerId          string
-	Size             int64     // file size
-	ObjectId         string    // object name in Ceph
-	LastModifiedTime time.Time // in format "2006-01-02T15:04:05.000Z"
-	Etag             string
-	ContentType      string
-	CustomAttributes map[string]string
-	//Parts            map[int]*Part
-	PartsIndex       *SimpleIndex
-	//ACL              datatype.Acl
-	NullVersion      bool   // if this entry has `null` version
-	DeleteMarker     bool   // if this entry is a delete marker
-	VersionId        string // version cache
-	// type of Server Side Encryption, could be "SSE-KMS", "SSE-S3", "SSE-C"(custom), or ""(none),
-	// KMS is not implemented yet
-	SseType string
-	// encryption key for SSE-S3, the key itself is encrypted with SSE_S3_MASTER_KEY,
-	// in AES256-GCM
-	EncryptionKey        []byte
-	InitializationVector []byte
-	// ObjectType include `Normal`, `Appendable`, 'Multipart'
-	Type         int
-	StorageClass StorageClass
 }
 
 type ObjectType string
@@ -96,14 +71,14 @@ func (o *Object) ObjectTypeToString() string {
 }
 
 func (o *Object) String() (s string) {
-	s += "Name: " + o.Name + "\n"
+	s += "Name: " + o.ObjectKey + "\n"
 	s += "Location: " + o.Location + "\n"
-	s += "Pool: " + o.Pool + "\n"
+	//s += "Pool: " + o.Pool + "\n"
 	s += "Object ID: " + o.ObjectId + "\n"
-	s += "Last Modified Time: " + o.LastModifiedTime.Format(CREATE_TIME_LAYOUT) + "\n"
+	s += "Last Modified Time: " + time.Unix(o.LastModified, 0).Format(CREATE_TIME_LAYOUT) + "\n"
 	s += "Version: " + o.VersionId + "\n"
 	s += "Type: " + o.ObjectTypeToString() + "\n"
-	s += "StorageClass: " + o.StorageClass.ToString() + "\n"
+	//s += "StorageClass: " + o.StorageClass.ToString() + "\n"
 	/*for n, part := range o.Parts {
 		s += fmt.Sprintln("Part", n, "Object ID:", part.ObjectId)
 	}*/
@@ -134,9 +109,9 @@ func (o *Object) GetRowkey() (string, error) {
 	}
 	var rowkey bytes.Buffer
 	rowkey.WriteString(o.BucketName + ObjectNameSeparator)
-	rowkey.WriteString(o.Name + ObjectNameSeparator)
+	rowkey.WriteString(o.ObjectKey + ObjectNameSeparator)
 	err := binary.Write(&rowkey, binary.BigEndian,
-		math.MaxUint64-uint64(o.LastModifiedTime.UnixNano()))
+		math.MaxUint64-uint64(o.LastModified))
 	if err != nil {
 		return "", err
 	}
@@ -154,11 +129,11 @@ func (o *Object) GetValues() (values map[string]map[string][]byte, err error) {
 	if err != nil {
 		return
 	}
-	if o.EncryptionKey == nil {
-		o.EncryptionKey = []byte{}
+	if o.ServerSideEncryption.EncryptionKey == nil {
+		o.ServerSideEncryption.EncryptionKey = []byte{}
 	}
-	if o.InitializationVector == nil {
-		o.InitializationVector = []byte{}
+	if o.ServerSideEncryption.InitilizationVector == nil {
+		o.ServerSideEncryption.InitilizationVector = []byte{}
 	}
 	var attrsData []byte
 	if o.CustomAttributes != nil {
@@ -171,20 +146,19 @@ func (o *Object) GetValues() (values map[string]map[string][]byte, err error) {
 		OBJECT_COLUMN_FAMILY: map[string][]byte{
 			"bucket":        []byte(o.BucketName),
 			"location":      []byte(o.Location),
-			"pool":          []byte(o.Pool),
-			"owner":         []byte(o.OwnerId),
+			"owner":         []byte(o.UserId),
 			"oid":           []byte(o.ObjectId),
 			"size":          size.Bytes(),
-			"lastModified":  []byte(o.LastModifiedTime.Format(CREATE_TIME_LAYOUT)),
+			//"lastModified":  o.LastModified.Bytes() //[]byte(o.LastModified.Format(CREATE_TIME_LAYOUT)),
 			"etag":          []byte(o.Etag),
 			"content-type":  []byte(o.ContentType),
 			"attributes":    attrsData, // TODO
-			//"ACL":           []byte(o.ACL.CannedAcl),
+			"ACL":           []byte(o.Acl.CannedAcl),
 			"nullVersion":   []byte(helper.Ternary(o.NullVersion, "true", "false").(string)),
 			"deleteMarker":  []byte(helper.Ternary(o.DeleteMarker, "true", "false").(string)),
-			"sseType":       []byte(o.SseType),
-			"encryptionKey": o.EncryptionKey,
-			"IV":            o.InitializationVector,
+			"sseType":       []byte(o.ServerSideEncryption.SseType),
+			"encryptionKey": o.ServerSideEncryption.EncryptionKey,
+			"IV":            o.ServerSideEncryption.InitilizationVector,
 			"type":          []byte(o.ObjectTypeToString()),
 		},
 	}
@@ -206,13 +180,13 @@ func (o *Object) GetValuesForDelete() (values map[string]map[string][]byte) {
 
 func (o *Object) encryptSseKey() (err error) {
 	// Don't encrypt if `EncryptionKey` is not set
-	if len(o.EncryptionKey) == 0 {
+	if len(o.ServerSideEncryption.EncryptionKey) == 0 {
 		return
 	}
 
-	if len(o.InitializationVector) == 0 {
-		o.InitializationVector = make([]byte, INITIALIZATION_VECTOR_LENGTH)
-		_, err = io.ReadFull(rand.Reader, o.InitializationVector)
+	if len(o.ServerSideEncryption.InitilizationVector) == 0 {
+		o.ServerSideEncryption.InitilizationVector = make([]byte, INITIALIZATION_VECTOR_LENGTH)
+		_, err = io.ReadFull(rand.Reader, o.ServerSideEncryption.InitilizationVector)
 		if err != nil {
 			return
 		}
@@ -230,7 +204,7 @@ func (o *Object) encryptSseKey() (err error) {
 
 	// InitializationVector is 16 bytes(because of CTR), but use only first 12 bytes in GCM
 	// for performance
-	o.EncryptionKey = aesGcm.Seal(nil, o.InitializationVector[:12], o.EncryptionKey, nil)
+	o.ServerSideEncryption.EncryptionKey = aesGcm.Seal(nil, o.ServerSideEncryption.InitilizationVector[:12], o.ServerSideEncryption.EncryptionKey, nil)
 	return nil
 }
 
@@ -241,25 +215,28 @@ func (o *Object) GetVersionId() string {
 	if o.VersionId != "" {
 		return o.VersionId
 	}
-	timeData := []byte(strconv.FormatUint(uint64(o.LastModifiedTime.UnixNano()), 10))
+	timeData := []byte(strconv.FormatUint(uint64(o.LastModified), 10))
 	o.VersionId = hex.EncodeToString(xxtea.Encrypt(timeData, XXTEA_KEY))
 	return o.VersionId
 }
 
 //Tidb related function
-/*
+
 func (o *Object) GetCreateSql() (string, []interface{}) {
-	version := math.MaxUint64 - uint64(o.LastModifiedTime.UnixNano())
+	version := math.MaxUint64 - uint64(o.LastModified)
 	customAttributes, _ := json.Marshal(o.CustomAttributes)
-	acl, _ := json.Marshal(o.ACL)
-	lastModifiedTime := o.LastModifiedTime.Format(TIME_LAYOUT_TIDB)
-	sql := "insert into objects values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
-	args := []interface{}{o.BucketName, o.Name, version, o.Location, o.Pool, o.OwnerId, o.Size, o.ObjectId,
+	acl, _ := json.Marshal(o.Acl)
+
+	lastModifiedTime := time.Unix(o.LastModified, 0).Format(TIME_LAYOUT_TIDB)
+	sql := "insert into objects (bucketname, name, version, location, pool, ownerid, size, objectid, lastmodifiedtime, " +
+	" etag, contenttype, customattributes, acl, nullversion, deletemarker, " +
+	"type) values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+	args := []interface{}{o.BucketName, o.ObjectKey, version, o.Location, o.Location, o.TenantId, o.Size, o.ObjectId,
 		lastModifiedTime, o.Etag, o.ContentType, customAttributes, acl, o.NullVersion, o.DeleteMarker,
-		o.SseType, o.EncryptionKey, o.InitializationVector, o.Type, o.StorageClass}
+		o.Type}
 	return sql, args
 }
-
+/*
 func (o *Object) GetAppendSql() (string, []interface{}) {
 	version := math.MaxUint64 - uint64(o.LastModifiedTime.UnixNano())
 	lastModifiedTime := o.LastModifiedTime.Format(TIME_LAYOUT_TIDB)

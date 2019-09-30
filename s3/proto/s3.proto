@@ -68,6 +68,9 @@ message PutObjectRequest {
 message PutObjectResponse {
 	Object objMeta = 1;
 	string status = 2;
+	string md5 = 3;
+	string versionId = 4;
+	int64 lastModified = 5;
 }
 
 message PutBucketVersioningRequest {
@@ -242,11 +245,15 @@ message ReplicationInfo {
 	string storageClass = 3;
 }
 
+message Acl {
+	string cannedAcl = 1;
+}
+
 message Bucket {
 	string name = 1;
 	string tenantId = 2;
 	string userId = 3;
-	string acl = 4;
+	Acl acl = 4;
 	int64 createTime = 5;
 	string id = 6;
 	bool deleted = 7;
@@ -292,7 +299,7 @@ message Object {
 	string storageClass = 10;
 	ServerSideEncryption serverSideEncryption = 11;
 	string websiteRedirectLocation = 12;
-	string acl = 13;
+	Acl acl = 13;
 	string location = 14;
 	bool isNull = 15;
 	bool deleteMarker = 16;
@@ -301,14 +308,18 @@ message Object {
 	int64 lastModified = 19;
 	string etag = 20;
 	int32 tier = 21;
+	int32 type = 22;
+	bool nullVersion = 23;
+	map<string, string> customAttributes = 24;
 }
 
 message ListBucketsResponse {
-	repeated Bucket buckets = 1;
+	int32 errorCode = 1;
+	repeated Bucket buckets = 2;
 }
 
 message BaseResponse {
-	string errorCode = 1;
+	int32 errorCode = 1;
 	string msg = 2;
 }
 

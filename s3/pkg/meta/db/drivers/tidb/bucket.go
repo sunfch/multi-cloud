@@ -77,7 +77,8 @@ func (t *TidbClient) GetBucket(ctx context.Context, bucketName string) (bucket *
 		return
 	}
 
-	return tmp, nil
+	bucket = tmp
+	return
 }
 
 func (t *TidbClient) GetBuckets(ctx context.Context) (buckets []*Bucket, err error) {

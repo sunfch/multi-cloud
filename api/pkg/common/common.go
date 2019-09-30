@@ -51,7 +51,7 @@ const (
 	CTX_VAL_TRUE      = "true"
 	CTX_KEY_OBJECT_KEY  = "ObjectKey"
 	CTX_KEY_BUCKET_NAME = "BucketName"
-	CTX_KEY_SIZE        = "Size"
+	CTX_KEY_SIZE        = "ObjectSize"
 	CTX_KEY_LOCATION    = "Location"
 )
 
@@ -60,6 +60,8 @@ const (
 	REQUEST_PATH_OBJECT_KEY       = "objectKey"
 	REQUEST_HEADER_CONTENT_LENGTH = "Content-Length"
 	REQUEST_HEADER_STORAGE_CLASS  = "x-amz-storage-class"
+	REQUEST_HEADER_COPY_SOURCE  = "X-Amz-Copy-Source"
+	REQUEST_HEADER_ACL = "x-amz-acl"
 )
 
 func GetPaginationParam(request *restful.Request) (int32, int32, error) {

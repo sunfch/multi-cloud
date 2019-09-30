@@ -1,13 +1,14 @@
 package meta
 
 import (
-	"fmt"
 	"context"
-	
+	"fmt"
+
 	. "github.com/opensds/multi-cloud/s3/error"
 	"github.com/opensds/multi-cloud/s3/pkg/helper"
 	"github.com/opensds/multi-cloud/s3/pkg/meta/redis"
 	. "github.com/opensds/multi-cloud/s3/pkg/meta/types"
+	pb "github.com/opensds/multi-cloud/s3/proto"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -26,7 +27,7 @@ func (m *Meta) GetBucket(ctx context.Context, bucketName string, willNeed bool) 
 	}
 
 	toBucket := func(fields map[string]string) (interface{}, error) {
-		b := &Bucket{}
+		b := &Bucket{Bucket: &pb.Bucket{}}
 		return b.Deserialize(fields)
 	}
 

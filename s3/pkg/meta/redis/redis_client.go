@@ -30,59 +30,59 @@ func NewRedisCli() *RedisCli {
 	}
 }
 
-func (cli *RedisCli) Init(cfg *config.CommonConfig) {
-	switch cfg.Cache.Mode {
+func (cli *RedisCli) Init(cfg *config.CacheConfig) {
+	switch cfg.Mode {
 	case 1:
 		options := &redis.ClusterOptions{
-			Addrs:        cfg.Cache.Nodes,
-			ReadTimeout:  time.Duration(cfg.Cache.ReadTimeout) * time.Second,
-			DialTimeout:  time.Duration(cfg.Cache.ConnectionTimeout) * time.Second,
-			WriteTimeout: time.Duration(cfg.Cache.WriteTimeout) * time.Second,
-			IdleTimeout:  time.Duration(cfg.Cache.KeepAlive) * time.Second,
+			Addrs:        cfg.Nodes,
+			ReadTimeout:  time.Duration(cfg.ReadTimeout) * time.Second,
+			DialTimeout:  time.Duration(cfg.ConnectionTimeout) * time.Second,
+			WriteTimeout: time.Duration(cfg.WriteTimeout) * time.Second,
+			IdleTimeout:  time.Duration(cfg.KeepAlive) * time.Second,
 		}
-		if cfg.Cache.PoolMaxIdle > 0 {
-			options.PoolSize = cfg.Cache.PoolMaxIdle
+		if cfg.PoolMaxIdle > 0 {
+			options.PoolSize = cfg.PoolMaxIdle
 		}
-		if cfg.Cache.Password != "" {
-			options.Password = cfg.Cache.Password
+		if cfg.Password != "" {
+			options.Password = cfg.Password
 		}
 		cli.redisClusterClient = redis.NewClusterClient(options)
 		cli.clientType = REDIS_CLUSTER_CLIENT
 	case 2:
 		options := &redis.FailoverOptions{
-			MasterName:    cfg.Cache.Master,
-			SentinelAddrs: cfg.Cache.Nodes,
-			ReadTimeout:   time.Duration(cfg.Cache.ReadTimeout) * time.Second,
-			DialTimeout:   time.Duration(cfg.Cache.ConnectionTimeout) * time.Second,
-			WriteTimeout:  time.Duration(cfg.Cache.WriteTimeout) * time.Second,
-			IdleTimeout:   time.Duration(cfg.Cache.KeepAlive) * time.Second,
+			MasterName:    cfg.Master,
+			SentinelAddrs: cfg.Nodes,
+			ReadTimeout:   time.Duration(cfg.ReadTimeout) * time.Second,
+			DialTimeout:   time.Duration(cfg.ConnectionTimeout) * time.Second,
+			WriteTimeout:  time.Duration(cfg.WriteTimeout) * time.Second,
+			IdleTimeout:   time.Duration(cfg.KeepAlive) * time.Second,
 		}
-		if cfg.Cache.PoolMaxIdle > 0 {
-			options.PoolSize = cfg.Cache.PoolMaxIdle
+		if cfg.PoolMaxIdle > 0 {
+			options.PoolSize = cfg.PoolMaxIdle
 		}
-		if cfg.Cache.Password != "" {
-			options.Password = cfg.Cache.Password
+		if cfg.Password != "" {
+			options.Password = cfg.Password
 		}
 		cli.redisClient = redis.NewFailoverClient(options)
 		cli.clientType = REDIS_SENTINEL_CLIENT
 	default:
 		options := &redis.Options{
-			Addr:         cfg.Cache.Address,
-			ReadTimeout:  time.Duration(cfg.Cache.ReadTimeout) * time.Second,
-			DialTimeout:  time.Duration(cfg.Cache.ConnectionTimeout) * time.Second,
-			WriteTimeout: time.Duration(cfg.Cache.WriteTimeout) * time.Second,
-			IdleTimeout:  time.Duration(cfg.Cache.KeepAlive) * time.Second,
+			Addr:         cfg.Address,
+			ReadTimeout:  time.Duration(cfg.ReadTimeout) * time.Second,
+			DialTimeout:  time.Duration(cfg.ConnectionTimeout) * time.Second,
+			WriteTimeout: time.Duration(cfg.WriteTimeout) * time.Second,
+			IdleTimeout:  time.Duration(cfg.KeepAlive) * time.Second,
 		}
 
-		if cfg.Cache.PoolMaxIdle > 0 {
-			options.PoolSize = cfg.Cache.PoolMaxIdle
+		if cfg.PoolMaxIdle > 0 {
+			options.PoolSize = cfg.PoolMaxIdle
 		}
 
-		if cfg.Cache.Password != "" {
-			options.Password = cfg.Cache.Password
+		if cfg.Password != "" {
+			options.Password = cfg.Password
 		}
 
-		log.Error("create redis for options: ", options)
+		log.Infoln("create redis for options: ", options)
 		cli.redisClient = redis.NewClient(options)
 		cli.clientType = REDIS_NORMAL_CLIENT
 	}

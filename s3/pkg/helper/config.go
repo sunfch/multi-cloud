@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	YIG_CONF_PATH = "/etc/yig/yig.toml"
+	S3_CONF_PATH = "/etc/multi-cloud/s3.toml"
 	MIN_DOWNLOAD_BUFPOOL_SIZE = 512 << 10  // 512k
 	MAX_DOWNLOAD_BUFPOOL_SIZE = 8 << 20    // 8M
 )
@@ -120,7 +120,7 @@ func SetupConfig() {
 }
 
 func MarshalTOMLConfig() error {
-	data, err := ioutil.ReadFile(YIG_CONF_PATH)
+	data, err := ioutil.ReadFile(S3_CONF_PATH)
 	if err != nil {
 		if err != nil {
 			panic("Cannot open yig.toml")
