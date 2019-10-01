@@ -67,7 +67,8 @@ services:
       - /etc/localtime:/etc/localtime
       - ./s3/pkg/conf:/etc/multi-cloud
       - ./s3/pkg/datastore/yig/conf/:/etc/yig
-      - .:/etc/ceph
+      - /etc/ceph:/etc/ceph
+      - /var/log/multi-cloud:/var/log/multi-cloud
     depends_on:
       - redis
       - tidb

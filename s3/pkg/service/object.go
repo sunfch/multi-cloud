@@ -3,8 +3,10 @@ package service
 import (
 	"context"
 	"io"
+	"math"
 	"time"
 
+	//"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/micro/go-micro/metadata"
 	"github.com/opensds/multi-cloud/api/pkg/common"
 	"github.com/opensds/multi-cloud/backend/pkg/utils/constants"
@@ -14,6 +16,7 @@ import (
 	meta "github.com/opensds/multi-cloud/s3/pkg/meta/types"
 	pb "github.com/opensds/multi-cloud/s3/proto"
 	log "github.com/sirupsen/logrus"
+	"github.com/opensds/multi-cloud/backend/proto"
 )
 
 func (s *s3Service) ListObjects(ctx context.Context, in *pb.ListObjectsRequest, out *pb.ListObjectResponse) error {
@@ -71,6 +74,21 @@ func (dr *StreamReader) Read(p []byte) (n int, err error) {
 	return
 }
 
+func getBackendClient(ctx context.Context, backedClient backend.BackendService, bucket *meta.Bucket) (*backend.BackendDetail, error) {
+	log.Infof("bucketName is %v:\n", bucket.Name)
+	backendRep, backendErr := backedClient.ListBackend(ctx, &backendpb.ListBackendRequest{
+		Offset: 0,
+		Limit:  math.MaxInt32,
+		Filter: map[string]string{"name": bucket.DefaultLocation}})
+	log.Infof("backendErr is %v:", backendErr)
+	if backendErr != nil {
+		log.Errorf("get backend %s failed.", bucket.DefaultLocation)
+		return nil, backendErr
+	}
+	log.Infof("backendRep is %v:", backendRep)
+	backend := backendRep.Backends[0]
+	return backend, nil
+}
 
 func (s *s3Service) PutObject(ctx context.Context, in pb.S3_PutObjectStream) error {
 	log.Infoln("PutObject is called in s3 service.")
@@ -129,6 +147,13 @@ func (s *s3Service) PutObject(ctx context.Context, in pb.S3_PutObjectStream) err
 		limitedDataReader = data
 	}
 
+	backendRes, err := getBackendClient(ctx, s.backendClient, bucket)
+	if err != nil {
+		log.Errorln("failed to get backend client with err:", err)
+		return err
+	}
+
+	log.Infoln("bucket location:", obj.Location, " backendtype:", backendRes.Type, " endpoint:", backendRes.Endpoint)
 	bodyMd5 := md["md5Sum"]
 	ctx = context.Background()
 	ctx = context.WithValue(ctx, dscommon.CONTEXT_KEY_SIZE, obj.Size)

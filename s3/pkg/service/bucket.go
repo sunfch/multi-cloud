@@ -100,18 +100,16 @@ func (s *s3Service) GetBucket(ctx context.Context, in *pb.BaseRequest, out *pb.B
 		return err
 	}
 
-	out = &pb.Bucket{
-		Id:              bucket.Id,
-		Name:            bucket.Name,
-		TenantId:        bucket.TenantId,
-		UserId:          bucket.UserId,
-		Acl:             bucket.Acl,
-		CreateTime:      bucket.CreateTime,
-		Deleted:         bucket.Deleted,
-		DefaultLocation: bucket.DefaultLocation,
-		Tier:            bucket.Tier,
-		Usages:          bucket.Usages,
-	}
+	out.Id = bucket.Id
+	out.Name = bucket.Name
+	out.TenantId = bucket.TenantId
+	out.UserId = bucket.UserId
+	out.Acl = bucket.Acl
+	out.CreateTime = bucket.CreateTime
+	out.Deleted = bucket.Deleted
+	out.DefaultLocation = bucket.DefaultLocation
+	out.Tier = bucket.Tier
+	out.Usages = bucket.Usages
 
 	return nil
 }
