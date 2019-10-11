@@ -24,7 +24,7 @@ import (
 	"strings"
 
 	"github.com/emicklei/go-restful"
-	log "github.com/sirupsen/logrus"
+        log "github.com/sirupsen/logrus"
 	"github.com/opensds/multi-cloud/api/pkg/common"
 	"github.com/opensds/multi-cloud/s3/error"
 	"github.com/opensds/multi-cloud/s3/proto"

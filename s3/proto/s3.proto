@@ -85,10 +85,6 @@ message PutObjectResponse {
 	int64 lastModified = 5;
 }
 
-message PutBucketVersioningRequest {
-	string Status = 1;
-}
-
 message PutBucketACLRequest {
 	BucketACL ACLConfig = 1;
 }
@@ -96,6 +92,10 @@ message PutBucketACLRequest {
 message BucketACL {
 	string BucketName = 1;
 	string ACL = 2;
+}
+
+message PutBucketVersioningRequest {
+	string Status = 1;
 }
 
 message BucketVersioning {
@@ -312,6 +312,7 @@ message Object {
 	int32 type = 22;
 	bool nullVersion = 23;
 	map<string, string> customAttributes = 24;
+	string storageMeta = 25;
 }
 
 message ListBucketsResponse {

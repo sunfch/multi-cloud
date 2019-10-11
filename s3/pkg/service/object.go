@@ -7,18 +7,19 @@ import (
 
 	"github.com/micro/go-micro/metadata"
 	"github.com/opensds/multi-cloud/api/pkg/common"
-	"github.com/opensds/multi-cloud/backend/proto"
 	backendpb "github.com/opensds/multi-cloud/backend/proto"
-	"github.com/opensds/multi-cloud/s3/error"
-	. "github.com/opensds/multi-cloud/s3/error"
 	dscommon "github.com/opensds/multi-cloud/s3/pkg/datastore/common"
 	"github.com/opensds/multi-cloud/s3/pkg/datastore/driver"
 	meta "github.com/opensds/multi-cloud/s3/pkg/meta/types"
 	pb "github.com/opensds/multi-cloud/s3/proto"
 	log "github.com/sirupsen/logrus"
+	"github.com/opensds/multi-cloud/backend/proto"
+	"github.com/opensds/multi-cloud/s3/error"
+	. "github.com/opensds/multi-cloud/s3/error"
 )
 
 var ChunkSize int = 2048
+
 
 func (s *s3Service) ListObjects(ctx context.Context, in *pb.ListObjectsRequest, out *pb.ListObjectResponse) error {
 	log.Infoln("ListObject is called in s3 service.")
