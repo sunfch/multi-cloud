@@ -7,16 +7,18 @@ import (
 
 	"github.com/micro/go-micro/metadata"
 	"github.com/opensds/multi-cloud/api/pkg/common"
+	"github.com/opensds/multi-cloud/backend/proto"
 	backendpb "github.com/opensds/multi-cloud/backend/proto"
+	"github.com/opensds/multi-cloud/s3/error"
+	. "github.com/opensds/multi-cloud/s3/error"
 	dscommon "github.com/opensds/multi-cloud/s3/pkg/datastore/common"
 	"github.com/opensds/multi-cloud/s3/pkg/datastore/driver"
 	meta "github.com/opensds/multi-cloud/s3/pkg/meta/types"
 	pb "github.com/opensds/multi-cloud/s3/proto"
 	log "github.com/sirupsen/logrus"
-	"github.com/opensds/multi-cloud/backend/proto"
-	"github.com/opensds/multi-cloud/s3/error"
-	. "github.com/opensds/multi-cloud/s3/error"
 )
+
+var ChunkSize int = 2048
 
 func (s *s3Service) ListObjects(ctx context.Context, in *pb.ListObjectsRequest, out *pb.ListObjectResponse) error {
 	log.Infoln("ListObject is called in s3 service.")
@@ -240,8 +242,89 @@ func (s *s3Service) PutObject(ctx context.Context, in pb.S3_PutObjectStream) err
 	return nil
 }
 
-func (s *s3Service) GetObject(ctx context.Context, in *pb.GetObjectInput, out *pb.Object) error {
+func (s *s3Service) GetObject(ctx context.Context, req *pb.GetObjectInput, stream pb.S3_GetObjectStream) error {
 	log.Infoln("GetObject is called in s3 service.")
+	bucketName := req.Bucket
+	objectName := req.Key
+
+	getResult := &pb.GetObjectResult{}
+	defer stream.SendMsg(getResult)
+
+	object, err := s.MetaStorage.GetObject(ctx, bucketName, objectName, true)
+	if err != nil {
+		log.Errorln("failed to get object info from meta storage. err:", err)
+		return err
+	}
+
+	err = stream.SendMsg(object.Object)
+	if err != nil {
+		log.Errorln("failed to send object info message. err:", err)
+		return err
+	}
+	res := &pb.MessageResponse{}
+	err = stream.RecvMsg(res)
+	if err != nil {
+		log.Errorln("failed to recv message response. err:", err)
+		return err
+	}
+	if res.Error != 0 {
+		log.Errorln("")
+		return nil
+	}
+
+	bucket, err := s.MetaStorage.GetBucket(ctx, bucketName, true)
+	if err != nil {
+		log.Errorln("get bucket failed with err:", err)
+		return err
+	}
+	if bucket == nil {
+		log.Infoln("bucket is nil")
+	}
+
+	// if this object has only one part
+	backend, err := getBackend(ctx, s.backendClient, bucket)
+	if err != nil {
+		log.Errorln("failed to get backend client with err:", err)
+		return err
+	}
+
+	//ctx = context.WithValue(ctx, dscommon.CONTEXT_KEY_SIZE, obj.Size)
+	//ctx = context.WithValue(ctx, dscommon.CONTEXT_KEY_MD5, bodyMd5)
+	sd, err := driver.CreateStorageDriver(backend.Type, backend)
+	if err != nil {
+		log.Errorln("failed to create storage. err:", err)
+		return nil
+	}
+	reader, err := sd.Get(ctx, object.Object, 0, object.Size)
+	if err != nil {
+		log.Errorln("failed to put data. err:", err)
+		return err
+	}
+
+	eof := false
+	buf := make([]byte, ChunkSize)
+	for !eof {
+		n, err := reader.Read(buf)
+		if err != nil && err != io.EOF {
+			log.Errorln("failed to read, err:", err)
+			break
+		}
+		if err == io.EOF {
+			log.Debugln("finished read")
+			eof = true
+		}
+		err = stream.Send(&pb.GetObjectResponse{Data:buf[0:n]})
+		if err != nil {
+			log.Infof("stream send error: %v\n", err)
+			break
+		}
+	}
+	if err != nil {
+
+	}
+	if !eof {
+
+	}
 
 	return nil
 }

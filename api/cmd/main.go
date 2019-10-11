@@ -16,16 +16,14 @@ package main
 
 import (
 	"github.com/emicklei/go-restful"
-	log "github.com/sirupsen/logrus"
 	"github.com/micro/go-web"
 	"github.com/opensds/multi-cloud/api/pkg/backend"
 	"github.com/opensds/multi-cloud/api/pkg/dataflow"
 	"github.com/opensds/multi-cloud/api/pkg/filters/context"
-	"github.com/opensds/multi-cloud/api/pkg/filters/signature/signer"
-	"github.com/opensds/multi-cloud/api/pkg/filters/auth"
 	"github.com/opensds/multi-cloud/api/pkg/filters/logging"
 	"github.com/opensds/multi-cloud/api/pkg/s3"
 	"github.com/opensds/multi-cloud/api/pkg/utils/obs"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -52,7 +50,7 @@ func main() {
 	// add filter for authentication context
 	ws.Filter(logging.FilterFactory())
 	ws.Filter(context.FilterFactory())
-	ws.Filter(auth.FilterFactory())
+	//ws.Filter(auth.FilterFactory())
 
 	s3ws := new(restful.WebService)
 	s3ws.Path("/v1/s3")
@@ -62,9 +60,9 @@ func main() {
 
 	s3ws.Filter(logging.FilterFactory())
 	s3ws.Filter(context.FilterFactory())
-	s3ws.Filter(signer.FilterFactory())
+	//s3ws.Filter(signer.FilterFactory())
 	s3.RegisterRouter(s3ws)
-
+	log.Info("aaaaaaaaaaa")
 	wc.Add(ws)
 	wc.Add(s3ws)
 	webService.Handle("/", wc)

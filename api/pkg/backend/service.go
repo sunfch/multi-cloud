@@ -177,6 +177,7 @@ func (s *APIService) ListBackend(request *restful.Request, response *restful.Res
 }
 
 func (s *APIService) CreateBackend(request *restful.Request, response *restful.Response) {
+	log.Info("enter CreateBackend.")
 	if !policy.Authorize(request, response, "backend:create") {
 		return
 	}

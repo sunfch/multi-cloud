@@ -9,7 +9,7 @@ service S3 {
 	rpc CountObjects(ListObjectsRequest) returns (CountObjectsResponse) {}
 	rpc PutObject(stream PutObjectRequest) returns (PutObjectResponse) {}
 	rpc UpdateObject(Object) returns (BaseResponse) {}
-	rpc GetObject(GetObjectInput) returns (Object) {}
+	rpc GetObject(GetObjectInput) returns (stream GetObjectResponse) {}
 	rpc DeleteObject(DeleteObjectInput) returns (BaseResponse) {}
 	rpc GetTierMap(BaseRequest) returns (GetTierMapResponse) {}
 	rpc UpdateObjMeta(UpdateObjMetaRequest) returns (BaseResponse) {}
@@ -60,6 +60,21 @@ message CopyObjectRequest {
 
 message PutObjectRequest {
 	bytes data = 1;
+}
+
+message GetObjectResponse {
+	bytes data = 1;
+}
+
+message GetObjectResult {
+	string status = 2;
+	string md5 = 3;
+	string versionId = 4;
+	int64 lastModified = 5;
+}
+
+message MessageResponse {
+	int32  error = 1;
 }
 
 message PutObjectResponse {

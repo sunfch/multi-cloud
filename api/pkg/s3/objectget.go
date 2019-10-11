@@ -15,8 +15,12 @@
 package s3
 
 import (
+	"io"
+
 	"github.com/emicklei/go-restful"
+	"github.com/opensds/multi-cloud/api/pkg/common"
 	log "github.com/sirupsen/logrus"
+	pb "github.com/opensds/multi-cloud/s3/proto"
 	/*c "github.com/opensds/multi-cloud/api/pkg/context"
 	. "github.com/opensds/multi-cloud/s3/pkg/exception"
 	s3 "github.com/opensds/multi-cloud/s3/proto"
@@ -24,65 +28,85 @@ import (
 	*/
 )
 
+// Simple way to convert a func to io.Writer type.
+type funcToWriter func([]byte) (int, error)
+
+func (f funcToWriter) Write(p []byte) (int, error) {
+	return f(p)
+}
+
 //ObjectGet -
 func (s *APIService) ObjectGet(request *restful.Request, response *restful.Response) {
 	bucketName := request.PathParameter("bucketName")
 	objectKey := request.PathParameter("objectKey")
 	rangestr := request.HeaderParameter("Range")
 	log.Infof("%v\n", rangestr)
-/*
-	log.Infof("Received request for object get, bucket: %s, object: %s, range: %s\n",
-		bucketName, objectKey, rangestr)
 
-	start := 0
-	end := 0
-	if rangestr != "" {
-		index := strings.Index(rangestr, "-")
-		startstr := string([]rune(rangestr)[6:index])
-		endstr := string([]rune(rangestr)[index+1:])
-		start, _ = strconv.Atoi(startstr)
-		end, _ = strconv.Atoi(endstr)
+	ctx := common.InitCtxWithAuthInfo(request)
+	input := &pb.GetObjectInput{
+		Bucket:bucketName,
+		Key:objectKey,
+		Versionid:"",
 	}
+	stream, err := s.s3Client.GetObject(ctx, input)
+	if err != nil {
+		log.Errorln("failed to call s3 GetObject")
+		return
+	}
+	defer stream.Close()
 
-	md := map[string]string{common.REST_KEY_OPERATION: common.REST_VAL_DOWNLOAD}
-	ctx := common.InitCtxWithVal(request, md)
-	object := s3.Object{}
-	objectInput := s3.GetObjectInput{Bucket: bucketName, Key: objectKey}
-	log.Infof("enter the s3Client download method")
-	objectMD, _ := s.s3Client.GetObject(ctx, &objectInput)
-	log.Infof("out the s3Client download method")
-	var backendname string
-	if objectMD != nil {
-		object.Size = objectMD.Size
-		backendname = objectMD.Backend
-	} else {
-		log.Errorf("No such object")
-		response.WriteError(http.StatusInternalServerError, NoSuchObject.Error())
+	object := &pb.Object{}
+	err = stream.RecvMsg(object)
+	if err != nil {
+		log.Errorln("failed to get object info.")
+		return
+	}
+	if object.DeleteMarker {
 		return
 	}
 
-	object.ObjectKey = objectKey
-	object.BucketName = bucketName
-	var client datastore.DataStoreAdapter
-	if backendname != "" {
-		client = getBackendByName(ctx, s, backendname)
-	} else {
-		client = getBackendClient(ctx, s, bucketName)
+	// Indicates if any data was written to the http.ResponseWriter
+	dataWritten := false
+
+	// io.Writer type which keeps track if any data was written.
+	writer := funcToWriter(func(p []byte) (int, error) {
+		if !dataWritten {
+			// Set headers on the first write.
+			// Set standard object headers.
+			//SetObjectHeaders(w, object, hrange)
+
+			// Set any additional requested response headers.
+			//setGetRespHeaders(w, r.URL.Query())
+
+			/*if version != "" {
+				w.Header().Set("x-amz-version-id", version)
+			}*/
+			dataWritten = true
+		}
+		n, err := response.Write(p)
+		if n > 0 {
+			/*
+				If the whole write or only part of write is successfull,
+				n should be positive, so record this
+			*/
+			//w.(*ResponseRecorder).size += int64(n)
+		}
+		return n, err
+	})
+
+
+	for {
+		rsp, err := stream.Recv()
+		if err != nil && err != io.EOF {
+			log.Errorln("recv err", err)
+			break
+		}
+		_, err = writer.Write(rsp.Data)
+		if err != nil {
+			log.Errorln("failed to write data to client. err:", err)
+			break
+		}
 	}
-	if client == nil {
-		response.WriteError(http.StatusInternalServerError, NoSuchBackend.Error())
-		return
-	}
-	log.Infof("enter the download method")
-	body, s3err := client.GET(&object, ctx, int64(start), int64(end))
-	log.Infof("out  the download method")
-	if s3err != NoError {
-		response.WriteError(http.StatusInternalServerError, s3err.Error())
-		return
-	}
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(body)
-	response.Write(buf.Bytes())
-	*/
-	log.Infof("Init multipart upload[bucketName=%s, objectKey=%s] successfully.\n", bucketName, objectKey)
+
+	log.Info("PUT object successfully.")
 }

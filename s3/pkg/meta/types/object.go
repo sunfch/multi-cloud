@@ -228,10 +228,10 @@ func (o *Object) GetCreateSql() (string, []interface{}) {
 	acl, _ := json.Marshal(o.Acl)
 
 	lastModifiedTime := time.Unix(o.LastModified, 0).Format(TIME_LAYOUT_TIDB)
-	sql := "insert into objects (bucketname, name, version, location, pool, ownerid, size, objectid, lastmodifiedtime, " +
+	sql := "insert into objects (bucketname, name, version, location, tenantid, userid, size, objectid, lastmodifiedtime, " +
 	" etag, contenttype, customattributes, acl, nullversion, deletemarker, " +
 	"type) values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
-	args := []interface{}{o.BucketName, o.ObjectKey, version, o.Location, o.Location, o.TenantId, o.Size, o.ObjectId,
+	args := []interface{}{o.BucketName, o.ObjectKey, version, o.Location, o.TenantId, o.UserId, o.Size, o.ObjectId,
 		lastModifiedTime, o.Etag, o.ContentType, customAttributes, acl, o.NullVersion, o.DeleteMarker,
 		o.Type}
 	return sql, args
