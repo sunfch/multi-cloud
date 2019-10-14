@@ -230,10 +230,10 @@ func (o *Object) GetCreateSql() (string, []interface{}) {
 	lastModifiedTime := time.Unix(o.LastModified, 0).Format(TIME_LAYOUT_TIDB)
 	sql := "insert into objects (bucketname, name, version, location, tenantid, userid, size, objectid, lastmodifiedtime, " +
 	" etag, contenttype, customattributes, acl, nullversion, deletemarker, " +
-	"type) values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+	" ssetype, encryptionkey, initializationvector, type, storagemeta) values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 	args := []interface{}{o.BucketName, o.ObjectKey, version, o.Location, o.TenantId, o.UserId, o.Size, o.ObjectId,
 		lastModifiedTime, o.Etag, o.ContentType, customAttributes, acl, o.NullVersion, o.DeleteMarker,
-		o.Type}
+		o.ServerSideEncryption.SseType, o.ServerSideEncryption.EncryptionKey, o.ServerSideEncryption.InitilizationVector, o.Type, o.StorageMeta}
 	return sql, args
 }
 /*

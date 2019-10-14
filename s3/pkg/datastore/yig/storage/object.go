@@ -137,9 +137,9 @@ func (yig *YigStorage) Put(ctx context.Context, stream io.Reader, obj *pb.Object
 		limitedDataReader = stream
 	}
 
-	cephCluster, poolName := yig.PickOneClusterAndPool(obj.BucketName, obj.ObjectKey, size, false)
+	cephCluster, poolName := yig.PickOneClusterAndPool(obj.BucketName, obj.ObjectId, size, false)
 	if cephCluster == nil {
-		log.Errorf("failed to pick cluster and pool for(%s, %s), err: %v", obj.BucketName, obj.ObjectKey, err)
+		log.Errorf("failed to pick cluster and pool for(%s, %s), err: %v", obj.BucketName, obj.ObjectId, err)
 		return result, ErrInternalError
 	}
 
@@ -150,7 +150,7 @@ func (yig *YigStorage) Put(ctx context.Context, stream io.Reader, obj *pb.Object
 
 	metaBytes, err := json.Marshal(objMeta)
 	if err != nil {
-		log.Errorf("failed to marshal %v for (%s, %s), err: %v", objMeta, obj.BucketName, obj.ObjectKey, err)
+		log.Errorf("failed to marshal %v for (%s, %s), err: %v", objMeta, obj.BucketName, obj.ObjectId, err)
 		return result, ErrInternalError
 	}
 
@@ -204,20 +204,20 @@ func (yig *YigStorage) Get(ctx context.Context, object *pb.Object, start int64, 
 
 	err := json.Unmarshal([]byte(object.StorageMeta), &objMeta)
 	if err != nil {
-		log.Errorf("failed to unmarshal storage meta (%s) for (%s, %s), err: %v", object.StorageMeta, object.BucketName, object.ObjectKey, err)
+		log.Errorf("failed to unmarshal storage meta (%s) for (%s, %s), err: %v", object.StorageMeta, object.BucketName, object.ObjectId, err)
 		return nil, ErrUnmarshalFailed
 	}
 
 	cephCluster, ok := yig.DataStorage[objMeta.Cluster]
 	if !ok {
-		log.Errorf("cannot find ceph cluster(%s) for obj(%s, %s)", objMeta.Cluster, object.BucketName, object.ObjectKey)
+		log.Errorf("cannot find ceph cluster(%s) for obj(%s, %s)", objMeta.Cluster, object.BucketName, object.ObjectId)
 		return nil, ErrInvalidObjectName
 	}
 
 	len := end - start + 1
-	reader, err := cephCluster.getReader(objMeta.Pool, object.ObjectKey, start, len)
+	reader, err := cephCluster.getReader(objMeta.Pool, object.ObjectId, start, len)
 	if err != nil {
-		log.Errorf("failed to get ceph reader for pool(%s), obj(%s,%s) with err: %v", objMeta.Pool, object.BucketName, object.ObjectKey, err)
+		log.Errorf("failed to get ceph reader for pool(%s), obj(%s,%s) with err: %v", objMeta.Pool, object.BucketName, object.ObjectId, err)
 		return nil, err
 	}
 
@@ -229,14 +229,14 @@ func (yig *YigStorage) Delete(ctx context.Context, object *pb.DeleteObjectInput)
 }
 
 /*
-* target: should contain BucketName, ObjectKey, Size, Etag
+* target: should contain BucketName, ObjectId, Size, Etag
 *
  */
 
 func (yig *YigStorage) Copy(ctx context.Context, stream io.Reader, target *pb.Object) (result dscommon.PutResult, err error) {
 	var limitedDataReader io.Reader
 	limitedDataReader = io.LimitReader(stream, target.Size)
-	cephCluster, poolName := yig.PickOneClusterAndPool(target.BucketName, target.ObjectKey, target.Size, false)
+	cephCluster, poolName := yig.PickOneClusterAndPool(target.BucketName, target.ObjectId, target.Size, false)
 	md5Writer := md5.New()
 	oid := cephCluster.GetUniqUploadName()
 
@@ -247,7 +247,7 @@ func (yig *YigStorage) Copy(ctx context.Context, stream io.Reader, target *pb.Ob
 
 	metaBytes, err := json.Marshal(objMeta)
 	if err != nil {
-		log.Errorf("failed to marshal %v for (%s, %s), err: %v", objMeta, target.BucketName, target.ObjectKey, err)
+		log.Errorf("failed to marshal %v for (%s, %s), err: %v", objMeta, target.BucketName, target.ObjectId, err)
 		return result, ErrInternalError
 	}
 
@@ -255,7 +255,7 @@ func (yig *YigStorage) Copy(ctx context.Context, stream io.Reader, target *pb.Ob
 	var bytesWritten int64
 	bytesWritten, err = cephCluster.Put(poolName, oid, dataReader)
 	if err != nil {
-		log.Errorf("failed to write oid[%s] for obj[%s] in bucket[%s] with err: %v", oid, target.ObjectKey, target.BucketName, err)
+		log.Errorf("failed to write oid[%s] for obj[%s] in bucket[%s] with err: %v", oid, target.ObjectId, target.BucketName, err)
 		return result, err
 	}
 	// Should metadata update failed, add `maybeObjectToRecycle` to `RecycleQueue`,
@@ -283,7 +283,7 @@ func (yig *YigStorage) Copy(ctx context.Context, stream io.Reader, target *pb.Ob
 	result.Meta = string(metaBytes)
 	target.ObjectId = oid
 
-	log.Debugf("succeeded to copy object[%s] in bucket[%s] with oid[%s]", target.ObjectKey, target.BucketName, oid)
+	log.Debugf("succeeded to copy object[%s] in bucket[%s] with oid[%s]", target.ObjectId, target.BucketName, oid)
 	return result, nil
 }
 

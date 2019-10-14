@@ -92,6 +92,16 @@ func getBackend(ctx context.Context, backedClient backend.BackendService, bucket
 	return backend, nil
 }
 
+func (s *s3Service) GetObjectInfo(ctx context.Context, in *pb.GetObjectInput, out *pb.Object) error {
+	object, err := s.MetaStorage.GetObject(ctx, in.Bucket, in.Key, true)
+	if err != nil {
+		log.Errorln("failed to get object info from meta storage. err:", err)
+		return err
+	}
+	*out = *object.Object
+	return nil
+}
+
 func (s *s3Service) PutObject(ctx context.Context, in pb.S3_PutObjectStream) error {
 	log.Infoln("PutObject is called in s3 service.")
 
@@ -118,6 +128,9 @@ func (s *s3Service) PutObject(ctx context.Context, in pb.S3_PutObjectStream) err
 		log.Errorln("failed to get msg with err:", err)
 		return ErrInternalError
 	}
+	sse := &pb.ServerSideEncryption{}
+	obj.ServerSideEncryption = sse
+
 	obj.TenantId = tenantId
 	log.Infof("metadata of object is:%+v\n", obj)
 	log.Infof("*********bucket:%s,key:%s,size:%d\n", obj.BucketName, obj.ObjectKey, obj.Size)
@@ -201,6 +214,7 @@ func (s *s3Service) PutObject(ctx context.Context, in pb.S3_PutObjectStream) err
 	obj.DeleteMarker = false
 	obj.CustomAttributes = md  /* TODO: only reserve http header attr*/
 	obj.Type = meta.ObjectTypeNormal
+	obj.StorageMeta = res.Meta
 
 	object := &meta.Object{Object: obj}
 
@@ -243,35 +257,18 @@ func (s *s3Service) PutObject(ctx context.Context, in pb.S3_PutObjectStream) err
 	return nil
 }
 
-func (s *s3Service) GetObject(ctx context.Context, req *pb.GetObjectInput, stream pb.S3_GetObjectStream) error {
+// Simple way to convert a func to io.Writer type.
+type funcToWriter func([]byte) (int, error)
+
+func (f funcToWriter) Write(p []byte) (int, error) {
+	return f(p)
+}
+
+func (s *s3Service) GetObject(ctx context.Context, object *pb.Object, stream pb.S3_GetObjectStream) error {
 	log.Infoln("GetObject is called in s3 service.")
-	bucketName := req.Bucket
-	objectName := req.Key
+	bucketName := object.BucketName
 
-	getResult := &pb.GetObjectResult{}
-	defer stream.SendMsg(getResult)
-
-	object, err := s.MetaStorage.GetObject(ctx, bucketName, objectName, true)
-	if err != nil {
-		log.Errorln("failed to get object info from meta storage. err:", err)
-		return err
-	}
-
-	err = stream.SendMsg(object.Object)
-	if err != nil {
-		log.Errorln("failed to send object info message. err:", err)
-		return err
-	}
-	res := &pb.MessageResponse{}
-	err = stream.RecvMsg(res)
-	if err != nil {
-		log.Errorln("failed to recv message response. err:", err)
-		return err
-	}
-	if res.Error != 0 {
-		log.Errorln("")
-		return nil
-	}
+	defer stream.Close()
 
 	bucket, err := s.MetaStorage.GetBucket(ctx, bucketName, true)
 	if err != nil {
@@ -294,38 +291,142 @@ func (s *s3Service) GetObject(ctx context.Context, req *pb.GetObjectInput, strea
 	sd, err := driver.CreateStorageDriver(backend.Type, backend)
 	if err != nil {
 		log.Errorln("failed to create storage. err:", err)
-		return nil
+		return err
 	}
-	reader, err := sd.Get(ctx, object.Object, 0, object.Size)
+	reader, err := sd.Get(ctx, object, 0, object.Size)
 	if err != nil {
 		log.Errorln("failed to put data. err:", err)
 		return err
 	}
+	limitedDataReader := io.LimitReader(reader, object.Size)
 
-	eof := false
-	buf := make([]byte, ChunkSize)
-	for !eof {
-		n, err := reader.Read(buf)
-		if err != nil && err != io.EOF {
-			log.Errorln("failed to read, err:", err)
-			break
-		}
-		if err == io.EOF {
-			log.Debugln("finished read")
-			eof = true
-		}
-		err = stream.Send(&pb.GetObjectResponse{Data:buf[0:n]})
+	// io.Writer type which keeps track if any data was written.
+	writer := funcToWriter(func(p []byte) (int, error) {
+		err = stream.Send(&pb.GetObjectResponse{Data:p})
 		if err != nil {
 			log.Infof("stream send error: %v\n", err)
-			break
+			return 0, err
 		}
-	}
+		return len(p), err
+	})
+	written, err := io.Copy(writer, limitedDataReader)
 	if err != nil {
-
+		log.Errorln("failed to copy src to dst. err:", err)
+		return err
 	}
-	if !eof {
 
+	log.Infoln("Successfully send ", written, " bytes.")
+
+	return nil
+}
+
+func (s *s3Service) CopyObject(ctx context.Context, in *pb.CopyObjectRequest, out *pb.CopyObjectResponse) error {
+	log.Infoln("CopyObject is called in s3 service.")
+	srcBucketName := in.SrcBucket
+	srcObjectName := in.SrcObject
+	targetBucketName := in.TargetBucket
+	targetObjectName := in.TargetObject // targetobject
+
+	md, ok := metadata.FromContext(ctx)
+	if !ok {
+		log.Error("get metadata from ctx failed.")
+		return ErrInternalError
 	}
+
+	srcBucket, err := s.MetaStorage.GetBucket(ctx, srcBucketName, true)
+	if err != nil {
+		log.Errorln("get bucket failed with err:", err)
+		return err
+	}
+	if srcBucket == nil {
+		log.Infoln("srcBucket is nil")
+	}
+
+	targetBucket, err := s.MetaStorage.GetBucket(ctx, targetBucketName, true)
+	if err != nil {
+		log.Errorln("get bucket failed with err:", err)
+		return err
+	}
+	if targetBucket == nil {
+		log.Infoln("targetBucket is nil")
+	}
+
+	srcObject, err := s.MetaStorage.GetObject(ctx, srcBucketName, srcObjectName, true)
+	if err != nil {
+		log.Errorln("failed to get object info from meta storage. err:", err)
+		return err
+	}
+
+	// if this object has only one part
+	srcBackend, err := getBackend(ctx, s.backendClient, srcBucket)
+	if err != nil {
+		log.Errorln("failed to get backend client with err:", err)
+		return err
+	}
+	srcSd, err := driver.CreateStorageDriver(srcBackend.Type, srcBackend)
+	if err != nil {
+		log.Errorln("failed to create storage. err:", err)
+		return err
+	}
+	reader, err := srcSd.Get(ctx, srcObject.Object, 0, srcObject.Size)
+	if err != nil {
+		log.Errorln("failed to put data. err:", err)
+		return err
+	}
+	limitedDataReader := io.LimitReader(reader, srcObject.Size)
+
+
+	// if this object has only one part
+	targetBackend, err := getBackend(ctx, s.backendClient, targetBucket)
+	if err != nil {
+		log.Errorln("failed to get backend client with err:", err)
+		return err
+	}
+	targetSd, err := driver.CreateStorageDriver(targetBackend.Type, targetBackend)
+	if err != nil {
+		log.Errorln("failed to create storage. err:", err)
+		return err
+	}
+	targetObject := &pb.Object{
+		ObjectKey: targetObjectName,
+		BucketName: targetBucketName,
+		Size:       srcObject.Size,
+		Etag:       srcObject.Etag,
+	}
+	res, err := targetSd.Copy(ctx, limitedDataReader, targetObject)
+	if err != nil {
+		log.Errorln("failed to create storage. err:", err)
+		return err
+	}
+
+	// TODO validate bucket policy and fancy ACL
+	targetObject.ObjectId = res.ObjectId
+	targetObject.LastModified = time.Now().UTC().Unix()
+	targetObject.Etag = res.Etag
+	targetObject.ContentType = md["Content-Type"]
+	targetObject.DeleteMarker = false
+	targetObject.CustomAttributes = md  /* TODO: only reserve http header attr*/
+	targetObject.Type = meta.ObjectTypeNormal
+	targetObject.StorageMeta = res.Meta
+	sse := &pb.ServerSideEncryption{}
+	targetObject.ServerSideEncryption = sse
+
+	object := &meta.Object{Object: targetObject}
+	err = s.MetaStorage.PutObject(ctx, object, nil, nil, true)
+	if err != nil {
+		log.Errorln("failed to put object meta. err:", err)
+		//RecycleQueue <- maybeObjectToRecycle
+		return ErrDBError
+	}
+	if err == nil {
+		//b.MetaStorage.Cache.Remove(redis.ObjectTable, obj.OBJECT_CACHE_PREFIX, bucketName+":"+objectKey+":")
+		//b.DataCache.Remove(bucketName + ":" + objectKey + ":" + object.GetVersionId())
+	}
+
+	out.Md5 = res.Etag
+	out.LastModified = targetObject.LastModified
+
+	log.Infoln("Successfully copy ", res.Written, " bytes.")
 
 	return nil
 }

@@ -48,23 +48,16 @@ func (s *APIService) ObjectGet(request *restful.Request, response *restful.Respo
 		Key:objectKey,
 		Versionid:"",
 	}
-	stream, err := s.s3Client.GetObject(ctx, input)
-	if err != nil {
-		log.Errorln("failed to call s3 GetObject")
-		return
-	}
-	defer stream.Close()
 
-	object := &pb.Object{}
-	err = stream.RecvMsg(object)
+	object, err := s.s3Client.GetObjectInfo(ctx, input)
 	if err != nil {
-		log.Errorln("failed to get object info.")
+		log.Errorln("failed to call s3 GetObjectInfo")
 		return
 	}
 	if object.DeleteMarker {
+		log.Infoln("the object is delete marker.")
 		return
 	}
-
 	// Indicates if any data was written to the http.ResponseWriter
 	dataWritten := false
 
@@ -94,12 +87,22 @@ func (s *APIService) ObjectGet(request *restful.Request, response *restful.Respo
 		return n, err
 	})
 
+	stream, err := s.s3Client.GetObject(ctx, object)
+	if err != nil {
+		log.Errorln("failed to call s3 GetObject")
+		return
+	}
+	defer stream.Close()
 
-	for {
+	eof := false
+	for !eof {
 		rsp, err := stream.Recv()
 		if err != nil && err != io.EOF {
 			log.Errorln("recv err", err)
 			break
+		}
+		if err == io.EOF {
+			eof = true
 		}
 		_, err = writer.Write(rsp.Data)
 		if err != nil {
@@ -108,5 +111,12 @@ func (s *APIService) ObjectGet(request *restful.Request, response *restful.Respo
 		}
 	}
 
-	log.Info("PUT object successfully.")
+	if !dataWritten {
+		// If ObjectAPI.GetObject did not return error and no data has
+		// been written it would mean that it is a 0-byte object.
+		// call wrter.Write(nil) to set appropriate headers.
+		writer.Write(nil)
+	}
+
+	log.Info("GET object successfully.")
 }

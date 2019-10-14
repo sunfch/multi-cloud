@@ -9,7 +9,8 @@ service S3 {
 	rpc CountObjects(ListObjectsRequest) returns (CountObjectsResponse) {}
 	rpc PutObject(stream PutObjectRequest) returns (PutObjectResponse) {}
 	rpc UpdateObject(Object) returns (BaseResponse) {}
-	rpc GetObject(GetObjectInput) returns (stream GetObjectResponse) {}
+	rpc GetObject(Object) returns (stream GetObjectResponse) {}
+	rpc GetObjectInfo(GetObjectInput) returns (Object) {}
 	rpc DeleteObject(DeleteObjectInput) returns (BaseResponse) {}
 	rpc GetTierMap(BaseRequest) returns (GetTierMapResponse) {}
 	rpc UpdateObjMeta(UpdateObjMetaRequest) returns (BaseResponse) {}
@@ -32,7 +33,7 @@ service S3 {
 	rpc DeleteUploadRecord(MultipartUploadRecord) returns (BaseResponse) {}
 
 	rpc HeadObject(BaseObjRequest) returns (Object) {}
-	rpc CopyObject(CopyObjectRequest) returns (BaseResponse) {}
+	rpc CopyObject(CopyObjectRequest) returns (CopyObjectResponse) {}
 	rpc CopyObjPart(CopyObjPartRequest) returns (CopyObjPartResponse) {}
 	rpc PutObjACL(PutObjACLRequest) returns (BaseResponse) {}
 	rpc GetObjACL(BaseObjRequest) returns (ObjACL) {}
@@ -54,8 +55,10 @@ message CopyObjectRequest {
 	string objKey = 1;
 	string srcBucket = 2;
 	string targetBucket = 3;
-	string targetBackend = 4;
-	int32  targetTier = 5;
+	string srcObject = 4;
+	string targetObject = 5;
+	string targetBackend = 6;
+	int32  targetTier = 7;
 }
 
 message PutObjectRequest {
@@ -78,6 +81,14 @@ message MessageResponse {
 }
 
 message PutObjectResponse {
+	Object objMeta = 1;
+	string status = 2;
+	string md5 = 3;
+	string versionId = 4;
+	int64 lastModified = 5;
+}
+
+message CopyObjectResponse {
 	Object objMeta = 1;
 	string status = 2;
 	string md5 = 3;

@@ -9,6 +9,7 @@ import (
 	"github.com/xxtea/xxtea-go/xxtea"
 	. "github.com/opensds/multi-cloud/s3/error"
 	"context"
+	pb "github.com/opensds/multi-cloud/s3/proto"
 )
 
 func (t *TidbClient) GetObject(ctx context.Context, bucketName, objectName, version string) (object *Object, err error) {
@@ -18,16 +19,19 @@ func (t *TidbClient) GetObject(ctx context.Context, bucketName, objectName, vers
 	var row *sql.Row
 	if version == "" {
 		sqltext = "select bucketname,name,version,location,tenantid,userid,size,objectid,lastmodifiedtime,etag," +
-			"contenttype,customattributes,acl,nullversion,deletemarker,ssetype,encryptionkey,initializationvector,type,storageclass" +
+			"contenttype,customattributes,acl,nullversion,deletemarker,ssetype,encryptionkey,initializationvector,type,storageclass, storagemeta" +
 			" from objects where bucketname=? and name=? order by bucketname,name,version limit 1;"
 		row = t.Client.QueryRow(sqltext, bucketName, objectName)
 	} else {
 		sqltext = "select bucketname,name,version,location,tenantid,userid,size,objectid,lastmodifiedtime,etag," +
-			"contenttype,customattributes,acl,nullversion,deletemarker,ssetype,encryptionkey,initializationvector,type,storageclass" +
+			"contenttype,customattributes,acl,nullversion,deletemarker,ssetype,encryptionkey,initializationvector,type,storageclass, storagemeta" +
 			" from objects where bucketname=? and name=? and version=?;"
 		row = t.Client.QueryRow(sqltext, bucketName, objectName, version)
 	}
-	object = &Object{}
+
+	object = &Object{Object:&pb.Object{
+		ServerSideEncryption: &pb.ServerSideEncryption{},
+	}}
 	err = row.Scan(
 		&ibucketname,
 		&iname,
@@ -49,6 +53,7 @@ func (t *TidbClient) GetObject(ctx context.Context, bucketName, objectName, vers
 		&object.ServerSideEncryption.InitilizationVector,
 		&object.Type,
 		&object.StorageClass,
+		&object.StorageMeta,
 	)
 	if err == sql.ErrNoRows {
 		err = ErrNoSuchKey
