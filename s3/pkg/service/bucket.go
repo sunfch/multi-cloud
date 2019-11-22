@@ -282,3 +282,48 @@ func (s *s3Service) ListBucketLifecycle(ctx context.Context, in *pb.BaseRequest,
 	log.Info("list lifecycle successfully")
 	return nil
 }
+
+func (s *s3Service) ListBucketUploadRecords(ctx context.Context, in *pb.ListBucketUploadRequest, out *pb.ListBucketUploadResponse) error {
+	log.Info("ListBucketUploadRecords is called in s3 service.")
+	bucketName := in.BucketName
+
+	_, err := s.MetaStorage.GetBucket(ctx, bucketName, true)
+	if err != nil {
+		log.Errorln("failed to get bucket meta. err:", err)
+		return err
+	}
+
+	//isAdmin, tenantId, err := util.GetCredentialFromCtx(ctx)
+	//if err != nil && isAdmin == false {
+	//	log.Error("get tenant id failed")
+	//	err = ErrInternalError
+	//	return err
+	//}
+	//
+	//switch bucket.Acl.CannedAcl {
+	//case "public-read", "public-read-write":
+	//	break
+	//case "authenticated-read":
+	//	if tenantId == "" {
+	//		err = ErrBucketAccessForbidden
+	//		return err
+	//	}
+	//default:
+	//	if bucket.TenantId != tenantId {
+	//		err = ErrBucketAccessForbidden
+	//		return err
+	//	}
+	//}
+	log.Errorln("start call ListMultipartUploads at meta.")
+	result, err := s.MetaStorage.Db.ListMultipartUploads(in)
+	if err != nil {
+		log.Errorln("failed to list multipart uploads in meta storage. err:", err)
+		return err
+	}
+	out.Result = result
+
+	log.Infoln("upload number:", len(out.Result.Uploads))
+
+	log.Infoln("List bucket multipart uploads successfully.")
+	return nil
+}

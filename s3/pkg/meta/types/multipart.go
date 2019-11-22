@@ -42,25 +42,28 @@ func (p *Part) GetValues() (values map[string]map[string][]byte, err error) {
 }
 
 type MultipartMetadata struct {
-	InitiatorId   string
-	OwnerId       string
+	InitiatorId   string              //TenantId
+	TenantId      string
+	UserId        string
 	ContentType   string
 	Location      string
 	Pool          string
-	//Acl           datatype.Acl
+	Acl           datatype.Acl
 	SseRequest    datatype.SseRequest
 	EncryptionKey []byte
 	CipherKey     []byte
 	Attrs         map[string]string
+	StorageClass  StorageClass
 }
 
 type Multipart struct {
 	BucketName  string
-	ObjectName  string
+	ObjectKey   string
 	InitialTime time.Time
 	UploadId    string // upload id cache
+	ObjectId    string
+	StorageMeta string
 	Metadata    MultipartMetadata
-	Parts       map[int]*Part
 }
 
 // Multipart table rowkey format:
@@ -71,11 +74,11 @@ type Multipart struct {
 func (m *Multipart) GetRowkey() (string, error) {
 	var rowkey bytes.Buffer
 	rowkey.WriteString(m.BucketName)
-	err := binary.Write(&rowkey, binary.BigEndian, uint16(strings.Count(m.ObjectName, "/")))
+	err := binary.Write(&rowkey, binary.BigEndian, uint16(strings.Count(m.ObjectKey, "/")))
 	if err != nil {
 		return "", err
 	}
-	rowkey.WriteString(m.ObjectName)
+	rowkey.WriteString(m.ObjectKey)
 	err = binary.Write(&rowkey, binary.BigEndian, uint64(m.InitialTime.UnixNano()))
 	if err != nil {
 		return "", err
@@ -85,11 +88,6 @@ func (m *Multipart) GetRowkey() (string, error) {
 
 func (m *Multipart) GetValues() (values map[string]map[string][]byte, err error) {
 	values = make(map[string]map[string][]byte)
-
-	values[MULTIPART_COLUMN_FAMILY], err = valuesForParts(m.Parts)
-	if err != nil {
-		return
-	}
 
 	var marshaledMeta []byte
 	marshaledMeta, err = json.Marshal(m.Metadata)

@@ -17,9 +17,11 @@ package s3
 import (
 	"github.com/emicklei/go-restful"
 	"github.com/opensds/multi-cloud/api/pkg/policy"
+	log "github.com/sirupsen/logrus"
 )
 
 func (s *APIService) RouteObjectPut(request *restful.Request, response *restful.Response) {
+	log.Infoln("RouteObjectPut is called.")
 	if !policy.Authorize(request, response, "object:put") {
 		return
 	}

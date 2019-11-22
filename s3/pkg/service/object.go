@@ -23,6 +23,7 @@ import (
 	"github.com/journeymidnight/yig/helper"
 	"github.com/micro/go-micro/metadata"
 	"github.com/opensds/multi-cloud/api/pkg/common"
+	"github.com/opensds/multi-cloud/api/pkg/s3/datatype"
 	"github.com/opensds/multi-cloud/api/pkg/utils/constants"
 	"github.com/opensds/multi-cloud/backend/proto"
 	backendpb "github.com/opensds/multi-cloud/backend/proto"
@@ -32,12 +33,19 @@ import (
 	"github.com/opensds/multi-cloud/s3/pkg/datastore/driver"
 	meta "github.com/opensds/multi-cloud/s3/pkg/meta/types"
 	"github.com/opensds/multi-cloud/s3/pkg/meta/util"
+	"github.com/opensds/multi-cloud/s3/pkg/model"
 	"github.com/opensds/multi-cloud/s3/pkg/utils"
 	pb "github.com/opensds/multi-cloud/s3/proto"
 	log "github.com/sirupsen/logrus"
+	. "github.com/opensds/multi-cloud/s3/pkg/meta/types"
 )
 
 var ChunkSize int = 2048
+
+const (
+	MAX_PART_SIZE   = 5 << 30 // 5GB
+	MAX_PART_NUMBER = 10000
+)
 
 func (s *s3Service) CreateObject(ctx context.Context, in *pb.Object, out *pb.BaseResponse) error {
 	log.Infoln("CreateObject is called in s3 service.")
@@ -51,10 +59,14 @@ func (s *s3Service) UpdateObject(ctx context.Context, in *pb.Object, out *pb.Bas
 	return nil
 }
 
+type DataStreamRecv interface {
+	Recv() (*pb.PutDataStream, error)
+}
+
 type StreamReader struct {
-	in   pb.S3_PutObjectStream
+	in   DataStreamRecv
+	req  *pb.PutDataStream
 	curr int
-	req  *pb.PutObjectRequest
 }
 
 func (dr *StreamReader) Read(p []byte) (n int, err error) {
@@ -727,3 +739,364 @@ func (s *s3Service) ListObjectsInternal(ctx context.Context, request *pb.ListObj
 
 	return s.MetaStorage.Db.ListObjects(ctx, request.Bucket, request.Versioned, int(request.MaxKeys), filt)
 }
+
+func (s *s3Service) getAccountInfo(ctx context.Context) (tenantId string, userId string, err error) {
+	md, ok := metadata.FromContext(ctx)
+	if !ok {
+		log.Error("get metadata from ctx failed.")
+		err = ErrInternalError
+		return
+	}
+	tenantId, ok = md[common.CTX_KEY_TENANT_ID]
+	if !ok {
+		log.Error("get tenantid failed.")
+		err = ErrInternalError
+		return
+	}
+	userId, ok = md[common.CTX_KEY_USER_ID]
+	if !ok {
+		log.Error("get userId failed.")
+		err = ErrInternalError
+		return
+	}
+	return
+}
+
+func (s *s3Service) InitMultipartUpload(ctx context.Context, in *pb.InitMultiPartRequest, out *pb.InitMultiPartResponse) error {
+	log.Info("InitMultipartUpload is called in s3 service.")
+	bucketName := in.BucketName
+	objectKey := in.ObjectKey
+
+	var err error
+	defer func() {
+		out.ErrorCode = GetErrCode(err)
+	}()
+
+	tenantId, _, err := s.getAccountInfo(ctx)
+	if err != nil {
+		return err
+	}
+
+	bucket, err := s.MetaStorage.GetBucket(ctx, bucketName, true)
+	if err != nil {
+		log.Errorln("failed to get bucket from meta storage. err:", err)
+		return err
+	}
+
+	switch bucket.Acl.CannedAcl {
+	case "public-read-write":
+		break
+	default:
+		if bucket.TenantId != tenantId {
+			err = ErrBucketAccessForbidden
+			return err
+		}
+	}
+
+	attrs := in.Attrs
+	contentType, ok := attrs["Content-Type"]
+	if !ok {
+		contentType = "application/octet-stream"
+	}
+
+	backendName := bucket.DefaultLocation
+	backend, err := getBackend(ctx, s.backendClient, backendName)
+	if err != nil {
+		log.Errorln("failed to get backend client with err:", err)
+		return err
+	}
+
+	sd, err := driver.CreateStorageDriver(backend.Type, backend)
+	if err != nil {
+		log.Errorln("failed to create storage. err:", err)
+		return err
+	}
+	res, err := sd.InitMultipartUpload(ctx, &pb.Object{BucketName:bucketName,ObjectKey:objectKey})
+	if err != nil {
+		log.Errorln("failed to init multipart upload. err:", err)
+		return err
+	}
+
+	multipartMetadata := meta.MultipartMetadata{
+		InitiatorId:  tenantId,
+		TenantId:     bucket.TenantId,
+		UserId:       bucket.UserId,
+		ContentType:  contentType,
+		Acl:          datatype.Acl{CannedAcl:in.Acl.CannedAcl},
+		Attrs:        attrs,
+		StorageClass: StorageClass(in.StorageClass),
+	}
+
+	multipart := meta.Multipart{
+		BucketName:  bucketName,
+		ObjectKey:   objectKey,
+		UploadId:    res.UploadId,
+		ObjectId:    res.ObjectId,
+		InitialTime: time.Now().UTC(),
+		Metadata:    multipartMetadata,
+	}
+
+	err = s.MetaStorage.Db.CreateMultipart(multipart)
+	if err != nil {
+		log.Errorln("failed to create multipart in meta. err:", err)
+	}
+	out.UploadID = res.UploadId
+
+	return nil
+}
+
+func (s *s3Service) UploadPart(ctx context.Context, stream pb.S3_UploadPartStream) error {
+	log.Info("UploadPart is called in s3 service.")
+	var err error
+	uploadResponse := pb.UploadPartResponse{}
+	defer func() {
+		uploadResponse.ErrorCode = GetErrCode(err)
+		stream.SendMsg(&uploadResponse)
+	}()
+
+	uploadRequest := pb.UploadPartRequest{}
+	err = stream.RecvMsg(&uploadRequest)
+	if err != nil {
+		log.Errorln("failed to receive msg. err:", err)
+		return err
+	}
+	bucketName := uploadRequest.BucketName
+	objectKey := uploadRequest.ObjectKey
+	partId := uploadRequest.PartId
+	uploadId := uploadRequest.UploadId
+	size := uploadRequest.Size
+
+	log.Infof("receive msg, bucketname:%v, objectkey:%v, partId:%v, uploadId:%v,size:%v", bucketName,objectKey,partId,uploadId,size)
+
+	multipart, err := s.MetaStorage.GetMultipart(bucketName, objectKey, uploadId)
+	if err != nil {
+		log.Infoln("failed to get multipart. err:", err)
+		return err
+	}
+
+	if size > MAX_PART_SIZE {
+		err = ErrEntityTooLarge
+		return err
+	}
+
+	tenantId, _, err := s.getAccountInfo(ctx)
+	if err != nil {
+		log.Infoln("failed to get account info. err:", err)
+		return err
+	}
+
+	bucket, err := s.MetaStorage.GetBucket(ctx, bucketName, true)
+	if err != nil {
+		log.Errorln("get bucket failed with err:", err)
+		return err
+	}
+
+	switch bucket.Acl.CannedAcl {
+	case "public-read-write":
+		break
+	default:
+		if bucket.TenantId != tenantId {
+			err = ErrBucketAccessForbidden
+			log.Errorln("bucket is not permitted to access.")
+			return err
+		}
+	}
+
+	backendName := bucket.DefaultLocation
+	backend, err := getBackend(ctx, s.backendClient, backendName)
+	if err != nil {
+		log.Errorln("failed to get backend client with err:", err)
+		return err
+	}
+
+	data := &StreamReader{in: stream}
+	limitedDataReader := io.LimitReader(data, size)
+	sd, err := driver.CreateStorageDriver(backend.Type, backend)
+	if err != nil {
+		log.Errorln("failed to create storage. err:", err)
+		return nil
+	}
+	ctx = context.WithValue(ctx, dscommon.CONTEXT_KEY_MD5, uploadRequest.Md5Hex)
+	log.Infoln("bucketname:", bucketName, " objectKey:", objectKey, " uploadid:", uploadId, " objectId:", multipart.ObjectId, " partid:", partId)
+	result, err := sd.UploadPart(ctx, limitedDataReader, &pb.MultipartUpload{
+		Bucket:bucketName,
+		Key:objectKey,
+		UploadId:uploadId,
+		ObjectId:multipart.ObjectId},
+		int64(partId), size)
+	if err != nil {
+		log.Errorln("failed to upload part to backend. err:", err)
+		return err
+	}
+	uploadResponse.ETag = result.ETag
+
+	log.Infoln("UploadPart upload part successfully.")
+	return nil
+}
+
+func (s *s3Service) CompleteMultipartUpload(ctx context.Context, in *pb.CompleteMultipartRequest, out *pb.CompleteMultipartResponse) error {
+	log.Info("CompleteMultipartUpload is called in s3 service.")
+	bucketName := in.BucketName
+	objectKey := in.ObjectKey
+	uploadId := in.UploadId
+
+	var err error
+	completeMultipartResponse := pb.BaseResponse{}
+	defer func() {
+		completeMultipartResponse.ErrorCode = GetErrCode(err)
+	}()
+
+	tenantId, _, err := s.getAccountInfo(ctx)
+	if err != nil {
+		return err
+	}
+
+	bucket, err := s.MetaStorage.GetBucket(ctx, bucketName, true)
+	if err != nil {
+		return err
+	}
+	switch bucket.Acl.CannedAcl {
+	case "public-read-write":
+		break
+	default:
+		if bucket.TenantId != tenantId {
+			err = ErrBucketAccessForbidden
+			return err
+		}
+	}
+
+	multipart, err := s.MetaStorage.GetMultipart(bucketName, objectKey, uploadId)
+	if err != nil {
+		log.Errorln("failed to get multipart info. err:", err)
+		return err
+	}
+
+	backendName := bucket.DefaultLocation
+	backend, err := getBackend(ctx, s.backendClient, backendName)
+	if err != nil {
+		log.Errorln("failed to get backend client with err:", err)
+		return err
+	}
+	sd, err := driver.CreateStorageDriver(backend.Type, backend)
+	if err != nil {
+		log.Errorln("failed to create storage. err:", err)
+		return nil
+	}
+
+	parts := make([]model.Part, 0)
+	completeUpload := &model.CompleteMultipartUpload{}
+	for _, part := range in.CompleteParts {
+		parts = append(parts, model.Part{
+			PartNumber: part.PartNumber,
+			ETag:part.ETag,
+		})
+	}
+	completeUpload.Parts = parts
+	result, err := sd.CompleteMultipartUpload(ctx, &pb.MultipartUpload{
+		Bucket:bucketName,
+		Key:objectKey,
+		UploadId:uploadId,
+		ObjectId:multipart.ObjectId,
+	}, completeUpload)
+	if err != nil {
+		log.Errorln("failed to complete multipart. err:", err)
+		return err
+	}
+
+	// Add to objects table
+	contentType := multipart.Metadata.ContentType
+	object := &pb.Object{
+		BucketName:bucketName,
+		ObjectKey:objectKey,
+		ContentType:contentType,
+		ObjectId: multipart.ObjectId,
+		LastModified: time.Now().UTC().Unix(),
+		Etag: result.ETag,
+		DeleteMarker: false,
+		CustomAttributes: multipart.Metadata.Attrs,
+		Type: meta.ObjectTypeNormal,
+		Tier:utils.Tier1,
+	}
+
+	err = s.MetaStorage.PutObject(ctx, &Object{Object: object}, &multipart, nil, true)
+	if err != nil {
+		log.Errorln("failed to put object meta. err:", err)
+		//RecycleQueue <- maybeObjectToRecycle
+		return ErrDBError
+	}
+
+	log.Infoln("CompleteMultipartUpload upload part successfully.")
+	return nil
+}
+
+func (s *s3Service) AbortMultipartUpload(ctx context.Context, in *pb.AbortMultipartRequest, out *pb.BaseResponse) error {
+	log.Info("AbortMultipartUpload is called in s3 service.")
+	bucketName := in.BucketName
+	objectKey := in.ObjectKey
+	uploadId := in.UploadId
+
+	var err error
+	abortMultipartResponse := pb.BaseResponse{}
+	defer func() {
+		abortMultipartResponse.ErrorCode = GetErrCode(err)
+	}()
+
+	tenantId, _, err := s.getAccountInfo(ctx)
+	if err != nil {
+		return err
+	}
+
+	bucket, err := s.MetaStorage.GetBucket(ctx, bucketName, true)
+	if err != nil {
+		return err
+	}
+
+	switch bucket.Acl.CannedAcl {
+	case "public-read-write":
+		break
+	default:
+		if bucket.TenantId != tenantId {
+			return ErrBucketAccessForbidden
+		}
+	}
+
+	multipart, err := s.MetaStorage.GetMultipart(bucketName, objectKey, uploadId)
+	if err != nil {
+		log.Errorln("failed to get multipart info. err:", err)
+		return err
+	}
+
+	backendName := bucket.DefaultLocation
+	backend, err := getBackend(ctx, s.backendClient, backendName)
+	if err != nil {
+		log.Errorln("failed to get backend client with err:", err)
+		return err
+	}
+	sd, err := driver.CreateStorageDriver(backend.Type, backend)
+	if err != nil {
+		log.Errorln("failed to create storage. err:", err)
+		return err
+	}
+
+	err = sd.AbortMultipartUpload(ctx, &pb.MultipartUpload{Bucket:bucketName, Key:objectKey, UploadId:uploadId, ObjectId:"objectId"})
+	if err != nil {
+		log.Errorln("failed to abort multipart. err:", err)
+		return err
+	}
+
+	err = s.MetaStorage.DeleteMultipart(ctx, multipart)
+	if err != nil {
+		log.Errorln("failed to delete multipart. err:", err)
+		return err
+	}
+
+	return nil
+}
+
+
+func (s *s3Service) ListObjectParts(ctx context.Context, in *pb.ListObjectPartsRequest, out *pb.ListObjectPartsResponse) error {
+	log.Info("ListObjectParts is called in s3 service.")
+
+	return nil
+}
+

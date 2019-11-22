@@ -18,7 +18,7 @@ import (
 
 const (
 	MAX_PART_SIZE   = 5 << 30 // 5GB
-	MIN_PART_SIZE   = 5 << 20 // 5MB
+	MIN_PART_SIZE   = 5 // 5MB
 	MIN_PART_NUMBER = 1
 	MAX_PART_NUMBER = 10000
 )
