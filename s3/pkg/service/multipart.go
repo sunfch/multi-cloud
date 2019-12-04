@@ -16,7 +16,10 @@ package service
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/hex"
 	"io"
+	"strconv"
 	"time"
 
 	"github.com/opensds/multi-cloud/api/pkg/s3/datatype"
@@ -257,6 +260,23 @@ func (s *s3Service) UploadPart(ctx context.Context, stream pb.S3_UploadPartStrea
 		log.Errorln("failed to upload part to backend. err:", err)
 		return err
 	}
+
+	part := Part{
+		PartNumber:           int(partId),
+		Size:                 size,
+		ObjectId:             multipart.ObjectId,
+		Etag:                 result.ETag,
+		LastModified:         time.Now().UTC().Format(CREATE_TIME_LAYOUT),
+	}
+
+	err = s.MetaStorage.PutObjectPart(ctx, multipart, part)
+	if err != nil {
+		log.Errorln("failed to put object part. err:", err)
+		//TODO: delete failed object part
+		return err
+	}
+	//TODO: delete old object part
+
 	uploadResponse.ETag = result.ETag
 
 	log.Infoln("UploadPart upload part successfully.")
@@ -306,6 +326,40 @@ func (s *s3Service) CompleteMultipartUpload(ctx context.Context, in *pb.Complete
 		return err
 	}
 
+	md5Writer := md5.New()
+	var totalSize int64 = 0
+	for i := 0; i < len(in.CompleteParts); i++ {
+		if in.CompleteParts[i].PartNumber != int64(i+1) {
+			log.Infof("")
+			err = ErrInvalidPart
+			return err
+		}
+		part, ok := multipart.Parts[i+1]
+		if !ok {
+			log.Infoln()
+			err = ErrInvalidPart
+			return err
+		}
+
+		if part.Etag != in.CompleteParts[i].ETag {
+			log.Infoln()
+			err = ErrInvalidPart
+			return err
+		}
+		var etagBytes []byte
+		etagBytes, err = hex.DecodeString(part.Etag)
+		if err != nil {
+			log.Errorln()
+			err = ErrInvalidPart
+			return err
+		}
+		part.Offset = totalSize
+		totalSize += part.Size
+		md5Writer.Write(etagBytes)
+	}
+	eTag := hex.EncodeToString(md5Writer.Sum(nil))
+	eTag += "-" + strconv.Itoa(len(in.CompleteParts))
+
 	backendName := bucket.DefaultLocation
 	backend, err := utils.GetBackend(ctx, s.backendClient, backendName)
 	if err != nil {
@@ -327,7 +381,7 @@ func (s *s3Service) CompleteMultipartUpload(ctx context.Context, in *pb.Complete
 		})
 	}
 	completeUpload.Parts = parts
-	result, err := sd.CompleteMultipartUpload(ctx, &pb.MultipartUpload{
+	_, err = sd.CompleteMultipartUpload(ctx, &pb.MultipartUpload{
 		Bucket:   bucketName,
 		Key:      objectKey,
 		UploadId: uploadId,
@@ -348,26 +402,21 @@ func (s *s3Service) CompleteMultipartUpload(ctx context.Context, in *pb.Complete
 		ContentType:      contentType,
 		ObjectId:         multipart.ObjectId,
 		LastModified:     time.Now().UTC().Unix(),
-		Etag:             result.ETag,
+		Etag:             eTag,
 		DeleteMarker:     false,
 		CustomAttributes: multipart.Metadata.Attrs,
 		Type:             ObjectTypeNormal,
 		Tier:             utils.Tier1,
-		Size:             result.Size,
+		Size:             totalSize,
 		Location:         multipart.Metadata.Location,
 	}
+
+	//TODO: delete old object
 
 	err = s.MetaStorage.PutObject(ctx, &Object{Object: object}, &multipart, nil, true)
 	if err != nil {
 		log.Errorln("failed to put object meta. err:", err)
-		// TODO:  delete object
 		return ErrDBError
-	}
-
-	err = s.MetaStorage.DeleteMultipart(ctx, multipart)
-	if err != nil {
-		log.Errorln("failed to delete multipart. err:", err)
-		return err
 	}
 
 	log.Infoln("CompleteMultipartUpload upload part successfully.")
@@ -544,6 +593,23 @@ func (s *s3Service) CopyObjPart(ctx context.Context, in *pb.CopyObjPartRequest, 
 		log.Errorln("failed to upload part to backend. err:", err)
 		return err
 	}
+
+	part := Part{
+		PartNumber:           int(partId),
+		Size:                 size,
+		ObjectId:             multipart.ObjectId,
+		Etag:                 result.ETag,
+		LastModified:         time.Now().UTC().Format(CREATE_TIME_LAYOUT),
+	}
+
+	err = s.MetaStorage.PutObjectPart(ctx, multipart, part)
+	if err != nil {
+		log.Errorln("failed to put object part. err:", err)
+		//TODO: delete failed object
+		return err
+	}
+	// TODO: delete old object in backend
+
 	out.Etag = result.ETag
 	out.LastModified = time.Now().UTC().Unix()
 
@@ -603,42 +669,30 @@ func (s *s3Service) ListObjectParts(ctx context.Context, in *pb.ListObjectPartsR
 		}
 	}
 
-	backend, err := utils.GetBackend(ctx, s.backendClient, bucket.DefaultLocation)
-	if err != nil {
-		log.Errorln("failed to get backend client with err:", err)
-		return err
-	}
-	sd, err := driver.CreateStorageDriver(backend.Type, backend)
-	if err != nil {
-		log.Errorln("failed to create storage. err:", err)
-		return err
-	}
-
-	listPartResult, err := sd.ListParts(ctx, &pb.ListParts{
-		Bucket:           bucketName,
-		Key:              objectKey,
-		UploadId:         uploadId,
-		MaxParts:         in.MaxParts,
-		PartNumberMarker: in.PartNumberMarker,
-	})
-	if err != nil {
-		log.Errorln("failed to list parts for backend. err:", err)
-		return err
-	}
-
 	out.Initiator = &pb.Owner{Id: multipart.Metadata.InitiatorId, DisplayName: multipart.Metadata.InitiatorId}
 	out.Owner = &pb.Owner{Id: multipart.Metadata.TenantId, DisplayName: multipart.Metadata.TenantId}
-	out.MaxParts = int64(listPartResult.MaxParts)
-	out.IsTruncated = listPartResult.IsTruncated
+	out.MaxParts = int64(in.MaxParts)
 	out.Parts = make([]*pb.Part, 0)
-	for _, part := range listPartResult.Parts {
-		out.Parts = append(out.Parts, &pb.Part{
-			PartNumber:   part.PartNumber,
-			ETag:         part.ETag,
-			Size:         part.Size,
-			LastModified: time.Now().Format(CREATE_TIME_LAYOUT),  // TODO: the lastmodified time should be from backend.
-		})
+	for i := in.PartNumberMarker + 1; i <= MAX_PART_NUMBER; i++ {
+		if p, ok := multipart.Parts[int(i)]; ok {
+			out.Parts = append(out.Parts, &pb.Part{
+				PartNumber:   i,
+				ETag:         "\"" + p.Etag + "\"",
+				Size:         p.Size,
+				LastModified: p.LastModified,
+			})
+
+			if int64(len(out.Parts)) > in.MaxParts {
+				break
+			}
+		}
 	}
+	if int64(len(out.Parts)) == in.MaxParts+1 {
+		out.IsTruncated = true
+		out.NextPartNumberMarker = out.Parts[out.MaxParts].PartNumber
+		out.Parts = out.Parts[:in.MaxParts]
+	}
+	out.PartNumberMarker = in.PartNumberMarker
 
 	log.Infof("list object part successfully. ")
 	return nil
