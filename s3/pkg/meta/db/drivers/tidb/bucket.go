@@ -503,7 +503,7 @@ func (t *TidbClient) UpdateUsage(ctx context.Context, bucketName string, size in
 	}
 	sqlTx, _ = tx.(*sql.Tx)
 
-	sql := "update buckets set usages=? where bucketname=?;"
+	sql := "update buckets set usages= usages + ? where bucketname=?;"
 	_, err = sqlTx.Exec(sql, size, bucketName)
 	if err != nil {
 		err = handleDBError(err)

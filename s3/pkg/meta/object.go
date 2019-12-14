@@ -106,6 +106,13 @@ func (m *Meta) PutObject(ctx context.Context, object, deleteObj *Object, multipa
 		}
 	}
 
+	if updateUsage {
+		err = m.Db.UpdateUsage(ctx, object.BucketName, object.Size, tx)
+		if err != nil {
+			return err
+		}
+	}
+
 	// TODO: usage need to be updated for charging, and it depends on redis, and the mechanism is:
 	// 1. Update usage in redis when each put happens.
 	// 2. Update usage in database periodically based on redis.
@@ -129,6 +136,11 @@ func (m *Meta) DeleteObject(ctx context.Context, object *Object) error {
 	}()
 
 	err = m.Db.DeleteObject(ctx, object, tx)
+	if err != nil {
+		return err
+	}
+
+	err = m.Db.UpdateUsage(ctx, object.BucketName, -object.Size, tx)
 	if err != nil {
 		return err
 	}
