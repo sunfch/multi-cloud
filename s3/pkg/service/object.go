@@ -251,9 +251,12 @@ func (s *s3Service) PutObject(ctx context.Context, in pb.S3_PutObjectStream) err
 	obj.Type = meta.ObjectTypeNormal
 	obj.Tier = utils.Tier1 // Currently only support tier1
 	obj.StorageMeta = res.Meta
-	obj.Size = actualSize
 	obj.EncSize = req.Size
 	obj.Location = backendName
+	obj.Size = actualSize
+	if actualSize == -1 {
+		obj.Size = res.Written
+	}
 
 	object := &meta.Object{Object: obj}
 
@@ -294,7 +297,7 @@ func (s *s3Service) GetObjectMeta(ctx context.Context, in *pb.Object, out *pb.Ge
 	bucket, err := s.MetaStorage.GetBucket(ctx, in.BucketName, true)
 	if err != nil {
 		log.Errorln("failed to get bucket from meta storage. err:", err)
-		return err
+		return nil
 	}
 
 	object, err := s.MetaStorage.GetObject(ctx, in.BucketName, in.ObjectKey, "", true)
@@ -313,7 +316,7 @@ func (s *s3Service) GetObjectMeta(ctx context.Context, in *pb.Object, out *pb.Ge
 	err = s.checkGetObjectRights(ctx, isAdmin, tenantId, bucket.Bucket, object.Object)
 	if err != nil {
 		log.Errorln("failed to check source object rights. err:", err)
-		return err
+		return nil
 	}
 
 	out.Object = object.Object
@@ -480,13 +483,13 @@ func (s *s3Service) CopyObject(ctx context.Context, in *pb.CopyObjectRequest, ou
 	targetBucket, err := s.MetaStorage.GetBucket(ctx, targetBucketName, true)
 	if err != nil {
 		log.Errorln("get bucket failed with err:", err)
-		return err
+		return nil
 	}
 
 	isAdmin, tenantId, _, err := util.GetCredentialFromCtx(ctx)
 	if err != nil {
 		log.Errorf("get credential faied, err:%v\n", err)
-		return err
+		return nil
 	}
 
 	if !isAdmin {
@@ -496,7 +499,7 @@ func (s *s3Service) CopyObject(ctx context.Context, in *pb.CopyObjectRequest, ou
 		default:
 			if targetBucket.TenantId != tenantId {
 				err = ErrBucketAccessForbidden
-				return err
+				return nil
 			}
 		}
 	}
@@ -504,18 +507,18 @@ func (s *s3Service) CopyObject(ctx context.Context, in *pb.CopyObjectRequest, ou
 	srcBucket, err := s.MetaStorage.GetBucket(ctx, srcBucketName, true)
 	if err != nil {
 		log.Errorln("get bucket failed with err:", err)
-		return err
+		return nil
 	}
 	srcObject, err := s.MetaStorage.GetObject(ctx, srcBucketName, srcObjectName, "", true)
 	if err != nil {
 		log.Errorln("failed to get object info from meta storage. err:", err)
-		return err
+		return nil
 	}
 
 	err = s.checkGetObjectRights(ctx, isAdmin, tenantId, srcBucket.Bucket, srcObject.Object)
 	if err != nil {
 		log.Errorln("failed to check source object rights. err:", err)
-		return err
+		return nil
 	}
 
 	backendName := srcBucket.DefaultLocation
@@ -527,12 +530,12 @@ func (s *s3Service) CopyObject(ctx context.Context, in *pb.CopyObjectRequest, ou
 	srcBackend, err := utils.GetBackend(ctx, s.backendClient, backendName)
 	if err != nil {
 		log.Errorln("failed to get backend client with err:", err)
-		return err
+		return nil
 	}
 	srcSd, err := driver.CreateStorageDriver(srcBackend.Type, srcBackend)
 	if err != nil {
 		log.Errorln("failed to create storage. err:", err)
-		return err
+		return nil
 	}
 
 	targetBackendName := targetBucket.DefaultLocation
@@ -541,25 +544,26 @@ func (s *s3Service) CopyObject(ctx context.Context, in *pb.CopyObjectRequest, ou
 	targetBackend, err := utils.GetBackend(ctx, s.backendClient, targetBackendName)
 	if err != nil {
 		log.Errorln("failed to get backend client with err:", err)
-		return err
+		return nil
 	}
 	// get old object meta if it exist
 	oldObj, err := s.MetaStorage.GetObject(ctx, targetBucketName, targetObjectName, "", false)
 	if err != nil && err != ErrNoSuchKey {
 		log.Errorf("get object[%s] failed, err:%v\n", targetObjectName, err)
-		return ErrInternalError
+		err = ErrInternalError
+		return nil
 	}
 	log.Debugf("existObj=%v, err=%v\n", oldObj, err)
 	targetSd, err := driver.CreateStorageDriver(targetBackend.Type, targetBackend)
 	if err != nil {
 		log.Errorln("failed to create storage. err:", err)
-		return err
+		return nil
 	}
 	log.Debugf("***ctx:%+v\n", ctx)
 	reader, err := srcSd.Get(ctx, srcObject.Object, 0, srcObject.Size-1)
 	if err != nil {
 		log.Errorln("failed to put data. err:", err)
-		return err
+		return nil
 	}
 	limitedDataReader := io.LimitReader(reader, srcObject.Size)
 
@@ -576,13 +580,13 @@ func (s *s3Service) CopyObject(ctx context.Context, in *pb.CopyObjectRequest, ou
 	res, err := targetSd.Put(ctx, limitedDataReader, targetObject)
 	if err != nil {
 		log.Errorln("failed to put data. err:", err)
-		return err
+		return nil
 	}
 	if res.Written < srcObject.Size {
 		// TODO: delete incomplete object at backend
 		log.Warnf("write objects, already written(%d), total size(%d)\n", res.Written, srcObject.Size)
 		err = ErrIncompleteBody
-		return err
+		return nil
 	}
 
 	targetObject.Etag = res.Etag
@@ -596,7 +600,7 @@ func (s *s3Service) CopyObject(ctx context.Context, in *pb.CopyObjectRequest, ou
 	targetObject.Location = targetBackendName
 	targetObject.TenantId = tenantId
 	// this is the default acl setting
-	targetObject.Acl = &pb.Acl{CannedAcl: "private"}
+	targetObject.Acl = in.Acl
 	// we only support copy data with sse but not support copy data without sse right now
 	targetObject.ServerSideEncryption = srcObject.ServerSideEncryption
 	if validTier(in.TargetTier) {
@@ -604,13 +608,16 @@ func (s *s3Service) CopyObject(ctx context.Context, in *pb.CopyObjectRequest, ou
 	} else {
 		targetObject.Tier = srcObject.Tier
 	}
+	if len(in.CustomAttributes) != 0 {
+		targetObject.CustomAttributes = in.CustomAttributes
+	}
 
 	err = s.MetaStorage.PutObject(ctx, &meta.Object{Object: targetObject}, oldObj, nil, nil, true)
 	if err != nil {
 		log.Errorf("failed to put object meta[object:%+v, oldObj:%+v]. err:%v\n", targetObject, oldObj, err)
 		// TODO: consistent check & clean
 		err = ErrDBError
-		return err
+		return nil
 	}
 
 	out.Md5 = res.Etag
